@@ -5,6 +5,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import type { SavedItemResponse, CategoryType } from "@/lib/api/types";
 import { fetchItems } from "@/lib/api/client";
 import { ItemCard, CATEGORY_META } from "@/components/feed/ItemCard";
+import { useAuthActions } from "@convex-dev/auth/react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -185,6 +186,28 @@ function EmptyState({ category }: { category: TabValue }) {
 
 // ─── Main FeedApp ─────────────────────────────────────────────────────────────
 
+function SignOutButton() {
+  const { signOut } = useAuthActions();
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  const handleSignOut = async () => {
+    setLoading(true);
+    await signOut();
+    router.push("/login");
+  };
+
+  return (
+    <button
+      onClick={handleSignOut}
+      disabled={loading}
+      className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-[#555] hover:text-[#888] hover:bg-[#141418] border border-transparent transition-all disabled:opacity-40"
+    >
+      {loading ? "Signing out…" : "Sign out"}
+    </button>
+  );
+}
+
 export function FeedApp() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -302,6 +325,9 @@ export function FeedApp() {
           <div className="flex-1 relative">
             <UrlInput onSaved={loadItems} />
           </div>
+
+          {/* Sign out */}
+          <SignOutButton />
         </div>
       </header>
 
