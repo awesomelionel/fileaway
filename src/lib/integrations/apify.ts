@@ -21,6 +21,7 @@ export interface ScrapeResult {
   description?: string;
   videoUrl?: string;
   thumbnailUrl?: string;
+  displayUrl?: string;
   transcript?: string;
   authorName?: string;
   authorHandle?: string;

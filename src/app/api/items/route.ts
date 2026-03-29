@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
   }
 
   const total = countResult.count ?? 0;
-  const items = (dataResult.data ?? []).map((row) => toResponse(row as Record<string, unknown>));
+  const items = (dataResult.data ?? []).map((row: Record<string, unknown>) => toResponse(row));
 
   const response: SavedItemListResponse = {
     items,

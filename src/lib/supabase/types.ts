@@ -19,3 +19,16 @@ export interface SavedItem {
 
 export type NewSavedItem = Pick<SavedItem, "user_id" | "source_url"> &
   Partial<Omit<SavedItem, "id" | "user_id" | "source_url" | "created_at" | "updated_at">>;
+
+/** Supabase Database shape used by integration tests. */
+export interface Database {
+  public: {
+    Tables: {
+      saved_items: {
+        Row: SavedItem;
+        Insert: NewSavedItem;
+        Update: Partial<Omit<SavedItem, "id" | "created_at">>;
+      };
+    };
+  };
+}
