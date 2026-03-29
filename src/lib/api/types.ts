@@ -7,9 +7,9 @@
  *   PATCH /api/items/:id
  */
 
-import type { PlatformType, CategoryType, ItemStatus } from "@/lib/supabase/types";
-
-export type { PlatformType, CategoryType, ItemStatus };
+export type PlatformType = "tiktok" | "instagram" | "youtube" | "twitter" | "other";
+export type CategoryType = "food" | "fitness" | "recipe" | "how-to" | "video-analysis" | "other";
+export type ItemStatus = "pending" | "processing" | "done" | "failed";
 
 /** A single saved item as returned by the API. */
 export interface SavedItemResponse {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useTransition } from "react";
+import { useState, useCallback, useTransition } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import type { SavedItemResponse, CategoryType } from "@/lib/api/types";
-import { fetchItems } from "@/lib/api/client";
+import type { CategoryType } from "@/lib/api/types";
 import { ItemCard, CATEGORY_META } from "@/components/feed/ItemCard";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,10 +24,11 @@ const TABS: { value: TabValue; label: string }[] = [
 
 // ─── URL input form ───────────────────────────────────────────────────────────
 
-function UrlInput({ onSaved }: { onSaved: () => void }) {
+function UrlInput() {
   const [url, setUrl] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const saveItem = useMutation(api.items.save);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,26 +37,14 @@ function UrlInput({ onSaved }: { onSaved: () => void }) {
     setErrorMsg("");
 
     try {
-      const res = await fetch("/api/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
-      });
-
-      if (res.ok) {
-        setStatus("success");
-        setUrl("");
-        onSaved();
-        setTimeout(() => setStatus("idle"), 2500);
-      } else {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setStatus("error");
-        setErrorMsg(data.error ?? "Failed to save");
-        setTimeout(() => setStatus("idle"), 3000);
-      }
-    } catch {
+      await saveItem({ url: url.trim() });
+      setStatus("success");
+      setUrl("");
+      setTimeout(() => setStatus("idle"), 2500);
+    } catch (err: unknown) {
       setStatus("error");
-      setErrorMsg("Network error");
+      const msg = err instanceof Error ? err.message : "Failed to save";
+      setErrorMsg(msg);
       setTimeout(() => setStatus("idle"), 3000);
     }
   };
@@ -184,7 +174,7 @@ function EmptyState({ category }: { category: TabValue }) {
   );
 }
 
-// ─── Main FeedApp ─────────────────────────────────────────────────────────────
+// ─── Sign out button ──────────────────────────────────────────────────────────
 
 function SignOutButton() {
   const { signOut } = useAuthActions();
@@ -208,18 +198,22 @@ function SignOutButton() {
   );
 }
 
+// ─── Main FeedApp ─────────────────────────────────────────────────────────────
+
 export function FeedApp() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const [, startTransition] = useTransition();
+  const [searchInput, setSearchInput] = useState(searchParams.get("q") ?? "");
 
   const activeCategory = (searchParams.get("category") as TabValue | null) ?? "all";
   const searchQuery = searchParams.get("q") ?? "";
 
-  const [allItems, setAllItems] = useState<SavedItemResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchInput, setSearchInput] = useState(searchQuery);
+  // Convex reactive query — automatically updates when items change
+  const rawItems = useQuery(api.items.list);
+  const allItems = rawItems ?? [];
+  const loading = rawItems === undefined;
 
   const updateParam = useCallback(
     (updates: Record<string, string | null>) => {
@@ -238,22 +232,6 @@ export function FeedApp() {
     },
     [searchParams, router, pathname],
   );
-
-  const loadItems = useCallback(async () => {
-    setLoading(true);
-    const result = await fetchItems({ limit: 100 });
-    setAllItems(result.items);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    loadItems();
-  }, [loadItems]);
-
-  // Sync search input with URL param
-  useEffect(() => {
-    setSearchInput(searchQuery);
-  }, [searchQuery]);
 
   // Client-side filter (instant response)
   const filteredItems = allItems.filter((item) => {
@@ -287,16 +265,8 @@ export function FeedApp() {
     }
   }
 
-  const handleCategoryChange = useCallback(
-    (id: string, category: CategoryType) => {
-      setAllItems((prev) => prev.map((item) => (item.id === id ? { ...item, category } : item)));
-    },
-    [],
-  );
-
   const handleSearch = (value: string) => {
     setSearchInput(value);
-    // Debounce URL update
     const timer = setTimeout(() => {
       updateParam({ q: value || null });
     }, 350);
@@ -323,7 +293,7 @@ export function FeedApp() {
 
           {/* URL input */}
           <div className="flex-1 relative">
-            <UrlInput onSaved={loadItems} />
+            <UrlInput />
           </div>
 
           {/* Sign out */}
@@ -375,7 +345,7 @@ export function FeedApp() {
             <EmptyState category={activeCategory} />
           ) : (
             filteredItems.map((item) => (
-              <ItemCard key={item.id} item={item} onCategoryChange={handleCategoryChange} />
+              <ItemCard key={item.id} item={item} />
             ))
           )}
         </div>

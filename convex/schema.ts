@@ -1,0 +1,38 @@
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
+
+export default defineSchema({
+  ...authTables,
+  savedItems: defineTable({
+    userId: v.id("users"),
+    sourceUrl: v.string(),
+    platform: v.union(
+      v.literal("tiktok"),
+      v.literal("instagram"),
+      v.literal("youtube"),
+      v.literal("twitter"),
+      v.literal("other"),
+    ),
+    category: v.union(
+      v.literal("food"),
+      v.literal("fitness"),
+      v.literal("recipe"),
+      v.literal("how-to"),
+      v.literal("video-analysis"),
+      v.literal("other"),
+    ),
+    rawContent: v.optional(v.any()),
+    extractedData: v.optional(v.any()),
+    actionTaken: v.optional(v.string()),
+    userCorrection: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("done"),
+      v.literal("failed"),
+    ),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_status", ["status"]),
+});

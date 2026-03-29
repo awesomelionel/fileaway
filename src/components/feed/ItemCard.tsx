@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import type { SavedItemResponse, CategoryType } from "@/lib/api/types";
-import { patchItemCategory } from "@/lib/api/client";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 // ─── Category metadata ───────────────────────────────────────────────────────
 
@@ -519,7 +521,6 @@ function GuideModal({
 
 interface ItemCardProps {
   item: SavedItemResponse;
-  onCategoryChange?: (id: string, category: CategoryType) => void;
 }
 
 const CATEGORIES: CategoryType[] = [
@@ -531,9 +532,10 @@ const CATEGORIES: CategoryType[] = [
   "other",
 ];
 
-export function ItemCard({ item, onCategoryChange }: ItemCardProps) {
+export function ItemCard({ item }: ItemCardProps) {
   const [guideItem, setGuideItem] = useState<SavedItemResponse | null>(null);
   const [overriding, setOverriding] = useState(false);
+  const updateCategory = useMutation(api.items.updateCategory);
 
   const meta = CATEGORY_META[item.category];
 
@@ -541,10 +543,11 @@ export function ItemCard({ item, onCategoryChange }: ItemCardProps) {
     const newCat = e.target.value as CategoryType;
     if (newCat === item.category) return;
     setOverriding(true);
-    const updated = await patchItemCategory(item.id, newCat);
-    setOverriding(false);
-    // Optimistic: use API result or assume success with client-side update
-    onCategoryChange?.(item.id, updated?.category ?? newCat);
+    try {
+      await updateCategory({ id: item.id as Id<"savedItems">, category: newCat });
+    } finally {
+      setOverriding(false);
+    }
   };
 
   return (
