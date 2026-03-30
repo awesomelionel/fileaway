@@ -65,20 +65,31 @@ function buildCategorizationPrompt(scrape: ScrapeResult): string {
 }
 
 export async function categorizeContent(scrapeResult: ScrapeResult): Promise<CategoryType> {
+  console.log(`[gemini/categorize] Starting — model: ${FLASH_MODEL}, platform: ${scrapeResult.platform}`);
+  console.log(`[gemini/categorize] Input — title: ${scrapeResult.title ?? "(none)"}, description: ${(scrapeResult.description ?? "").slice(0, 200)}, hashtags: ${(scrapeResult.hashtags ?? []).join(", ") || "(none)"}`);
+
   const client = getClient();
   const model = client.getGenerativeModel({ model: FLASH_MODEL });
 
   const prompt = buildCategorizationPrompt(scrapeResult);
-  console.log("[gemini/categorize] Sending categorization prompt");
+  console.log(`[gemini/categorize] Prompt length: ${prompt.length} chars`);
 
-  const result = await model.generateContent(prompt);
+  const t0 = Date.now();
+  let result;
+  try {
+    result = await model.generateContent(prompt);
+  } catch (err) {
+    console.error(`[gemini/categorize] API error after ${Date.now() - t0}ms — model: ${FLASH_MODEL}`, err);
+    throw err;
+  }
   const raw = result.response.text().trim().toLowerCase();
+  console.log(`[gemini/categorize] Response in ${Date.now() - t0}ms — raw: "${raw}"`);
 
   const matched = VALID_CATEGORIES.find((c) => raw.includes(c));
-  if (matched) return matched;
-
-  console.warn(`[gemini/categorize] Unexpected response "${raw}", defaulting to "other"`);
-  return "other";
+  if (!matched) {
+    console.warn(`[gemini/categorize] No valid category matched in response "${raw}", defaulting to "other"`);
+  }
+  return matched ?? "other";
 }
 
 // ─── Structured Extraction ───────────────────────────────────────────────────
@@ -176,22 +187,34 @@ export async function extractStructuredData(
   const useProModel = ["food", "recipe", "fitness"].includes(category);
   const modelName = useProModel ? PRO_MODEL : FLASH_MODEL;
 
+  console.log(`[gemini/extract] Starting — model: ${modelName}, category: ${category}, useProModel: ${useProModel}`);
+
   const client = getClient();
   const model = client.getGenerativeModel({ model: modelName });
 
   const prompt = buildExtractionPrompt(scrapeResult, category);
-  console.log(`[gemini/extract] Model: ${modelName}, Category: ${category}`);
+  console.log(`[gemini/extract] Prompt length: ${prompt.length} chars`);
 
-  const result = await model.generateContent(prompt);
+  const t0 = Date.now();
+  let result;
+  try {
+    result = await model.generateContent(prompt);
+  } catch (err) {
+    console.error(`[gemini/extract] API error after ${Date.now() - t0}ms — model: ${modelName}, category: ${category}`, err);
+    throw err;
+  }
   const raw = result.response.text().trim();
+  console.log(`[gemini/extract] Response in ${Date.now() - t0}ms — raw length: ${raw.length} chars`);
+  console.log(`[gemini/extract] Raw response: ${raw.slice(0, 500)}${raw.length > 500 ? "…" : ""}`);
 
   let extractedData: Record<string, unknown>;
   try {
     // Strip markdown code fences if present
     const jsonStr = raw.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     extractedData = JSON.parse(jsonStr);
+    console.log(`[gemini/extract] JSON parsed successfully — keys: ${Object.keys(extractedData).join(", ")}`);
   } catch (err) {
-    console.error("[gemini/extract] Failed to parse JSON response:", raw);
+    console.error(`[gemini/extract] Failed to parse JSON response — raw: ${raw}`, err);
     extractedData = { raw_response: raw, parse_error: true };
   }
 

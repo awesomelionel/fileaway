@@ -165,6 +165,9 @@ function getGeminiClient(): GoogleGenerativeAI {
 async function categorizeContent(
   scrape: ScrapeResult,
 ): Promise<CategoryType> {
+  console.log(`[gemini/categorize] Starting — model: ${FLASH_MODEL}, platform: ${scrape.platform}`);
+  console.log(`[gemini/categorize] Input — title: ${scrape.title ?? "(none)"}, description: ${(scrape.description ?? "").slice(0, 200)}, hashtags: ${(scrape.hashtags ?? []).join(", ") || "(none)"}`);
+
   const client = getGeminiClient();
   const model = client.getGenerativeModel({ model: FLASH_MODEL });
 
@@ -192,11 +195,22 @@ async function categorizeContent(
   }
   parts.push(`Platform: ${scrape.platform}`);
 
-  const result = await model.generateContent(parts.join("\n"));
+  const t0 = Date.now();
+  let result;
+  try {
+    result = await model.generateContent(parts.join("\n"));
+  } catch (err) {
+    console.error(`[gemini/categorize] API error after ${Date.now() - t0}ms — model: ${FLASH_MODEL}`, err);
+    throw err;
+  }
   const raw = result.response.text().trim().toLowerCase();
+  console.log(`[gemini/categorize] Response in ${Date.now() - t0}ms — raw: "${raw}"`);
+
   const matched = VALID_CATEGORIES.find((c) => raw.includes(c));
-  if (matched) return matched;
-  return "other";
+  if (!matched) {
+    console.warn(`[gemini/categorize] No valid category matched in response, defaulting to "other"`);
+  }
+  return matched ?? "other";
 }
 
 interface ExtractionResult {
@@ -300,12 +314,25 @@ async function extractStructuredData(
 ): Promise<ExtractionResult> {
   const useProModel = ["food", "recipe", "fitness"].includes(category);
   const modelName = useProModel ? PRO_MODEL : FLASH_MODEL;
+  console.log(`[gemini/extract] Starting — model: ${modelName}, category: ${category}, useProModel: ${useProModel}`);
+
   const client = getGeminiClient();
   const model = client.getGenerativeModel({ model: modelName });
 
   const prompt = buildExtractionPrompt(scrape, category);
-  const result = await model.generateContent(prompt);
+  console.log(`[gemini/extract] Prompt length: ${prompt.length} chars`);
+
+  const t0 = Date.now();
+  let result;
+  try {
+    result = await model.generateContent(prompt);
+  } catch (err) {
+    console.error(`[gemini/extract] API error after ${Date.now() - t0}ms — model: ${modelName}, category: ${category}`, err);
+    throw err;
+  }
   const raw = result.response.text().trim();
+  console.log(`[gemini/extract] Response in ${Date.now() - t0}ms — raw length: ${raw.length} chars`);
+  console.log(`[gemini/extract] Raw response: ${raw.slice(0, 500)}${raw.length > 500 ? "…" : ""}`);
 
   let extractedData: Record<string, unknown>;
   try {
@@ -313,7 +340,9 @@ async function extractStructuredData(
       .replace(/^```(?:json)?\n?/, "")
       .replace(/\n?```$/, "");
     extractedData = JSON.parse(jsonStr);
-  } catch {
+    console.log(`[gemini/extract] JSON parsed successfully — keys: ${Object.keys(extractedData).join(", ")}`);
+  } catch (parseErr) {
+    console.warn(`[gemini/extract] JSON parse failed, storing raw response`, parseErr);
     extractedData = { raw_response: raw, parse_error: true };
   }
 
@@ -341,16 +370,23 @@ export const processItem = internalAction({
       id: savedItemId,
     });
 
+    const pipelineStart = Date.now();
     try {
       const platform = detectPlatform(url);
+      console.log(`[processUrl] Detected platform: ${platform}`);
+
+      console.log(`[processUrl] Scraping url via Apify...`);
+      const scrapeStart = Date.now();
       const scrapeResult = await scrapeUrl(url, platform);
-      console.log(`[processUrl] Scraped ${platform}`);
+      console.log(`[processUrl] Scrape complete in ${Date.now() - scrapeStart}ms — platform: ${platform}, title: ${scrapeResult.title ?? "(none)"}, hasVideo: ${!!scrapeResult.videoUrl}, hashtags: ${(scrapeResult.hashtags ?? []).length}`);
 
+      console.log(`[processUrl] Categorizing content...`);
       const category = await categorizeContent(scrapeResult);
-      console.log(`[processUrl] Category: ${category}`);
+      console.log(`[processUrl] Category resolved: ${category}`);
 
+      console.log(`[processUrl] Extracting structured data...`);
       const extraction = await extractStructuredData(scrapeResult, category);
-      console.log(`[processUrl] Extraction done — action: ${extraction.actionTaken}`);
+      console.log(`[processUrl] Extraction complete — category: ${extraction.category}, action: ${extraction.actionTaken}, dataKeys: ${Object.keys(extraction.extractedData).join(", ")}`);
 
       await ctx.runMutation(internal.items.updateResult, {
         id: savedItemId,
@@ -361,9 +397,10 @@ export const processItem = internalAction({
         actionTaken: extraction.actionTaken,
       });
 
-      console.log(`[processUrl] Item ${savedItemId} done`);
+      console.log(`[processUrl] Item ${savedItemId} done in ${Date.now() - pipelineStart}ms`);
     } catch (err) {
-      console.error(`[processUrl] Item ${savedItemId} failed:`, err);
+      const elapsed = Date.now() - pipelineStart;
+      console.error(`[processUrl] Item ${savedItemId} failed after ${elapsed}ms:`, err);
       await ctx.runMutation(internal.items.markFailed, { id: savedItemId });
     }
   },
