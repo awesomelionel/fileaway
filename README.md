@@ -2,23 +2,30 @@
 
 A web app that lets users save social media links and have AI automatically extract actionable information from them — turning passive saves into useful, organized content.
 
+## Architecture
+
+- **Next.js 14** (App Router) calls **Convex** queries and mutations from the browser for data and writes.
+- **Convex** holds the document database (`savedItems` + auth tables), runs **Convex Auth** (password sign-in), and runs **internal actions** for scraping and AI (scheduled right after each save — no separate job queue).
+- **Apify** and **Gemini** run inside Convex `"use node"` actions; their API keys are configured as [Convex environment variables](https://docs.convex.dev/production/environment-variables) for deployments and local dev.
+
 ## Tech Stack
 
 - **Frontend**: Next.js 14 (App Router) + TypeScript
-- **Database**: Supabase Postgres + Auth + Storage
+- **Backend**: [Convex](https://www.convex.dev/) (database, server functions, scheduler)
+- **Auth**: [@convex-dev/auth](https://labs.convex.dev/auth) (Password provider)
 - **Styling**: Tailwind CSS + shadcn/ui
-- **Job Queue**: pg-boss (Postgres-backed background jobs)
-- **Video Scraping**: Apify (TikTok/Instagram actors)
-- **AI Processing**: Google Gemini 1.5 Flash/Pro
-- **Hosting**: Vercel
+- **Video scraping**: Apify (TikTok / Instagram actors)
+- **AI**: Google Gemini 1.5 Flash / Pro
+- **Hosting**: Vercel (frontend) + Convex Cloud (backend)
 
 ## Local Setup
 
 ### Prerequisites
 
 - Node.js 18+
-- A [Supabase](https://supabase.com) project
-- (Optional for full functionality) [Apify](https://apify.com) and [Google AI Studio](https://aistudio.google.com) API keys
+- A [Convex](https://dashboard.convex.dev) project (created when you run `npx convex dev` the first time)
+- Convex dashboard: set `APIFY_API_TOKEN` and `GEMINI_API_KEY` (or add them to `.env.local` for dev — see below)
+- (Optional) [Apify](https://apify.com) and [Google AI Studio](https://aistudio.google.com) accounts if you need to rotate keys
 
 ### 1. Clone and install
 
@@ -32,100 +39,89 @@ npm install
 
 ```bash
 cp .env.example .env.local
-# Edit .env.local and fill in your Supabase URL, anon key, service role key, and DATABASE_URL
 ```
 
-### 3. Run database migrations
+Fill in `NEXT_PUBLIC_CONVEX_URL` and `CONVEX_DEPLOYMENT` from the Convex dashboard. For local development, `npx convex dev` syncs your functions and can push env vars from `.env.local` when configured.
 
-Using the Supabase CLI:
+Set **`APIFY_API_TOKEN`** and **`GEMINI_API_KEY`** in the Convex dashboard (recommended for production) or ensure they are available to `convex dev` per Convex docs so URL processing works.
+
+### 3. Run Convex and Next.js
+
+In one terminal (pushes schema and functions, watches for changes):
 
 ```bash
-npx supabase db push
-# or apply manually via the Supabase SQL editor
+npx convex dev
 ```
 
-Migrations are in `supabase/migrations/`:
-- `20260329000001_initial_schema.sql` — SavedItem table, RLS policies, enums
-- `20260329000002_pgboss_setup.sql` — pgboss schema and permissions
-
-### 4. Start the dev server
+In another:
 
 ```bash
 npm run dev
 ```
 
-App is available at [http://localhost:3000](http://localhost:3000).
+The app is available at [http://localhost:3000](http://localhost:3000).
 
-## API
+### Production build
 
-### `POST /api/save`
+`npm run build` runs `convex deploy` then `next build`. Ensure Convex env vars are set in the target deployment.
 
-Accepts a URL, creates a `SavedItem` record, and queues a background processing job.
+## Data access (Convex)
 
-**Request body:**
-```json
-{ "url": "https://www.tiktok.com/@example/video/123" }
-```
+Clients use the generated API (see `convex/_generated/api`):
 
-**Response (202):**
-```json
-{
-  "jobId": "uuid",
-  "savedItemId": "uuid",
-  "status": "pending"
-}
-```
+| Surface | Purpose |
+|--------|---------|
+| `api.items.list` | Query — saved items for the signed-in user (reactive) |
+| `api.items.save` | Mutation — insert item, schedule `processUrl.processItem` |
+| `api.items.updateCategory` | Mutation — user category override |
 
-## Project Structure
+Saving a URL does **not** go through a Next.js `POST /api/*` route; the UI calls `api.items.save` via `useMutation`.
+
+Background processing is **`internal.processUrl.processItem`**: Apify scrape → Gemini categorize → Gemini extract → `internal.items.updateResult` / `markFailed`.
+
+## Project structure
 
 ```
 fileaway/
+├── convex/
+│   ├── schema.ts          # savedItems + auth tables
+│   ├── auth.ts            # Convex Auth config
+│   ├── http.ts            # Auth HTTP routes
+│   ├── items.ts           # list, save, updateCategory + internal status updates
+│   └── processUrl.ts      # Node action: Apify + Gemini pipeline
 ├── src/
-│   ├── app/
-│   │   ├── api/
-│   │   │   └── save/route.ts       # POST /api/save endpoint
-│   │   ├── page.tsx                # Home page (Phase 2: full UI)
-│   │   └── layout.tsx
-│   ├── lib/
-│   │   ├── supabase/
-│   │   │   ├── client.ts           # Browser Supabase client
-│   │   │   ├── server.ts           # Server + service role clients
-│   │   │   └── types.ts            # SavedItem types
-│   │   ├── queue/
-│   │   │   └── boss.ts             # pg-boss singleton + job name constants
-│   │   └── integrations/
-│   │       ├── apify.ts            # Apify scraping stub + platform detection
-│   │       └── gemini.ts           # Gemini categorization + extraction stubs
-│   └── components/
-│       └── ui/                     # shadcn/ui components
-└── supabase/
-    └── migrations/                 # SQL migration files
+│   ├── app/               # pages (home, login, signup), layout
+│   ├── components/
+│   │   ├── ConvexClientProvider.tsx
+│   │   ├── feed/          # Feed UI, cards
+│   │   └── ui/
+│   ├── lib/               # shared types, legacy helpers as needed
+│   └── middleware.ts     # Convex Auth (Next.js)
+└── package.json
 ```
 
-## Data Model
+## Data model (Convex `savedItems`)
 
-```
-SavedItem {
-  id             uuid (PK)
-  user_id        uuid (FK -> auth.users)
-  source_url     text
-  platform       tiktok | instagram | youtube | twitter | other
-  category       food | fitness | recipe | how-to | video-analysis | other
-  raw_content    jsonb  (scraped metadata + transcript from Apify)
-  extracted_data jsonb  (structured JSON from Gemini)
-  action_taken   text   (AI recommendation)
-  user_correction text  (user override)
-  status         pending | processing | done | failed
-  created_at     timestamptz
-  updated_at     timestamptz
-}
-```
+| Field | Notes |
+|-------|--------|
+| `_id` | Convex document ID |
+| `userId` | `Id<"users">` (auth) |
+| `sourceUrl` | Original link |
+| `platform` | `tiktok` \| `instagram` \| `youtube` \| `twitter` \| `other` |
+| `category` | `food` \| `fitness` \| `recipe` \| `how-to` \| `video-analysis` \| `other` |
+| `rawContent` | Optional — scrape payload |
+| `extractedData` | Optional — structured JSON from Gemini |
+| `actionTaken` | Optional — suggested action label |
+| `userCorrection` | Optional — user override |
+| `status` | `pending` \| `processing` \| `done` \| `failed` |
 
-## Phase Roadmap
+Indexes: `by_userId`, `by_status`.
+
+## Phase roadmap
 
 | Phase | Scope | Owner |
 |-------|-------|-------|
-| Phase 1 (current) | Scaffold, DB schema, URL submission API, Apify + Gemini stubs | Engineer |
-| Phase 2 | Card feed UI, action buttons, category display | Frontend Engineer |
-| Phase 3 | User corrections, correction storage, dashboard | Engineer |
-| Phase 4 | Auth, mobile-responsive, bookmarklet, error handling | Both |
+| Phase 1 (current) | Convex backend, auth, feed + save flow, Apify + Gemini in actions | Engineer |
+| Phase 2 | Deeper UX polish, action buttons, empty/error states | Frontend Engineer |
+| Phase 3 | User corrections persistence, dashboard | Engineer |
+| Phase 4 | Mobile-responsive polish, bookmarklet, hardening | Both |
