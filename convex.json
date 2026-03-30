@@ -1,0 +1,5 @@
+{
+  "node": {
+    "externalPackages": ["apify-client"]
+  }
+}
