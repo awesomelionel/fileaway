@@ -144,8 +144,8 @@ async function scrapeUrl(
 
 // ─── Gemini AI ────────────────────────────────────────────────────────────────
 
-const FLASH_MODEL = "gemini-1.5-flash-latest";
-const PRO_MODEL = "gemini-1.5-pro-latest";
+const FLASH_MODEL = "gemini-2.5-flash";
+const PRO_MODEL = "gemini-2.5-pro";
 
 const VALID_CATEGORIES: CategoryType[] = [
   "food",
