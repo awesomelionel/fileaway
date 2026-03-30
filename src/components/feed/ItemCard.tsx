@@ -292,7 +292,40 @@ function PendingBody({ url }: { url: string }) {
       <p className="text-[11px] text-[#444] font-mono truncate">{url}</p>
       <div className="flex gap-1.5 items-center">
         <div className="h-1.5 w-1.5 rounded-full bg-[#f59e0b] animate-pulse" />
-        <span className="text-[11px] text-[#f59e0b]">AI analyzing</span>
+        <span className="text-[11px] text-[#f59e0b]">Waiting in queue</span>
+      </div>
+    </div>
+  );
+}
+
+function ProcessingBody({ url }: { url: string }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-[#888]">AI is analyzing this link…</p>
+      <p className="text-[11px] text-[#444] font-mono truncate">{url}</p>
+      <div className="flex gap-1.5 items-center">
+        <svg
+          className="h-3 w-3 animate-spin text-[#6366f1]"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+          />
+        </svg>
+        <span className="text-[11px] text-[#6366f1]">Processing now</span>
       </div>
     </div>
   );
@@ -566,6 +599,11 @@ export function ItemCard({ item }: ItemCardProps) {
           <div className="flex items-center gap-2 flex-shrink-0">
             {item.status === "pending" && (
               <span className="text-[10px] text-[#f59e0b] bg-[#f59e0b12] px-1.5 py-0.5 rounded">
+                Queued
+              </span>
+            )}
+            {item.status === "processing" && (
+              <span className="text-[10px] text-[#6366f1] bg-[#6366f112] px-1.5 py-0.5 rounded animate-pulse">
                 Processing
               </span>
             )}
@@ -581,6 +619,7 @@ export function ItemCard({ item }: ItemCardProps) {
         {/* Body */}
         <div className="px-4 py-2 flex-1">
           {item.status === "pending" && <PendingBody url={item.source_url} />}
+          {item.status === "processing" && <ProcessingBody url={item.source_url} />}
           {item.status === "failed" && <FailedBody url={item.source_url} />}
           {item.status === "done" && item.extracted_data && (
             <>
