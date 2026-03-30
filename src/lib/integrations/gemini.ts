@@ -16,8 +16,8 @@ export interface ExtractionResult {
   confidence: number;
 }
 
-const FLASH_MODEL = "gemini-1.5-flash";
-const PRO_MODEL = "gemini-1.5-pro";
+const FLASH_MODEL = "gemini-1.5-flash-latest";
+const PRO_MODEL = "gemini-1.5-pro-latest";
 
 const VALID_CATEGORIES: CategoryType[] = [
   "food",
