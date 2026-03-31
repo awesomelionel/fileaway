@@ -9,6 +9,7 @@ export default {};
 export const query = noop;
 export const mutation = noop;
 export const internalMutation = noop;
+export const internalQuery = noop;
 export const internalAction = noop;
 export const v = vProxy;
 export const internal = new Proxy({}, { get: () => new Proxy({}, { get: () => '' }) });
