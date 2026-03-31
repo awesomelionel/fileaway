@@ -1,4 +1,4 @@
-import { EXTRACTION_SCHEMAS } from "../../convex/processUrl";
+import { EXTRACTION_SCHEMAS, WRAPPER_INSTRUCTIONS } from "../../convex/processUrl";
 
 describe("Extraction prompt schemas", () => {
   describe("how-to category", () => {
@@ -30,6 +30,16 @@ describe("Extraction prompt schemas", () => {
 
     it("contains summary field", () => {
       expect(EXTRACTION_SCHEMAS["other"]).toContain('"summary"');
+    });
+  });
+
+  describe("buildExtractionPrompt wrapper", () => {
+    it("includes social-media inference guidance", () => {
+      // We need to test the wrapper text — export a helper or test via a dummy call
+      // Since buildExtractionPrompt is not exported, export WRAPPER_INSTRUCTIONS instead
+      expect(WRAPPER_INSTRUCTIONS).toContain("infer");
+      expect(WRAPPER_INSTRUCTIONS).toContain("hashtags");
+      expect(WRAPPER_INSTRUCTIONS).toContain("null");
     });
   });
 });

@@ -271,6 +271,14 @@ export const EXTRACTION_SCHEMAS: Record<string, string> = {
 }`,
 };
 
+export const WRAPPER_INSTRUCTIONS = `You are extracting structured data from a saved social media post.
+
+IMPORTANT: Social media captions are often brief (5-15 words), emoji-heavy, or rely on visual context. You must:
+- Infer missing fields from hashtags, emojis, creator name, and platform context
+- Never return null for a string field if you can make a reasonable inference
+- For arrays (steps, ingredients, exercises), reconstruct likely items from context clues
+- Prefer a specific inferred value over null — e.g., infer cuisine from hashtags like #italian or #pasta`;
+
 function buildExtractionPrompt(
   scrape: ScrapeResult,
   category: CategoryType,
@@ -290,14 +298,15 @@ function buildExtractionPrompt(
   const schemas = EXTRACTION_SCHEMAS;
 
   return [
-    `You are extracting structured data from a saved social media post. Category: ${category}`,
+    `${WRAPPER_INSTRUCTIONS}`,
+    `Category: ${category}`,
     "",
     schemas[category],
     "",
     "Post content:",
     contentBlock,
     "",
-    "Return ONLY valid JSON, no markdown, no explanation.",
+    "Return ONLY valid JSON matching the schema above. No markdown fences, no explanation, no extra fields.",
   ].join("\n");
 }
 
