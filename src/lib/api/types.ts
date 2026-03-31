@@ -19,6 +19,7 @@ export interface SavedItemResponse {
   category: CategoryType;
   extracted_data: Record<string, unknown> | null;
   action_taken: string | null;
+  user_correction: string | null;
   status: ItemStatus;
   thumbnail_url: string | null;
   created_at: string;

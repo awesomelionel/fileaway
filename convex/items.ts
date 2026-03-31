@@ -57,6 +57,7 @@ function toResponse(item: {
     category: item.category,
     extracted_data: extractedData,
     action_taken: item.actionTaken ?? null,
+    user_correction: item.userCorrection ?? null,
     status: item.status,
     thumbnail_url: extractThumbnailUrl(extractedData),
     created_at: new Date(item._creationTime).toISOString(),
@@ -83,6 +84,49 @@ export const list = query({
       .take(100);
 
     return items.map(toResponse);
+  },
+});
+
+/** Returns aggregate stats for the authenticated user's saved items. */
+export const stats = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+
+    const items = await ctx.db
+      .query("savedItems")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .order("desc")
+      .take(200);
+
+    const byCategory: Record<string, number> = {};
+    let failedCount = 0;
+    let processingCount = 0;
+
+    for (const item of items) {
+      if (item.status === "done") {
+        byCategory[item.category] = (byCategory[item.category] ?? 0) + 1;
+      }
+      if (item.status === "failed") failedCount++;
+      if (item.status === "processing" || item.status === "pending") processingCount++;
+    }
+
+    const recent = items.slice(0, 5).map((i) => ({
+      id: i._id as string,
+      sourceUrl: i.sourceUrl,
+      category: i.category,
+      status: i.status,
+      createdAt: new Date(i._creationTime).toISOString(),
+    }));
+
+    return {
+      total: items.length,
+      byCategory,
+      failedCount,
+      processingCount,
+      recentItems: recent,
+    };
   },
 });
 
@@ -136,6 +180,66 @@ export const updateCategory = mutation({
     if (!item || item.userId !== userId) throw new Error("Item not found");
 
     await ctx.db.patch(id, { category });
+    return true;
+  },
+});
+
+/** Saves a user correction note and optionally re-categorises the item. */
+export const saveCorrection = mutation({
+  args: {
+    id: v.id("savedItems"),
+    note: v.string(),
+    correctedCategory: v.optional(
+      v.union(
+        v.literal("food"),
+        v.literal("fitness"),
+        v.literal("recipe"),
+        v.literal("how-to"),
+        v.literal("video-analysis"),
+        v.literal("other"),
+      ),
+    ),
+  },
+  handler: async (ctx, { id, note, correctedCategory }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const item = await ctx.db.get(id);
+    if (!item || item.userId !== userId) throw new Error("Item not found");
+
+    const correction = JSON.stringify({
+      note,
+      correctedCategory: correctedCategory ?? null,
+    });
+
+    const patch: {
+      userCorrection: string;
+      category?: CategoryType;
+    } = { userCorrection: correction };
+
+    if (correctedCategory) patch.category = correctedCategory;
+
+    await ctx.db.patch(id, patch);
+    return true;
+  },
+});
+
+/** Resets a failed item to pending and re-schedules processing. */
+export const retryItem = mutation({
+  args: { id: v.id("savedItems") },
+  handler: async (ctx, { id }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const item = await ctx.db.get(id);
+    if (!item || item.userId !== userId) throw new Error("Item not found");
+    if (item.status !== "failed") throw new Error("Only failed items can be retried");
+
+    await ctx.db.patch(id, { status: "pending" });
+    await ctx.scheduler.runAfter(0, internal.processUrl.processItem, {
+      savedItemId: id,
+      url: item.sourceUrl,
+    });
     return true;
   },
 });
