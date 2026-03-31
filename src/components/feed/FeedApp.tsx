@@ -277,33 +277,55 @@ export function FeedApp() {
     <div className="min-h-screen bg-[#0d0d0f] text-[#e8e8e8]">
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-[#1a1a1a] bg-[#0d0d0f]/95 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-4">
-          {/* Logo */}
-          <a href="/" className="flex-shrink-0 flex items-center gap-2 group">
-            <div className="w-6 h-6 rounded grid grid-cols-2 gap-0.5 p-1 bg-[#1a1a1e] border border-[#2a2a2a] group-hover:border-[#3a3a3a] transition-colors">
-              <div className="bg-[#f97316] rounded-[1px]" />
-              <div className="bg-[#22c55e] rounded-[1px]" />
-              <div className="bg-[#3b82f6] rounded-[1px]" />
-              <div className="bg-[#a855f7] rounded-[1px]" />
-            </div>
-            <span className="font-bold text-sm tracking-tight text-[#e8e8e8]">
-              file<span className="text-[#555]">away</span>
-            </span>
-          </a>
+        <div className="max-w-5xl mx-auto px-4 py-3">
+          {/* Top row: logo + nav + sign out */}
+          <div className="flex items-center gap-3">
+            {/* Logo */}
+            <a href="/" className="flex-shrink-0 flex items-center gap-2 group">
+              <div className="w-6 h-6 rounded grid grid-cols-2 gap-0.5 p-1 bg-[#1a1a1e] border border-[#2a2a2a] group-hover:border-[#3a3a3a] transition-colors">
+                <div className="bg-[#f97316] rounded-[1px]" />
+                <div className="bg-[#22c55e] rounded-[1px]" />
+                <div className="bg-[#3b82f6] rounded-[1px]" />
+                <div className="bg-[#a855f7] rounded-[1px]" />
+              </div>
+              <span className="font-bold text-sm tracking-tight text-[#e8e8e8]">
+                file<span className="text-[#555]">away</span>
+              </span>
+            </a>
 
-          {/* URL input */}
-          <div className="flex-1 relative">
-            <UrlInput />
+            {/* Desktop URL input — hidden on mobile */}
+            <div className="hidden sm:block flex-1 relative">
+              <UrlInput />
+            </div>
+
+            {/* Nav links + sign out — pushed to right */}
+            <div className="ml-auto flex items-center gap-1">
+              <a
+                href="/dashboard"
+                className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-[#555] hover:text-[#888] hover:bg-[#141418] border border-transparent transition-all"
+              >
+                Stats
+              </a>
+              <a
+                href="/share"
+                className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-[#555] hover:text-[#888] hover:bg-[#141418] border border-transparent transition-all"
+              >
+                Share
+              </a>
+              <SignOutButton />
+            </div>
           </div>
 
-          {/* Sign out */}
-          <SignOutButton />
+          {/* Mobile URL input — shown below top row on mobile only */}
+          <div className="sm:hidden mt-2">
+            <UrlInput />
+          </div>
         </div>
       </header>
 
       {/* Filters row */}
-      <div className="sticky top-[57px] z-20 bg-[#0d0d0f]/95 backdrop-blur-sm border-b border-[#161616]">
-        <div className="max-w-5xl mx-auto px-4 py-2 flex items-center gap-3">
+      <div className="sm:sticky sm:top-[57px] z-20 bg-[#0d0d0f]/95 backdrop-blur-sm border-b border-[#161616]">
+        <div className="max-w-5xl mx-auto px-4 py-2 flex flex-wrap items-center gap-2">
           {/* Search */}
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#444] text-xs">⌕</span>
@@ -312,14 +334,12 @@ export function FeedApp() {
               value={searchInput}
               onChange={(e) => handleSearch(e.target.value)}
               placeholder="Search…"
-              className="bg-[#141418] border border-[#222] rounded-lg pl-7 pr-3 py-1.5 text-xs text-[#ccc] placeholder-[#333] outline-none focus:border-[#2a2a2a] w-40 transition-all focus:w-52"
+              className="bg-[#141418] border border-[#222] rounded-lg pl-7 pr-3 py-1.5 text-xs text-[#ccc] placeholder-[#333] outline-none focus:border-[#2a2a2a] w-36 transition-all focus:w-48"
             />
           </div>
 
-          <div className="w-px h-4 bg-[#222]" />
-
           {/* Category tabs */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <CategoryTabs
               active={activeCategory}
               counts={counts}

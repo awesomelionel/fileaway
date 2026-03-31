@@ -389,7 +389,7 @@ function ActionButton({
     return (
       <button
         disabled
-        className="text-xs px-3 py-1.5 rounded bg-[#1a2b1a] text-[#22c55e] border border-[#22c55e30] font-medium"
+        className="text-xs px-3 py-1.5 rounded bg-[#1a2b1a] text-[#22c55e] border border-[#22c55e30] font-medium min-h-[44px] sm:min-h-0"
       >
         ✓ {result.label}
       </button>
@@ -405,7 +405,7 @@ function ActionButton({
         href={`https://maps.google.com/?q=${query}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex text-xs px-3 py-1.5 rounded bg-[#f9731615] text-[#f97316] border border-[#f9731630] font-medium hover:bg-[#f9731625] transition-colors"
+        className="inline-flex text-xs px-3 py-1.5 rounded bg-[#f9731615] text-[#f97316] border border-[#f9731630] font-medium hover:bg-[#f9731625] transition-colors min-h-[44px] sm:min-h-0"
       >
         Open in Maps ↗
       </a>
@@ -420,7 +420,7 @@ function ActionButton({
     return (
       <button
         onClick={() => fire(() => copyText(text), "Copied!")}
-        className="text-xs px-3 py-1.5 rounded bg-[#22c55e15] text-[#22c55e] border border-[#22c55e30] font-medium hover:bg-[#22c55e25] transition-colors"
+        className="text-xs px-3 py-1.5 rounded bg-[#22c55e15] text-[#22c55e] border border-[#22c55e30] font-medium hover:bg-[#22c55e25] transition-colors min-h-[44px] sm:min-h-0"
       >
         Copy ingredients
       </button>
@@ -447,7 +447,7 @@ function ActionButton({
             );
           }, "Saved to routine!")
         }
-        className="text-xs px-3 py-1.5 rounded bg-[#3b82f615] text-[#3b82f6] border border-[#3b82f630] font-medium hover:bg-[#3b82f625] transition-colors"
+        className="text-xs px-3 py-1.5 rounded bg-[#3b82f615] text-[#3b82f6] border border-[#3b82f630] font-medium hover:bg-[#3b82f625] transition-colors min-h-[44px] sm:min-h-0"
       >
         Save to routine
       </button>
@@ -458,7 +458,7 @@ function ActionButton({
     return (
       <button
         onClick={() => onGuideOpen?.(item)}
-        className="text-xs px-3 py-1.5 rounded bg-[#a855f715] text-[#a855f7] border border-[#a855f730] font-medium hover:bg-[#a855f725] transition-colors"
+        className="text-xs px-3 py-1.5 rounded bg-[#a855f715] text-[#a855f7] border border-[#a855f730] font-medium hover:bg-[#a855f725] transition-colors min-h-[44px] sm:min-h-0"
       >
         View guide
       </button>
@@ -472,7 +472,7 @@ function ActionButton({
     return (
       <button
         onClick={() => fire(() => copyText(text), "Copied!")}
-        className="text-xs px-3 py-1.5 rounded bg-[#14b8a615] text-[#14b8a6] border border-[#14b8a630] font-medium hover:bg-[#14b8a625] transition-colors"
+        className="text-xs px-3 py-1.5 rounded bg-[#14b8a615] text-[#14b8a6] border border-[#14b8a630] font-medium hover:bg-[#14b8a625] transition-colors min-h-[44px] sm:min-h-0"
       >
         Copy summary
       </button>
@@ -486,7 +486,7 @@ function ActionButton({
   return (
     <button
       onClick={() => fire(() => copyText(text), "Copied!")}
-      className="text-xs px-3 py-1.5 rounded bg-[#6b728015] text-[#9ca3af] border border-[#6b728030] font-medium hover:bg-[#6b728025] transition-colors"
+      className="text-xs px-3 py-1.5 rounded bg-[#6b728015] text-[#9ca3af] border border-[#6b728030] font-medium hover:bg-[#6b728025] transition-colors min-h-[44px] sm:min-h-0"
     >
       Copy summary
     </button>
