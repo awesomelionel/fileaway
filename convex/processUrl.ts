@@ -257,9 +257,10 @@ export const EXTRACTION_SCHEMAS: Record<string, string> = {
 }`,
   "video-analysis": `Return JSON:
 {
-  "summary": "<2-3 sentence summary of the video content>",
-  "key_points": ["<key point 1>", "<key point 2>"],
-  "topics": ["<topic>"],
+  "title": "<short descriptive title — use the post title, infer from caption/hashtags if missing>",
+  "summary": "<2-3 sentence summary of the video's main content and takeaway>",
+  "key_points": ["<key point 1>", "<key point 2>", "<key point 3 if applicable>"],
+  "topics": ["<topic tag>"],
   "sentiment": "<positive | neutral | negative>"
 }`,
   other: `Return JSON:

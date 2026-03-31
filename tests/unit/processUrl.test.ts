@@ -11,4 +11,15 @@ describe("Extraction prompt schemas", () => {
       expect(EXTRACTION_SCHEMAS["how-to"]).toContain('"summary"');
     });
   });
+
+  describe("video-analysis category", () => {
+    it("contains title field", () => {
+      expect(EXTRACTION_SCHEMAS["video-analysis"]).toContain('"title"');
+    });
+
+    it("contains summary and key_points fields", () => {
+      expect(EXTRACTION_SCHEMAS["video-analysis"]).toContain('"summary"');
+      expect(EXTRACTION_SCHEMAS["video-analysis"]).toContain('"key_points"');
+    });
+  });
 });
