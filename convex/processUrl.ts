@@ -402,12 +402,19 @@ export const processItem = internalAction({
       const extraction = await extractStructuredData(scrapeResult, category);
       console.log(`[processUrl] Extraction complete — category: ${extraction.category}, action: ${extraction.actionTaken}, dataKeys: ${Object.keys(extraction.extractedData).join(", ")}`);
 
+      const extractedDataWithThumb = {
+        ...extraction.extractedData,
+        ...(scrapeResult.thumbnailUrl
+          ? { thumbnailUrl: scrapeResult.thumbnailUrl }
+          : {}),
+      };
+
       await ctx.runMutation(internal.items.updateResult, {
         id: savedItemId,
         platform,
         category,
         rawContent: scrapeResult.metadata,
-        extractedData: extraction.extractedData,
+        extractedData: extractedDataWithThumb,
         actionTaken: extraction.actionTaken,
       });
 

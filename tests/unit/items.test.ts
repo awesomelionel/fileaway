@@ -56,3 +56,16 @@ describe("extractThumbnailUrl", () => {
     expect(extractThumbnailUrl(extracted, raw)).toBeNull();
   });
 });
+
+describe("thumbnail in extractedData (pipeline persistence)", () => {
+  it("extractThumbnailUrl returns the thumbnail when present in extractedData", () => {
+    const extracted = {
+      name: "Best Ramen",
+      address: "123 Main St",
+      thumbnailUrl: "https://tiktok.com/cover-merged.jpg",
+    };
+    expect(extractThumbnailUrl(extracted, null)).toBe(
+      "https://tiktok.com/cover-merged.jpg",
+    );
+  });
+});
