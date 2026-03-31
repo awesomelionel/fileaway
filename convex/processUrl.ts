@@ -222,29 +222,29 @@ interface ExtractionResult {
 export const EXTRACTION_SCHEMAS: Record<string, string> = {
   food: `Return JSON:
 {
-  "name": "<restaurant or food item name>",
-  "address": "<full address if mentioned, else null>",
-  "cuisine": "<cuisine type>",
-  "why_visit": "<one-sentence reason to visit>",
-  "price_range": "<$ | $$ | $$$ | null>",
-  "dishes_mentioned": ["<dish1>", "<dish2>"]
+  "name": "<restaurant or food item name — use creator's exact wording or infer from post>",
+  "address": "<full address if mentioned; infer city/neighbourhood from hashtags like #NYC or #LondonEats; null only if truly unknown>",
+  "cuisine": "<cuisine type — infer from dish names, hashtags (#italian #ramen), or location>",
+  "why_visit": "<one compelling reason to visit, written as a recommendation — infer from the vibe/tone of the post if not stated explicitly>",
+  "price_range": "<$ | $$ | $$$ — infer from context clues like 'budget', 'Michelin', 'street food'; null if no clues>",
+  "dishes_mentioned": ["<every dish, food item, or drink mentioned or shown — infer from emojis like 🍕🍜 if no text>"]
 }`,
   recipe: `Return JSON:
 {
-  "dish_name": "<name of the dish>",
-  "ingredients": ["<ingredient with quantity>"],
-  "steps": ["<step 1>", "<step 2>"],
-  "prep_time_minutes": <number or null>,
-  "cook_time_minutes": <number or null>,
-  "servings": <number or null>
+  "dish_name": "<name of the dish — use post title or infer from ingredients shown>",
+  "ingredients": ["<ingredient with quantity — reconstruct from what's shown; include obvious staples if recipe type is clear>"],
+  "steps": ["<step 1>", "<step 2>", "<infer likely steps from recipe type if not all listed>"],
+  "prep_time_minutes": <number — infer from recipe complexity if not stated; null only if truly unknowable>,
+  "cook_time_minutes": <number — infer from recipe type (e.g. cookies ~12 min); null only if truly unknowable>,
+  "servings": <number — infer from context ('serves 4', 'family size', 'single serving'); null if no clues>
 }`,
   fitness: `Return JSON:
 {
-  "workout_name": "<name or description>",
-  "exercises": [{"name": "<exercise>", "sets": <number or null>, "reps": <number or null>}],
-  "muscle_groups": ["<muscle group>"],
-  "duration_minutes": <number or null>,
-  "difficulty": "<beginner | intermediate | advanced | null>"
+  "workout_name": "<name or description of the workout — use post title or infer from exercises>",
+  "exercises": [{"name": "<exercise name>", "sets": <number — infer standard sets (3) if not specified>, "reps": <number or string like "30 seconds" — infer standard reps if not stated>}],
+  "muscle_groups": ["<muscle groups targeted — infer from exercise names; e.g. squats → legs, glutes>"],
+  "duration_minutes": <number — infer from number of exercises × typical time; null if no basis>,
+  "difficulty": "<beginner | intermediate | advanced — infer from exercise complexity and intensity>"
 }`,
   "how-to": `Return JSON:
 {
