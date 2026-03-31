@@ -265,8 +265,9 @@ export const EXTRACTION_SCHEMAS: Record<string, string> = {
 }`,
   other: `Return JSON:
 {
-  "summary": "<brief description of the content>",
-  "topics": ["<topic>"]
+  "title": "<short descriptive title — infer from caption, hashtags, or creator context>",
+  "summary": "<2-3 sentence description of what this post is about and why someone saved it>",
+  "topics": ["<topic tag>"]
 }`,
 };
 

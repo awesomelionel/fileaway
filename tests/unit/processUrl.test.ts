@@ -22,4 +22,14 @@ describe("Extraction prompt schemas", () => {
       expect(EXTRACTION_SCHEMAS["video-analysis"]).toContain('"key_points"');
     });
   });
+
+  describe("other category", () => {
+    it("contains title field", () => {
+      expect(EXTRACTION_SCHEMAS["other"]).toContain('"title"');
+    });
+
+    it("contains summary field", () => {
+      expect(EXTRACTION_SCHEMAS["other"]).toContain('"summary"');
+    });
+  });
 });
