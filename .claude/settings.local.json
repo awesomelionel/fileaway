@@ -15,7 +15,8 @@
       "Bash(npx eslint:*)",
       "Bash(ESLINT_DISABLE_FLAT_CONFIG=true npm run lint 2>&1)",
       "Bash(git stash:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(npx jest:*)"
     ]
   }
 }
