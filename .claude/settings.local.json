@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(npm test:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(/tmp/spec_check.txt:*)",
+      "Read(//tmp/**)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(npx next:*)",
+      "Bash(find /Users/lioneltan/.paperclip/instances/default/workspaces/12251c6d-5e5c-41f6-8962-6da2b528691d/fileaway -name *eslint* -o -name .eslintrc*)",
+      "Bash(npm install:*)",
+      "Bash(npx eslint:*)",
+      "Bash(ESLINT_DISABLE_FLAT_CONFIG=true npm run lint 2>&1)",
+      "Bash(git stash:*)",
+      "Bash(git fetch:*)"
+    ]
+  }
+}
