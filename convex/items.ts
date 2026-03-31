@@ -24,15 +24,27 @@ function detectPlatform(url: string): PlatformType {
   return "other";
 }
 
-function extractThumbnailUrl(
+export function extractThumbnailUrl(
   extractedData: Record<string, unknown> | null,
+  rawContent: Record<string, unknown> | null,
 ): string | null {
-  if (!extractedData) return null;
-  const url =
-    extractedData.thumbnailUrl ??
-    extractedData.thumbnail_url ??
-    extractedData.displayUrl;
-  return typeof url === "string" ? url : null;
+  if (extractedData) {
+    const url =
+      extractedData.thumbnailUrl ??
+      extractedData.thumbnail_url ??
+      extractedData.displayUrl;
+    if (typeof url === "string") return url;
+  }
+
+  if (rawContent) {
+    const url =
+      rawContent.coverUrl ??
+      rawContent.displayUrl ??
+      rawContent.thumbnailUrl;
+    if (typeof url === "string") return url;
+  }
+
+  return null;
 }
 
 function toResponse(item: {
@@ -50,6 +62,8 @@ function toResponse(item: {
 }) {
   const extractedData =
     (item.extractedData as Record<string, unknown> | null) ?? null;
+  const rawContent =
+    (item.rawContent as Record<string, unknown> | null) ?? null;
   return {
     id: item._id as string,
     source_url: item.sourceUrl,
@@ -59,7 +73,7 @@ function toResponse(item: {
     action_taken: item.actionTaken ?? null,
     user_correction: item.userCorrection ?? null,
     status: item.status,
-    thumbnail_url: extractThumbnailUrl(extractedData),
+    thumbnail_url: extractThumbnailUrl(extractedData, rawContent),
     created_at: new Date(item._creationTime).toISOString(),
     processed_at:
       item.status === "done"
