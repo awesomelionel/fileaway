@@ -38,7 +38,7 @@ export function DashboardView() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Total saved", value: stats.total },
-          { label: "Processed",   value: stats.total - stats.failedCount - stats.processingCount },
+          { label: "Processed",   value: Object.values(stats.byCategory).reduce((s: number, n) => s + n, 0) },
           { label: "Processing",  value: stats.processingCount },
           { label: "Failed",      value: stats.failedCount,    warn: stats.failedCount > 0 },
         ].map(({ label, value, warn }) => (

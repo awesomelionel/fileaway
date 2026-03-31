@@ -576,6 +576,7 @@ function CorrectionModal({
     item.category
   );
   const [status, setStatus] = useState<"idle" | "saving" | "done">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
   const saveCorrection = useMutation(api.items.saveCorrection);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -591,8 +592,9 @@ function CorrectionModal({
       });
       setStatus("done");
       setTimeout(onClose, 1200);
-    } catch {
+    } catch (err: unknown) {
       setStatus("idle");
+      setErrorMsg(err instanceof Error ? err.message : "Failed to save. Please try again.");
     }
   };
 
@@ -657,7 +659,7 @@ function CorrectionModal({
               </label>
               <textarea
                 value={note}
-                onChange={(e) => setNote(e.target.value)}
+                onChange={(e) => { setNote(e.target.value); setErrorMsg(""); }}
                 placeholder="e.g. This is a recipe, not a fitness video. Ingredients are listed in the caption."
                 rows={3}
                 maxLength={400}
@@ -667,6 +669,10 @@ function CorrectionModal({
                 {note.length}/400
               </p>
             </div>
+
+            {errorMsg && (
+              <p className="text-xs text-[#ef4444]">{errorMsg}</p>
+            )}
 
             <button
               type="submit"
@@ -720,8 +726,8 @@ export function ItemCard({ item }: ItemCardProps) {
   const handleRetry = async () => {
     try {
       await retryItem({ id: item.id as Id<"savedItems"> });
-    } catch {
-      // item will stay as failed if retry fails
+    } catch (err: unknown) {
+      console.error("[ItemCard] retryItem failed:", err);
     }
   };
 

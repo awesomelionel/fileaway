@@ -98,6 +98,8 @@ export const stats = query({
       .query("savedItems")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .order("desc")
+      // Cap at 200 to keep stats queries fast; list query caps at 100.
+      // Users with >200 items will see approximate counts.
       .take(200);
 
     const byCategory: Record<string, number> = {};
