@@ -86,6 +86,35 @@ function RelativeTime({ iso }: { iso: string }) {
   return <span className="text-[11px] text-[#555]">{label}</span>;
 }
 
+function ThumbnailBanner({
+  thumbnailUrl,
+  sourceUrl,
+}: {
+  thumbnailUrl: string;
+  sourceUrl: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) return null;
+
+  return (
+    <a
+      href={sourceUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block w-full overflow-hidden"
+    >
+      <img
+        src={thumbnailUrl}
+        alt=""
+        onError={() => setFailed(true)}
+        className="w-full h-40 object-cover transition-opacity duration-200 hover:opacity-85"
+        loading="lazy"
+      />
+    </a>
+  );
+}
+
 // ─── Category-specific card bodies ───────────────────────────────────────────
 
 function FoodBody({ data }: { data: Record<string, unknown> }) {
@@ -763,6 +792,14 @@ export function ItemCard({ item }: ItemCardProps) {
             <RelativeTime iso={item.created_at} />
           </div>
         </div>
+
+        {/* Thumbnail */}
+        {item.status === "done" && item.thumbnail_url && (
+          <ThumbnailBanner
+            thumbnailUrl={item.thumbnail_url}
+            sourceUrl={item.source_url}
+          />
+        )}
 
         {/* Body */}
         <div className="px-4 py-2 flex-1">
