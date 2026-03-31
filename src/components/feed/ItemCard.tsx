@@ -820,35 +820,47 @@ export function ItemCard({ item }: ItemCardProps) {
 
         {/* Footer */}
         {item.status === "done" && (
-          <div className="px-4 py-3 border-t border-[#1c1c1c] flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <ActionButton item={item} category={item.category} onGuideOpen={setGuideItem} />
-              <button
-                onClick={() => setShowCorrection(true)}
-                className="text-[11px] text-[#444] hover:text-[#ef4444] transition-colors px-1"
-                title="Report a correction"
-              >
-                ✗
-              </button>
+          <div className="px-4 py-3 border-t border-[#1c1c1c] flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <ActionButton item={item} category={item.category} onGuideOpen={setGuideItem} />
+                <button
+                  onClick={() => setShowCorrection(true)}
+                  className="text-[11px] text-[#444] hover:text-[#ef4444] transition-colors px-1"
+                  title="Report a correction"
+                >
+                  ✗
+                </button>
+              </div>
+
+              {/* Category override */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-[#444]">↺</span>
+                <select
+                  value={item.category}
+                  onChange={handleCategoryChange}
+                  disabled={overriding}
+                  className="text-[11px] text-[#555] bg-transparent border-none outline-none cursor-pointer hover:text-[#888] transition-colors appearance-none"
+                  aria-label="Override category"
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat} className="bg-[#1a1a1a] text-[#ccc]">
+                      {CATEGORY_META[cat].label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Category override */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-[#444]">↺</span>
-              <select
-                value={item.category}
-                onChange={handleCategoryChange}
-                disabled={overriding}
-                className="text-[11px] text-[#555] bg-transparent border-none outline-none cursor-pointer hover:text-[#888] transition-colors appearance-none"
-                aria-label="Override category"
-              >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat} className="bg-[#1a1a1a] text-[#ccc]">
-                    {CATEGORY_META[cat].label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <a
+              href={item.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-[#555] hover:text-[#888] transition-colors flex items-center gap-1 w-fit"
+            >
+              <span>↗</span>
+              <span>View Original</span>
+            </a>
           </div>
         )}
       </div>
