@@ -23,7 +23,7 @@ export interface SavedItemResponse {
   status: ItemStatus;
   thumbnail_url: string | null;
   created_at: string;
-  /** Set to the updated_at timestamp once the item reaches `done` status. */
+  /** ISO timestamp when the item finished processing (approximated from creation time). */
   processed_at: string | null;
 }
 

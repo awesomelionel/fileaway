@@ -201,6 +201,8 @@ export const saveCorrection = mutation({
     ),
   },
   handler: async (ctx, { id, note, correctedCategory }) => {
+    if (!note.trim()) throw new Error("Correction note cannot be empty");
+
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
