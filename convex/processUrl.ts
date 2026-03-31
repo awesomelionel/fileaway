@@ -402,20 +402,33 @@ export const processItem = internalAction({
       const extraction = await extractStructuredData(scrapeResult, category);
       console.log(`[processUrl] Extraction complete — category: ${extraction.category}, action: ${extraction.actionTaken}, dataKeys: ${Object.keys(extraction.extractedData).join(", ")}`);
 
-      const extractedDataWithThumb = {
-        ...extraction.extractedData,
-        ...(scrapeResult.thumbnailUrl
-          ? { thumbnailUrl: scrapeResult.thumbnailUrl }
-          : {}),
-      };
+      // Download thumbnail and upload to Convex storage
+      let thumbnailStorageId: Id<"_storage"> | undefined;
+      if (scrapeResult.thumbnailUrl) {
+        try {
+          console.log(`[processUrl] Downloading thumbnail from CDN...`);
+          const imgResponse = await fetch(scrapeResult.thumbnailUrl);
+          if (imgResponse.ok) {
+            const blob = await imgResponse.blob();
+            const storageId = await ctx.storage.store(blob);
+            thumbnailStorageId = storageId;
+            console.log(`[processUrl] Thumbnail stored — storageId: ${storageId}`);
+          } else {
+            console.warn(`[processUrl] Thumbnail download failed — status: ${imgResponse.status}`);
+          }
+        } catch (thumbErr) {
+          console.warn(`[processUrl] Thumbnail download error:`, thumbErr);
+        }
+      }
 
       await ctx.runMutation(internal.items.updateResult, {
         id: savedItemId,
         platform,
         category,
         rawContent: scrapeResult.metadata,
-        extractedData: extractedDataWithThumb,
+        extractedData: extraction.extractedData,
         actionTaken: extraction.actionTaken,
+        thumbnailStorageId,
       });
 
       console.log(`[processUrl] Item ${savedItemId} done in ${Date.now() - pipelineStart}ms`);
@@ -424,5 +437,38 @@ export const processItem = internalAction({
       console.error(`[processUrl] Item ${savedItemId} failed after ${elapsed}ms:`, err);
       await ctx.runMutation(internal.items.markFailed, { id: savedItemId });
     }
+  },
+});
+
+/** Downloads thumbnails from CDN URLs and stores them in Convex for existing items. */
+export const backfillThumbnails = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const items = await ctx.runQuery(internal.items.listItemsNeedingThumbnail);
+    console.log(`[backfill] Found ${items.length} items needing thumbnail storage`);
+
+    let success = 0;
+    let failed = 0;
+    for (const item of items) {
+      try {
+        const response = await fetch(item.cdnUrl);
+        if (!response.ok) {
+          console.warn(`[backfill] ${item.id} — HTTP ${response.status}`);
+          failed++;
+          continue;
+        }
+        const blob = await response.blob();
+        const storageId = await ctx.storage.store(blob);
+        await ctx.runMutation(internal.items.setThumbnailStorage, {
+          id: item.id as Id<"savedItems">,
+          storageId,
+        });
+        success++;
+      } catch (err) {
+        console.warn(`[backfill] ${item.id} — error:`, err);
+        failed++;
+      }
+    }
+    console.log(`[backfill] Done — ${success} stored, ${failed} failed`);
   },
 });

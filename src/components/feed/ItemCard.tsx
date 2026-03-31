@@ -107,6 +107,7 @@ function ThumbnailBanner({
       <img
         src={thumbnailUrl}
         alt=""
+        referrerPolicy="no-referrer"
         onError={() => setFailed(true)}
         className="w-full h-40 object-cover transition-opacity duration-200 hover:opacity-85"
         loading="lazy"
