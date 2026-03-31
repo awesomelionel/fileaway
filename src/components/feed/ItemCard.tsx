@@ -331,11 +331,23 @@ function ProcessingBody({ url }: { url: string }) {
   );
 }
 
-function FailedBody({ url }: { url: string }) {
+function FailedBody({
+  url,
+  onRetry,
+}: {
+  url: string;
+  onRetry: () => void;
+}) {
   return (
     <div className="space-y-2">
       <p className="text-xs text-[#ef4444]">Could not extract content</p>
       <p className="text-[11px] text-[#444] font-mono truncate">{url}</p>
+      <button
+        onClick={onRetry}
+        className="text-xs px-3 py-1.5 rounded bg-[#ef444415] text-[#ef4444] border border-[#ef444430] font-medium hover:bg-[#ef444425] transition-colors min-h-[44px] sm:min-h-0"
+      >
+        Retry
+      </button>
     </div>
   );
 }
@@ -690,6 +702,7 @@ export function ItemCard({ item }: ItemCardProps) {
   const [showCorrection, setShowCorrection] = useState(false);
   const [overriding, setOverriding] = useState(false);
   const updateCategory = useMutation(api.items.updateCategory);
+  const retryItem = useMutation(api.items.retryItem);
 
   const meta = CATEGORY_META[item.category];
 
@@ -701,6 +714,14 @@ export function ItemCard({ item }: ItemCardProps) {
       await updateCategory({ id: item.id as Id<"savedItems">, category: newCat });
     } finally {
       setOverriding(false);
+    }
+  };
+
+  const handleRetry = async () => {
+    try {
+      await retryItem({ id: item.id as Id<"savedItems"> });
+    } catch {
+      // item will stay as failed if retry fails
     }
   };
 
@@ -741,7 +762,7 @@ export function ItemCard({ item }: ItemCardProps) {
         <div className="px-4 py-2 flex-1">
           {item.status === "pending" && <PendingBody url={item.source_url} />}
           {item.status === "processing" && <ProcessingBody url={item.source_url} />}
-          {item.status === "failed" && <FailedBody url={item.source_url} />}
+          {item.status === "failed" && <FailedBody url={item.source_url} onRetry={handleRetry} />}
           {item.status === "done" && item.extracted_data && (
             <>
               {item.category === "food" && <FoodBody data={item.extracted_data} />}
