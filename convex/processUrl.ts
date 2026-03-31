@@ -219,6 +219,56 @@ interface ExtractionResult {
   actionTaken: string;
 }
 
+export const EXTRACTION_SCHEMAS: Record<string, string> = {
+  food: `Return JSON:
+{
+  "name": "<restaurant or food item name>",
+  "address": "<full address if mentioned, else null>",
+  "cuisine": "<cuisine type>",
+  "why_visit": "<one-sentence reason to visit>",
+  "price_range": "<$ | $$ | $$$ | null>",
+  "dishes_mentioned": ["<dish1>", "<dish2>"]
+}`,
+  recipe: `Return JSON:
+{
+  "dish_name": "<name of the dish>",
+  "ingredients": ["<ingredient with quantity>"],
+  "steps": ["<step 1>", "<step 2>"],
+  "prep_time_minutes": <number or null>,
+  "cook_time_minutes": <number or null>,
+  "servings": <number or null>
+}`,
+  fitness: `Return JSON:
+{
+  "workout_name": "<name or description>",
+  "exercises": [{"name": "<exercise>", "sets": <number or null>, "reps": <number or null>}],
+  "muscle_groups": ["<muscle group>"],
+  "duration_minutes": <number or null>,
+  "difficulty": "<beginner | intermediate | advanced | null>"
+}`,
+  "how-to": `Return JSON:
+{
+  "title": "<short descriptive title of what this guide teaches — infer from hashtags or context if not explicit>",
+  "summary": "<one sentence describing the outcome or main benefit of following this guide>",
+  "steps": ["<step 1>", "<step 2>", "<step 3 — infer likely steps from context if not all listed>"],
+  "tools_needed": ["<tool or material — omit array if none mentioned>"],
+  "difficulty": "<easy | medium | hard | null>",
+  "time_required": "<estimated time as a string, e.g. '10 minutes' — null if unknown>"
+}`,
+  "video-analysis": `Return JSON:
+{
+  "summary": "<2-3 sentence summary of the video content>",
+  "key_points": ["<key point 1>", "<key point 2>"],
+  "topics": ["<topic>"],
+  "sentiment": "<positive | neutral | negative>"
+}`,
+  other: `Return JSON:
+{
+  "summary": "<brief description of the content>",
+  "topics": ["<topic>"]
+}`,
+};
+
 function buildExtractionPrompt(
   scrape: ScrapeResult,
   category: CategoryType,
@@ -235,55 +285,7 @@ function buildExtractionPrompt(
     .filter(Boolean)
     .join("\n");
 
-  const schemas: Record<CategoryType, string> = {
-    food: `Return JSON:
-{
-  "name": "<restaurant or food item name>",
-  "address": "<full address if mentioned, else null>",
-  "cuisine": "<cuisine type>",
-  "why_visit": "<one-sentence reason to visit>",
-  "price_range": "<$ | $$ | $$$ | null>",
-  "dishes_mentioned": ["<dish1>", "<dish2>"]
-}`,
-    recipe: `Return JSON:
-{
-  "dish_name": "<name of the dish>",
-  "ingredients": ["<ingredient with quantity>"],
-  "steps": ["<step 1>", "<step 2>"],
-  "prep_time_minutes": <number or null>,
-  "cook_time_minutes": <number or null>,
-  "servings": <number or null>
-}`,
-    fitness: `Return JSON:
-{
-  "workout_name": "<name or description>",
-  "exercises": [{"name": "<exercise>", "sets": <number or null>, "reps": <number or null>}],
-  "muscle_groups": ["<muscle group>"],
-  "duration_minutes": <number or null>,
-  "difficulty": "<beginner | intermediate | advanced | null>"
-}`,
-    "how-to": `Return JSON:
-{
-  "title": "<short descriptive title of what this guide teaches — infer from hashtags or context if not explicit>",
-  "summary": "<one sentence describing the outcome or main benefit of following this guide>",
-  "steps": ["<step 1>", "<step 2>", "<step 3 — infer likely steps from context if not all listed>"],
-  "tools_needed": ["<tool or material — omit array if none mentioned>"],
-  "difficulty": "<easy | medium | hard | null>",
-  "time_required": "<estimated time as a string, e.g. '10 minutes' — null if unknown>"
-}`,
-    "video-analysis": `Return JSON:
-{
-  "summary": "<2-3 sentence summary of the video content>",
-  "key_points": ["<key point 1>", "<key point 2>"],
-  "topics": ["<topic>"],
-  "sentiment": "<positive | neutral | negative>"
-}`,
-    other: `Return JSON:
-{
-  "summary": "<brief description of the content>",
-  "topics": ["<topic>"]
-}`,
-  };
+  const schemas = EXTRACTION_SCHEMAS;
 
   return [
     `You are extracting structured data from a saved social media post. Category: ${category}`,
