@@ -1,4 +1,4 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
@@ -24,30 +24,46 @@ function detectPlatform(url: string): PlatformType {
   return "other";
 }
 
-function extractThumbnailUrl(
+export function extractThumbnailUrl(
   extractedData: Record<string, unknown> | null,
+  rawContent: Record<string, unknown> | null,
 ): string | null {
-  if (!extractedData) return null;
-  const url =
-    extractedData.thumbnailUrl ??
-    extractedData.thumbnail_url ??
-    extractedData.displayUrl;
-  return typeof url === "string" ? url : null;
+  if (extractedData) {
+    const url =
+      extractedData.thumbnailUrl ??
+      extractedData.thumbnail_url ??
+      extractedData.displayUrl;
+    if (typeof url === "string") return url;
+  }
+
+  if (rawContent) {
+    const url =
+      rawContent.coverUrl ??
+      rawContent.displayUrl ??
+      rawContent.thumbnailUrl;
+    if (typeof url === "string") return url;
+  }
+
+  return null;
 }
 
-function toResponse(item: {
-  _id: Id<"savedItems">;
-  _creationTime: number;
-  userId: Id<"users">;
-  sourceUrl: string;
-  platform: PlatformType;
-  category: CategoryType;
-  rawContent?: unknown;
-  extractedData?: unknown;
-  actionTaken?: string;
-  userCorrection?: string;
-  status: ItemStatus;
-}) {
+function toResponse(
+  item: {
+    _id: Id<"savedItems">;
+    _creationTime: number;
+    userId: Id<"users">;
+    sourceUrl: string;
+    platform: PlatformType;
+    category: CategoryType;
+    rawContent?: unknown;
+    extractedData?: unknown;
+    thumbnailStorageId?: Id<"_storage">;
+    actionTaken?: string;
+    userCorrection?: string;
+    status: ItemStatus;
+  },
+  thumbnailUrl: string | null,
+) {
   const extractedData =
     (item.extractedData as Record<string, unknown> | null) ?? null;
   return {
@@ -59,7 +75,7 @@ function toResponse(item: {
     action_taken: item.actionTaken ?? null,
     user_correction: item.userCorrection ?? null,
     status: item.status,
-    thumbnail_url: extractThumbnailUrl(extractedData),
+    thumbnail_url: thumbnailUrl,
     created_at: new Date(item._creationTime).toISOString(),
     processed_at:
       item.status === "done"
@@ -83,7 +99,20 @@ export const list = query({
       .order("desc")
       .take(100);
 
-    return items.map(toResponse);
+    return Promise.all(
+      items.map(async (item) => {
+        let thumbnailUrl: string | null = null;
+        if (item.thumbnailStorageId) {
+          thumbnailUrl = await ctx.storage.getUrl(item.thumbnailStorageId);
+        }
+        if (!thumbnailUrl) {
+          const extracted = (item.extractedData as Record<string, unknown> | null) ?? null;
+          const raw = (item.rawContent as Record<string, unknown> | null) ?? null;
+          thumbnailUrl = extractThumbnailUrl(extracted, raw);
+        }
+        return toResponse(item, thumbnailUrl);
+      }),
+    );
   },
 });
 
@@ -280,16 +309,50 @@ export const updateResult = internalMutation({
     rawContent: v.optional(v.any()),
     extractedData: v.optional(v.any()),
     actionTaken: v.optional(v.string()),
+    thumbnailStorageId: v.optional(v.id("_storage")),
   },
-  handler: async (ctx, { id, platform, category, rawContent, extractedData, actionTaken }) => {
+  handler: async (ctx, { id, platform, category, rawContent, extractedData, actionTaken, thumbnailStorageId }) => {
     await ctx.db.patch(id, {
       platform,
       category,
       rawContent,
       extractedData,
       actionTaken,
+      thumbnailStorageId,
       status: "done",
     });
+  },
+});
+
+/** Returns done items that have a CDN thumbnail URL but no stored thumbnail. */
+export const listItemsNeedingThumbnail = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const items = await ctx.db
+      .query("savedItems")
+      .withIndex("by_status", (q) => q.eq("status", "done"))
+      .collect();
+
+    const results: { id: string; cdnUrl: string }[] = [];
+    for (const item of items) {
+      if (item.thumbnailStorageId) continue;
+      const extracted = (item.extractedData as Record<string, unknown> | null) ?? null;
+      const raw = (item.rawContent as Record<string, unknown> | null) ?? null;
+      const url = extractThumbnailUrl(extracted, raw);
+      if (url) results.push({ id: item._id, cdnUrl: url });
+    }
+    return results;
+  },
+});
+
+/** Stores a downloaded thumbnail for a specific item. */
+export const setThumbnailStorage = internalMutation({
+  args: {
+    id: v.id("savedItems"),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, { id, storageId }) => {
+    await ctx.db.patch(id, { thumbnailStorageId: storageId });
   },
 });
 

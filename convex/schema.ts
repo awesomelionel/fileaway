@@ -24,6 +24,7 @@ export default defineSchema({
     ),
     rawContent: v.optional(v.any()),
     extractedData: v.optional(v.any()),
+    thumbnailStorageId: v.optional(v.id("_storage")),
     actionTaken: v.optional(v.string()),
     userCorrection: v.optional(v.string()),
     status: v.union(
