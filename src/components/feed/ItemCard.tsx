@@ -550,6 +550,126 @@ function GuideModal({
   );
 }
 
+// ─── Correction modal ─────────────────────────────────────────────────────────
+
+function CorrectionModal({
+  item,
+  onClose,
+}: {
+  item: SavedItemResponse;
+  onClose: () => void;
+}) {
+  const [note, setNote] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<CategoryType>(
+    item.category
+  );
+  const [status, setStatus] = useState<"idle" | "saving" | "done">("idle");
+  const saveCorrection = useMutation(api.items.saveCorrection);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!note.trim()) return;
+    setStatus("saving");
+    try {
+      await saveCorrection({
+        id: item.id as Id<"savedItems">,
+        note: note.trim(),
+        correctedCategory:
+          selectedCategory !== item.category ? selectedCategory : undefined,
+      });
+      setStatus("done");
+      setTimeout(onClose, 1200);
+    } catch {
+      setStatus("idle");
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 backdrop-blur-sm p-4 pt-16 overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-md bg-[#141418] border border-[#2a2a2a] rounded-xl shadow-2xl">
+        <div className="flex items-start justify-between p-5 border-b border-[#1f1f1f]">
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-[#ef4444] mb-1">
+              Report correction
+            </p>
+            <h2 className="text-sm font-semibold text-[#e8e8e8]">
+              What&apos;s wrong with this?
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-[#555] hover:text-[#999] text-lg leading-none mt-0.5 ml-4 flex-shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+
+        {status === "done" ? (
+          <div className="p-5 text-center">
+            <p className="text-[#22c55e] text-sm font-medium">
+              ✓ Thanks! We&apos;ll learn from this.
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            {/* Category correction */}
+            <div>
+              <label className="block text-[11px] font-medium text-[#555] uppercase tracking-wider mb-1.5">
+                Correct category
+              </label>
+              <select
+                value={selectedCategory}
+                onChange={(e) =>
+                  setSelectedCategory(e.target.value as CategoryType)
+                }
+                className="w-full bg-[#1a1a1e] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-[#e8e8e8] outline-none focus:border-[#3a3a4a]"
+              >
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat} className="bg-[#1a1a1a]">
+                    {CATEGORY_META[cat].label}
+                    {cat === item.category ? " (current)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Note */}
+            <div>
+              <label className="block text-[11px] font-medium text-[#555] uppercase tracking-wider mb-1.5">
+                What&apos;s wrong? <span className="text-[#ef4444]">*</span>
+              </label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="e.g. This is a recipe, not a fitness video. Ingredients are listed in the caption."
+                rows={3}
+                maxLength={400}
+                className="w-full bg-[#1a1a1e] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-[#e8e8e8] placeholder-[#3a3a3a] outline-none focus:border-[#3a3a4a] resize-none"
+              />
+              <p className="text-[10px] text-[#444] text-right mt-0.5">
+                {note.length}/400
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={!note.trim() || status === "saving"}
+              className="w-full py-2 rounded-lg text-sm font-medium bg-[#ef444415] text-[#ef4444] border border-[#ef444430] hover:bg-[#ef444425] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {status === "saving" ? "Saving…" : "Submit correction"}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main ItemCard component ──────────────────────────────────────────────────
 
 interface ItemCardProps {
@@ -567,6 +687,7 @@ const CATEGORIES: CategoryType[] = [
 
 export function ItemCard({ item }: ItemCardProps) {
   const [guideItem, setGuideItem] = useState<SavedItemResponse | null>(null);
+  const [showCorrection, setShowCorrection] = useState(false);
   const [overriding, setOverriding] = useState(false);
   const updateCategory = useMutation(api.items.updateCategory);
 
@@ -636,7 +757,16 @@ export function ItemCard({ item }: ItemCardProps) {
         {/* Footer */}
         {item.status === "done" && (
           <div className="px-4 py-3 border-t border-[#1c1c1c] flex items-center justify-between gap-3">
-            <ActionButton item={item} category={item.category} onGuideOpen={setGuideItem} />
+            <div className="flex items-center gap-2">
+              <ActionButton item={item} category={item.category} onGuideOpen={setGuideItem} />
+              <button
+                onClick={() => setShowCorrection(true)}
+                className="text-[11px] text-[#444] hover:text-[#ef4444] transition-colors px-1"
+                title="Report a correction"
+              >
+                ✗
+              </button>
+            </div>
 
             {/* Category override */}
             <div className="flex items-center gap-1.5">
@@ -662,6 +792,9 @@ export function ItemCard({ item }: ItemCardProps) {
       {/* Guide modal */}
       {guideItem && (
         <GuideModal item={guideItem} onClose={() => setGuideItem(null)} />
+      )}
+      {showCorrection && (
+        <CorrectionModal item={item} onClose={() => setShowCorrection(false)} />
       )}
     </>
   );
