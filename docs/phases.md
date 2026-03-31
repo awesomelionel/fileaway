@@ -9,7 +9,7 @@
 | 1     | Save & Process Pipeline                 | ✅ Done    | [CAL-10], [CAL-11], [CAL-12], [CAL-13], [CAL-14] |
 | 2     | Display & Actions (Feed UI)             | ✅ Done    | [CAL-16], [CAL-17], [CAL-18]                 |
 | 3     | Convex Migration + Auth UI + Deploy     | ✅ Done    | [CAL-20], [CAL-22], [CAL-23], [CAL-24], [CAL-25] |
-| 4     | Polish & Hardening                      | Backlog   | TBD                                          |
+| 4     | Polish & Hardening                      | ✅ Done    | TBD                                          |
 
 ---
 
@@ -73,17 +73,21 @@
 
 ---
 
-## Phase 4 — Polish & Hardening (Planned)
+## Phase 4 — Polish & Hardening ✅
 
-**Scope (from original plan):**
-- Mobile-responsive polish
-- Share extension / bookmarklet
-- User corrections persistence (`userCorrection` field)
-- Simple dashboard (counts by category, recent saves)
-- Error handling hardening
+**Scope:** User corrections flow, dashboard stats, retry for failed items, mobile-responsive layout, bookmarklet / share extension.
 
-**Issues:**
-- [CAL-3](/CAL/issues/CAL-3) — Scaffold the social media app codebase (backlog)
+**Completed:**
+- `saveCorrection` Convex mutation — stores user correction note + optional category fix in `userCorrection` field
+- `retryItem` Convex mutation — resets failed items to pending and re-schedules processing
+- `stats` Convex query — returns per-category counts, failed/processing totals, recent saves
+- `CorrectionModal` in `ItemCard` — "✗" button opens modal; submission saves `userCorrection`
+- Retry button in `FailedBody` on failed item cards
+- `/dashboard` page with summary stats + category bar chart + recent saves list
+- `/add?url=` page — bookmarklet target, auto-submits the passed URL, redirects to feed
+- `/share` page — bookmarklet drag-to-install + mobile sharing instructions
+- Mobile layout: two-row header on mobile, wrapping filter row, ≥ 44px touch targets on action buttons
+- 8 new Jest tests for `computeStats()` helper
 
 ---
 
