@@ -264,11 +264,12 @@ function buildExtractionPrompt(
 }`,
     "how-to": `Return JSON:
 {
-  "topic": "<what this guide is about>",
-  "steps": ["<step 1>", "<step 2>"],
-  "tools_needed": ["<tool or material>"],
+  "title": "<short descriptive title of what this guide teaches — infer from hashtags or context if not explicit>",
+  "summary": "<one sentence describing the outcome or main benefit of following this guide>",
+  "steps": ["<step 1>", "<step 2>", "<step 3 — infer likely steps from context if not all listed>"],
+  "tools_needed": ["<tool or material — omit array if none mentioned>"],
   "difficulty": "<easy | medium | hard | null>",
-  "time_required": "<estimated time or null>"
+  "time_required": "<estimated time as a string, e.g. '10 minutes' — null if unknown>"
 }`,
     "video-analysis": `Return JSON:
 {
