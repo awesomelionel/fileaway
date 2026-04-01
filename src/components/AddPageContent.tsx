@@ -41,17 +41,17 @@ export function AddPageContent() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0d0d0f] text-[#e8e8e8] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-fa-canvas text-fa-primary flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-4">
         <div className="text-center">
-          <div className="w-10 h-10 rounded grid grid-cols-2 gap-0.5 p-2 bg-[#1a1a1e] border border-[#2a2a2a] mx-auto mb-3">
+          <div className="w-10 h-10 rounded grid grid-cols-2 gap-0.5 p-2 bg-fa-input border border-fa-line mx-auto mb-3">
             <div className="bg-[#f97316] rounded-[1px]" />
             <div className="bg-[#22c55e] rounded-[1px]" />
             <div className="bg-[#3b82f6] rounded-[1px]" />
             <div className="bg-[#a855f7] rounded-[1px]" />
           </div>
           <h1 className="text-lg font-bold tracking-tight">
-            file<span className="text-[#555]">away</span>
+            file<span className="text-fa-subtle">away</span>
           </h1>
         </div>
 
@@ -66,26 +66,26 @@ export function AddPageContent() {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            <p className="text-sm text-[#888]">Saving link…</p>
+            <p className="text-sm text-fa-muted">Saving link…</p>
           </div>
         )}
 
         {status === "done" && (
           <div className="text-center py-6 space-y-2">
             <p className="text-[#22c55e] text-2xl">✓</p>
-            <p className="text-sm text-[#888]">Saved! Returning to feed…</p>
+            <p className="text-sm text-fa-muted">Saved! Returning to feed…</p>
           </div>
         )}
 
         {(status === "idle" || status === "error") && (
-          <div className="bg-[#141418] border border-[#1e1e1e] rounded-xl p-5 space-y-4">
-            <p className="text-sm text-[#888]">Save a link to fileaway</p>
+          <div className="bg-fa-surface border border-fa-border-soft rounded-xl p-5 space-y-4">
+            <p className="text-sm text-fa-muted">Save a link to fileaway</p>
             <input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://…"
-              className="w-full bg-[#1a1a1e] border border-[#2a2a2a] rounded-lg px-4 py-2.5 text-sm text-[#e8e8e8] placeholder-[#3a3a3a] outline-none focus:border-[#3a3a4a] font-mono"
+              className="w-full bg-fa-input border border-fa-line rounded-lg px-4 py-2.5 text-sm text-fa-primary placeholder-fa-placeholder outline-none focus:border-fa-ring font-mono"
             />
             {status === "error" && (
               <p className="text-xs text-[#ef4444]">{errorMsg}</p>
@@ -93,7 +93,7 @@ export function AddPageContent() {
             <button
               onClick={() => handleSave(url)}
               disabled={!url.trim()}
-              className="w-full py-2.5 rounded-lg text-sm font-medium bg-[#e8e8e8] text-[#0d0d0f] hover:bg-white transition-all disabled:opacity-40"
+              className="w-full py-2.5 rounded-lg text-sm font-medium bg-fa-btn-bg text-fa-btn-fg hover:bg-fa-btn-hover transition-all disabled:opacity-40"
             >
               Save
             </button>

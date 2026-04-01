@@ -43,32 +43,32 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d0d0f] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-fa-canvas flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2 mb-10 group w-fit">
-          <div className="w-7 h-7 rounded grid grid-cols-2 gap-0.5 p-1.5 bg-[#1a1a1e] border border-[#2a2a2a] group-hover:border-[#3a3a3a] transition-colors">
+          <div className="w-7 h-7 rounded grid grid-cols-2 gap-0.5 p-1.5 bg-fa-input border border-fa-line group-hover:border-fa-ring transition-colors">
             <div className="bg-[#f97316] rounded-[1px]" />
             <div className="bg-[#22c55e] rounded-[1px]" />
             <div className="bg-[#3b82f6] rounded-[1px]" />
             <div className="bg-[#a855f7] rounded-[1px]" />
           </div>
-          <span className="font-bold text-sm tracking-tight text-[#e8e8e8]">
-            file<span className="text-[#555]">away</span>
+          <span className="font-bold text-sm tracking-tight text-fa-primary">
+            file<span className="text-fa-subtle">away</span>
           </span>
         </a>
 
-        <h1 className="text-xl font-semibold text-[#e8e8e8] mb-1">Sign in</h1>
-        <p className="text-sm text-[#555] mb-7">
+        <h1 className="text-xl font-semibold text-fa-primary mb-1">Sign in</h1>
+        <p className="text-sm text-fa-subtle mb-7">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-[#888] hover:text-[#ccc] transition-colors underline underline-offset-2">
+          <Link href="/signup" className="text-fa-muted hover:text-fa-secondary transition-colors underline underline-offset-2">
             Create one
           </Link>
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-3" noValidate>
           <div>
-            <label htmlFor="email" className="block text-xs text-[#666] mb-1.5">
+            <label htmlFor="email" className="block text-xs text-fa-icon-muted mb-1.5">
               Email
             </label>
             <input
@@ -78,13 +78,13 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               disabled={loading}
-              className="w-full bg-[#1a1a1e] border border-[#2a2a2a] rounded-lg px-3.5 py-2.5 text-sm text-[#e8e8e8] placeholder-[#3a3a3a] outline-none focus:border-[#3a3a4a] transition-colors disabled:opacity-50"
+              className="w-full bg-fa-input border border-fa-line rounded-lg px-3.5 py-2.5 text-sm text-fa-primary placeholder-fa-placeholder outline-none focus:border-fa-ring transition-colors disabled:opacity-50"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-xs text-[#666] mb-1.5">
+            <label htmlFor="password" className="block text-xs text-fa-icon-muted mb-1.5">
               Password
             </label>
             <input
@@ -94,7 +94,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               disabled={loading}
-              className="w-full bg-[#1a1a1e] border border-[#2a2a2a] rounded-lg px-3.5 py-2.5 text-sm text-[#e8e8e8] placeholder-[#3a3a3a] outline-none focus:border-[#3a3a4a] transition-colors disabled:opacity-50"
+              className="w-full bg-fa-input border border-fa-line rounded-lg px-3.5 py-2.5 text-sm text-fa-primary placeholder-fa-placeholder outline-none focus:border-fa-ring transition-colors disabled:opacity-50"
               placeholder="••••••••"
             />
           </div>
@@ -108,7 +108,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#e8e8e8] text-[#0d0d0f] rounded-lg py-2.5 text-sm font-medium hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-1"
+            className="w-full bg-fa-btn-bg text-fa-btn-fg rounded-lg py-2.5 text-sm font-medium hover:bg-fa-btn-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-1"
           >
             {loading ? "Signing in…" : "Sign in"}
           </button>

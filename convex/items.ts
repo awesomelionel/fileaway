@@ -61,6 +61,7 @@ function toResponse(
     actionTaken?: string;
     userCorrection?: string;
     status: ItemStatus;
+    archived?: boolean;
   },
   thumbnailUrl: string | null,
 ) {
@@ -75,6 +76,7 @@ function toResponse(
     action_taken: item.actionTaken ?? null,
     user_correction: item.userCorrection ?? null,
     status: item.status,
+    archived: item.archived === true,
     thumbnail_url: thumbnailUrl,
     created_at: new Date(item._creationTime).toISOString(),
     processed_at:
@@ -86,18 +88,29 @@ function toResponse(
 
 // ─── Public queries ───────────────────────────────────────────────────────────
 
-/** Returns all saved items for the authenticated user. */
+const LIST_SCAN = 250;
+const LIST_LIMIT = 100;
+
+/** Returns saved items for the authenticated user (main feed or archive). */
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    view: v.optional(v.union(v.literal("feed"), v.literal("archive"))),
+  },
+  handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
 
-    const items = await ctx.db
+    const wantArchived = (args.view ?? "feed") === "archive";
+    const rows = await ctx.db
       .query("savedItems")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .order("desc")
-      .take(100);
+      .take(LIST_SCAN);
+
+    const matched = rows.filter((item) =>
+      wantArchived ? item.archived === true : !item.archived,
+    );
+    const items = matched.slice(0, LIST_LIMIT);
 
     return Promise.all(
       items.map(async (item) => {
@@ -136,6 +149,7 @@ export const stats = query({
     let processingCount = 0;
 
     for (const item of items) {
+      if (item.archived) continue;
       if (item.status === "done") {
         byCategory[item.category] = (byCategory[item.category] ?? 0) + 1;
       }
@@ -143,7 +157,8 @@ export const stats = query({
       if (item.status === "processing" || item.status === "pending") processingCount++;
     }
 
-    const recent = items.slice(0, 5).map((i) => ({
+    const activeItems = items.filter((i) => !i.archived);
+    const recent = activeItems.slice(0, 5).map((i) => ({
       id: i._id as string,
       sourceUrl: i.sourceUrl,
       category: i.category,
@@ -152,7 +167,7 @@ export const stats = query({
     }));
 
     return {
-      total: items.length,
+      total: activeItems.length,
       byCategory,
       failedCount,
       processingCount,
@@ -178,6 +193,7 @@ export const save = mutation({
       platform,
       category: "other",
       status: "pending",
+      archived: false,
     });
 
     // Schedule URL processing immediately
@@ -253,6 +269,24 @@ export const saveCorrection = mutation({
     if (correctedCategory) patch.category = correctedCategory;
 
     await ctx.db.patch(id, patch);
+    return true;
+  },
+});
+
+/** Archive or restore a saved item. */
+export const setArchived = mutation({
+  args: {
+    id: v.id("savedItems"),
+    archived: v.boolean(),
+  },
+  handler: async (ctx, { id, archived }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const item = await ctx.db.get(id);
+    if (!item || item.userId !== userId) throw new Error("Item not found");
+
+    await ctx.db.patch(id, { archived });
     return true;
   },
 });

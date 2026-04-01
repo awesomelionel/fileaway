@@ -58,7 +58,7 @@ function UrlInput() {
           onChange={(e) => setUrl(e.target.value)}
           placeholder="Paste a TikTok, Instagram, YouTube or X link…"
           disabled={status === "loading"}
-          className="w-full bg-[#1a1a1e] border border-[#2a2a2a] rounded-lg px-4 py-2.5 text-sm text-[#e8e8e8] placeholder-[#3a3a3a] outline-none focus:border-[#3a3a4a] transition-colors disabled:opacity-50 font-mono"
+          className="w-full bg-fa-input border border-fa-line rounded-lg px-4 py-2.5 text-sm text-fa-primary placeholder-fa-placeholder outline-none focus:border-fa-ring transition-colors disabled:opacity-50 font-mono"
         />
       </div>
       <button
@@ -69,7 +69,7 @@ function UrlInput() {
             ? "bg-[#22c55e20] text-[#22c55e] border border-[#22c55e30]"
             : status === "error"
             ? "bg-[#ef444420] text-[#ef4444] border border-[#ef444430]"
-            : "bg-[#e8e8e8] text-[#0d0d0f] hover:bg-white"
+            : "bg-fa-btn-bg text-fa-btn-fg hover:bg-fa-btn-hover"
         }`}
       >
         {status === "loading" ? "Saving…" : status === "success" ? "✓ Saved" : status === "error" ? "Error" : "Save"}
@@ -107,15 +107,15 @@ function CategoryTabs({
             style={isActive && color ? { borderColor: color, color } : undefined}
             className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               isActive
-                ? "bg-[#1a1a1e] border border-[#333]"
-                : "text-[#555] hover:text-[#888] hover:bg-[#141418] border border-transparent"
+                ? "bg-fa-input border border-fa-strong"
+                : "text-fa-subtle hover:text-fa-muted hover:bg-fa-elevated border border-transparent"
             }`}
           >
             {label}
             {count !== undefined && count > 0 && (
               <span
                 className={`text-[10px] font-mono px-1 py-0.5 rounded ${
-                  isActive ? "bg-[#ffffff10]" : "bg-[#1a1a1a] text-[#444]"
+                  isActive ? "bg-fa-count-active" : "bg-fa-muted-bg text-fa-faint"
                 }`}
               >
                 {count}
@@ -132,24 +132,38 @@ function CategoryTabs({
 
 function SkeletonCard() {
   return (
-    <div className="bg-[#141418] border border-[#1e1e1e] border-l-4 border-l-[#222] rounded-lg p-4 space-y-3 animate-pulse">
+    <div className="bg-fa-surface border border-fa-border-soft border-l-4 border-l-fa-line rounded-lg p-4 space-y-3 animate-pulse">
       <div className="flex gap-2">
-        <div className="h-4 w-12 bg-[#1f1f1f] rounded" />
-        <div className="h-4 w-16 bg-[#1f1f1f] rounded" />
+        <div className="h-4 w-12 bg-fa-chip rounded" />
+        <div className="h-4 w-16 bg-fa-chip rounded" />
       </div>
       <div className="space-y-2">
-        <div className="h-3.5 w-3/4 bg-[#1f1f1f] rounded" />
-        <div className="h-3 w-1/2 bg-[#1a1a1a] rounded" />
-        <div className="h-3 w-5/6 bg-[#1a1a1a] rounded" />
+        <div className="h-3.5 w-3/4 bg-fa-chip rounded" />
+        <div className="h-3 w-1/2 bg-fa-muted-bg rounded" />
+        <div className="h-3 w-5/6 bg-fa-muted-bg rounded" />
       </div>
-      <div className="h-7 w-28 bg-[#1a1a1a] rounded" />
+      <div className="h-7 w-28 bg-fa-muted-bg rounded" />
     </div>
   );
 }
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
-function EmptyState({ category }: { category: TabValue }) {
+function EmptyState({
+  category,
+  archiveView,
+}: {
+  category: TabValue;
+  archiveView: boolean;
+}) {
+  if (archiveView) {
+    return (
+      <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
+        <p className="text-3xl mb-3 opacity-40">📦</p>
+        <p className="text-sm text-fa-faint">Nothing archived yet</p>
+      </div>
+    );
+  }
   return (
     <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
       <p className="text-3xl mb-3 opacity-40">
@@ -165,7 +179,7 @@ function EmptyState({ category }: { category: TabValue }) {
           ? "🎬"
           : "📂"}
       </p>
-      <p className="text-sm text-[#444]">
+      <p className="text-sm text-fa-faint">
         {category === "all"
           ? "No items yet — paste a link above to get started"
           : `No ${CATEGORY_META[category as CategoryType]?.label ?? category} items yet`}
@@ -191,7 +205,7 @@ function SignOutButton() {
     <button
       onClick={handleSignOut}
       disabled={loading}
-      className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-[#555] hover:text-[#888] hover:bg-[#141418] border border-transparent transition-all disabled:opacity-40"
+      className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-fa-subtle hover:text-fa-muted hover:bg-fa-elevated border border-transparent transition-all disabled:opacity-40"
     >
       {loading ? "Signing out…" : "Sign out"}
     </button>
@@ -209,9 +223,10 @@ export function FeedApp() {
 
   const activeCategory = (searchParams.get("category") as TabValue | null) ?? "all";
   const searchQuery = searchParams.get("q") ?? "";
+  const archiveView = searchParams.get("view") === "archive";
 
   // Convex reactive query — automatically updates when items change
-  const rawItems = useQuery(api.items.list);
+  const rawItems = useQuery(api.items.list, { view: archiveView ? "archive" : "feed" });
   const allItems = rawItems ?? [];
   const loading = rawItems === undefined;
 
@@ -274,22 +289,22 @@ export function FeedApp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d0d0f] text-[#e8e8e8]">
+    <div className="min-h-screen bg-fa-canvas text-fa-primary">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-[#1a1a1a] bg-[#0d0d0f]/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-30 border-b border-fa-border bg-fa-canvas/95 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-4 py-3">
           {/* Top row: logo + nav + sign out */}
           <div className="flex items-center gap-3">
             {/* Logo */}
             <a href="/" className="flex-shrink-0 flex items-center gap-2 group">
-              <div className="w-6 h-6 rounded grid grid-cols-2 gap-0.5 p-1 bg-[#1a1a1e] border border-[#2a2a2a] group-hover:border-[#3a3a3a] transition-colors">
+              <div className="w-6 h-6 rounded grid grid-cols-2 gap-0.5 p-1 bg-fa-input border border-fa-line group-hover:border-fa-ring transition-colors">
                 <div className="bg-[#f97316] rounded-[1px]" />
                 <div className="bg-[#22c55e] rounded-[1px]" />
                 <div className="bg-[#3b82f6] rounded-[1px]" />
                 <div className="bg-[#a855f7] rounded-[1px]" />
               </div>
-              <span className="font-bold text-sm tracking-tight text-[#e8e8e8]">
-                file<span className="text-[#555]">away</span>
+              <span className="font-bold text-sm tracking-tight text-fa-primary">
+                file<span className="text-fa-logo-dim">away</span>
               </span>
             </a>
 
@@ -302,13 +317,13 @@ export function FeedApp() {
             <div className="ml-auto flex items-center gap-1">
               <a
                 href="/dashboard"
-                className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-[#555] hover:text-[#888] hover:bg-[#141418] border border-transparent transition-all"
+                className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-fa-subtle hover:text-fa-muted hover:bg-fa-elevated border border-transparent transition-all"
               >
                 Stats
               </a>
               <a
                 href="/share"
-                className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-[#555] hover:text-[#888] hover:bg-[#141418] border border-transparent transition-all"
+                className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-fa-subtle hover:text-fa-muted hover:bg-fa-elevated border border-transparent transition-all"
               >
                 Share
               </a>
@@ -324,17 +339,17 @@ export function FeedApp() {
       </header>
 
       {/* Filters row */}
-      <div className="sm:sticky sm:top-[57px] z-20 bg-[#0d0d0f]/95 backdrop-blur-sm border-b border-[#161616]">
+      <div className="sm:sticky sm:top-[57px] z-20 bg-fa-canvas/95 backdrop-blur-sm border-b border-fa-border">
         <div className="max-w-5xl mx-auto px-4 py-2 flex flex-wrap items-center gap-2">
           {/* Search */}
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#444] text-xs">⌕</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-fa-faint text-xs">⌕</span>
             <input
               type="search"
               value={searchInput}
               onChange={(e) => handleSearch(e.target.value)}
               placeholder="Search…"
-              className="bg-[#141418] border border-[#222] rounded-lg pl-7 pr-3 py-1.5 text-xs text-[#ccc] placeholder-[#333] outline-none focus:border-[#2a2a2a] w-36 transition-all focus:w-48"
+              className="bg-fa-surface border border-fa-line rounded-lg pl-7 pr-3 py-1.5 text-xs text-fa-secondary placeholder-fa-placeholder outline-none focus:border-fa-line w-36 transition-all focus:w-48"
             />
           </div>
 
@@ -347,12 +362,36 @@ export function FeedApp() {
             />
           </div>
 
-          {/* Item count */}
-          {!loading && (
-            <span className="flex-shrink-0 text-[11px] text-[#444] font-mono">
-              {filteredItems.length}
-            </span>
-          )}
+          {/* Feed vs archive + count (single pill) */}
+          <div className="flex items-center rounded-lg border border-fa-line bg-fa-surface p-0.5 flex-shrink-0 gap-0.5">
+            <button
+              type="button"
+              onClick={() => updateParam({ view: null })}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                !archiveView ? "bg-fa-pill-active text-fa-primary" : "text-fa-subtle hover:text-fa-muted"
+              }`}
+            >
+              Feed
+            </button>
+            <button
+              type="button"
+              onClick={() => updateParam({ view: "archive" })}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                archiveView ? "bg-fa-pill-active text-fa-primary" : "text-fa-subtle hover:text-fa-muted"
+              }`}
+            >
+              Archive
+            </button>
+            {!loading && (
+              <span
+                className="flex items-center min-w-[1.75rem] justify-center pl-2 pr-1.5 ml-0.5 border-l border-fa-line text-[11px] text-fa-faint font-mono tabular-nums"
+                aria-live="polite"
+                aria-label={`${filteredItems.length} items`}
+              >
+                {filteredItems.length}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -362,7 +401,7 @@ export function FeedApp() {
           {loading ? (
             Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
           ) : filteredItems.length === 0 ? (
-            <EmptyState category={activeCategory} />
+            <EmptyState category={activeCategory} archiveView={archiveView} />
           ) : (
             filteredItems.map((item) => (
               <ItemCard key={item.id} item={item} />

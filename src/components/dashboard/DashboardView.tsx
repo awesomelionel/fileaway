@@ -14,7 +14,7 @@ export function DashboardView() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 space-y-4 animate-pulse">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-16 bg-[#141418] rounded-lg border border-[#1e1e1e]" />
+          <div key={i} className="h-16 bg-fa-surface rounded-lg border border-fa-border-soft" />
         ))}
       </div>
     );
@@ -22,7 +22,7 @@ export function DashboardView() {
 
   if (stats === null) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-12 text-center text-[#555] text-sm">
+      <div className="max-w-2xl mx-auto px-4 py-12 text-center text-fa-subtle text-sm">
         Not signed in.
       </div>
     );
@@ -44,19 +44,19 @@ export function DashboardView() {
         ].map(({ label, value, warn }) => (
           <div
             key={label}
-            className="bg-[#141418] border border-[#1e1e1e] rounded-lg p-4 text-center"
+            className="bg-fa-surface border border-fa-border-soft rounded-lg p-4 text-center"
           >
-            <p className={`text-2xl font-bold font-mono ${warn ? "text-[#ef4444]" : "text-[#e8e8e8]"}`}>
+            <p className={`text-2xl font-bold font-mono ${warn ? "text-[#ef4444]" : "text-fa-primary"}`}>
               {value}
             </p>
-            <p className="text-[11px] text-[#555] mt-1">{label}</p>
+            <p className="text-[11px] text-fa-subtle mt-1">{label}</p>
           </div>
         ))}
       </div>
 
       {/* By category */}
       <div>
-        <h2 className="text-xs font-medium uppercase tracking-wider text-[#555] mb-3">
+        <h2 className="text-xs font-medium uppercase tracking-wider text-fa-subtle mb-3">
           By category
         </h2>
         <div className="space-y-2">
@@ -69,7 +69,7 @@ export function DashboardView() {
                 <span className={`text-xs w-20 flex-shrink-0 ${meta.text}`}>
                   {meta.label}
                 </span>
-                <div className="flex-1 h-2 bg-[#1a1a1a] rounded-full overflow-hidden">
+                <div className="flex-1 h-2 bg-fa-muted-bg rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{
@@ -79,7 +79,7 @@ export function DashboardView() {
                     }}
                   />
                 </div>
-                <span className="text-xs font-mono text-[#666] w-6 text-right flex-shrink-0">
+                <span className="text-xs font-mono text-fa-icon-muted w-6 text-right flex-shrink-0">
                   {count}
                 </span>
               </div>
@@ -91,7 +91,7 @@ export function DashboardView() {
       {/* Recent saves */}
       {stats.recentItems.length > 0 && (
         <div>
-          <h2 className="text-xs font-medium uppercase tracking-wider text-[#555] mb-3">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-fa-subtle mb-3">
             Recent saves
           </h2>
           <div className="space-y-1.5">
@@ -100,12 +100,12 @@ export function DashboardView() {
               return (
                 <div
                   key={item.id}
-                  className="flex items-center gap-3 bg-[#141418] border border-[#1e1e1e] rounded-lg px-4 py-2.5"
+                  className="flex items-center gap-3 bg-fa-surface border border-fa-border-soft rounded-lg px-4 py-2.5"
                 >
                   <span className={`text-[10px] font-medium ${meta.text} w-16 flex-shrink-0`}>
                     {meta.label}
                   </span>
-                  <span className="text-xs text-[#666] font-mono truncate flex-1">
+                  <span className="text-xs text-fa-icon-muted font-mono truncate flex-1">
                     {item.sourceUrl}
                   </span>
                   <span
@@ -129,7 +129,7 @@ export function DashboardView() {
       <div className="pt-2">
         <Link
           href="/"
-          className="text-xs text-[#555] hover:text-[#888] transition-colors"
+          className="text-xs text-fa-subtle hover:text-fa-muted transition-colors"
         >
           ← Back to feed
         </Link>

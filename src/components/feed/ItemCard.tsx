@@ -83,7 +83,7 @@ function RelativeTime({ iso }: { iso: string }) {
   const days = Math.floor(hours / 24);
   const label =
     days > 0 ? `${days}d ago` : hours > 0 ? `${hours}h ago` : mins > 0 ? `${mins}m ago` : "just now";
-  return <span className="text-[11px] text-[#555]">{label}</span>;
+  return <span className="text-[11px] text-fa-subtle">{label}</span>;
 }
 
 function ThumbnailBanner({
@@ -127,25 +127,25 @@ function FoodBody({ data }: { data: Record<string, unknown> }) {
 
   return (
     <div className="space-y-2">
-      {name && <p className="font-semibold text-[#e8e8e8] leading-tight">{name}</p>}
+      {name && <p className="font-semibold text-fa-primary leading-tight">{name}</p>}
       <div className="flex flex-wrap gap-2">
         {cuisine && (
-          <span className="text-xs text-[#999] bg-[#1f1f1f] px-2 py-0.5 rounded">{cuisine}</span>
+          <span className="text-xs text-fa-dim bg-fa-chip px-2 py-0.5 rounded">{cuisine}</span>
         )}
         {priceRange && (
-          <span className="text-xs text-[#f97316] font-mono bg-[#1f1f1f] px-2 py-0.5 rounded">
+          <span className="text-xs text-[#f97316] font-mono bg-fa-chip px-2 py-0.5 rounded">
             {priceRange}
           </span>
         )}
       </div>
       {address && (
-        <p className="text-xs text-[#777] flex items-start gap-1">
+        <p className="text-xs text-fa-secondary-alt flex items-start gap-1">
           <span className="mt-0.5">📍</span>
           <span>{address}</span>
         </p>
       )}
       {whyVisit && (
-        <p className="text-xs text-[#aaa] leading-relaxed border-l-2 border-[#f97316]/30 pl-2 italic">
+        <p className="text-xs text-fa-soft leading-relaxed border-l-2 border-[#f97316]/30 pl-2 italic">
           {whyVisit}
         </p>
       )}
@@ -162,26 +162,26 @@ function RecipeBody({ data }: { data: Record<string, unknown> }) {
 
   return (
     <div className="space-y-2">
-      {dishName && <p className="font-semibold text-[#e8e8e8] leading-tight">{dishName}</p>}
-      <div className="flex gap-3 text-[11px] text-[#777]">
+      {dishName && <p className="font-semibold text-fa-primary leading-tight">{dishName}</p>}
+      <div className="flex gap-3 text-[11px] text-fa-secondary-alt">
         {prepTime !== undefined && <span>Prep {prepTime}m</span>}
         {cookTime !== undefined && cookTime > 0 && <span>Cook {cookTime}m</span>}
         {servings !== undefined && <span>Serves {servings}</span>}
       </div>
       {ingredients && ingredients.length > 0 && (
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-wider text-[#555] mb-1">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle mb-1">
             Ingredients
           </p>
           <ul className="space-y-0.5">
             {ingredients.slice(0, 5).map((ing, i) => (
-              <li key={i} className="text-xs text-[#aaa] flex items-start gap-1.5">
+              <li key={i} className="text-xs text-fa-soft flex items-start gap-1.5">
                 <span className="text-[#22c55e] mt-0.5 flex-shrink-0">·</span>
                 {ing}
               </li>
             ))}
             {ingredients.length > 5 && (
-              <li className="text-[11px] text-[#555]">+{ingredients.length - 5} more</li>
+              <li className="text-[11px] text-fa-subtle">+{ingredients.length - 5} more</li>
             )}
           </ul>
         </div>
@@ -203,7 +203,7 @@ function FitnessBody({ data }: { data: Record<string, unknown> }) {
 
   return (
     <div className="space-y-2">
-      {workoutName && <p className="font-semibold text-[#e8e8e8] leading-tight">{workoutName}</p>}
+      {workoutName && <p className="font-semibold text-fa-primary leading-tight">{workoutName}</p>}
       <div className="flex gap-3 flex-wrap">
         {duration && (
           <span className="text-xs text-[#3b82f6] bg-[#3b82f610] px-2 py-0.5 rounded font-mono">
@@ -211,7 +211,7 @@ function FitnessBody({ data }: { data: Record<string, unknown> }) {
           </span>
         )}
         {difficulty && (
-          <span className="text-xs text-[#999] bg-[#1f1f1f] px-2 py-0.5 rounded">{difficulty}</span>
+          <span className="text-xs text-fa-dim bg-fa-chip px-2 py-0.5 rounded">{difficulty}</span>
         )}
       </div>
       {muscleGroups && muscleGroups.length > 0 && (
@@ -227,14 +227,14 @@ function FitnessBody({ data }: { data: Record<string, unknown> }) {
         <div className="space-y-1">
           {exercises.slice(0, 4).map((ex, i) => (
             <div key={i} className="flex items-center justify-between text-xs">
-              <span className="text-[#bbb]">{ex.name}</span>
+              <span className="text-fa-mid">{ex.name}</span>
               <span className="text-[#3b82f6] font-mono text-[11px]">
                 {ex.sets > 1 ? `${ex.sets}×` : ""}{ex.reps}
               </span>
             </div>
           ))}
           {exercises.length > 4 && (
-            <p className="text-[11px] text-[#555]">+{exercises.length - 4} more exercises</p>
+            <p className="text-[11px] text-fa-subtle">+{exercises.length - 4} more exercises</p>
           )}
         </div>
       )}
@@ -249,8 +249,8 @@ function HowToBody({ data }: { data: Record<string, unknown> }) {
 
   return (
     <div className="space-y-2">
-      {title && <p className="font-semibold text-[#e8e8e8] leading-tight">{title}</p>}
-      {summary && <p className="text-xs text-[#999] leading-relaxed">{summary}</p>}
+      {title && <p className="font-semibold text-fa-primary leading-tight">{title}</p>}
+      {summary && <p className="text-xs text-fa-dim leading-relaxed">{summary}</p>}
       {steps && steps.length > 0 && (
         <div className="space-y-1">
           {steps.slice(0, 4).map((step, i) => (
@@ -258,11 +258,11 @@ function HowToBody({ data }: { data: Record<string, unknown> }) {
               <span className="text-[10px] text-[#a855f7] font-mono font-bold flex-shrink-0 mt-0.5 w-4">
                 {i + 1}.
               </span>
-              <span className="text-[#aaa] leading-relaxed">{step}</span>
+              <span className="text-fa-soft leading-relaxed">{step}</span>
             </div>
           ))}
           {steps.length > 4 && (
-            <p className="text-[11px] text-[#555] pl-6">+{steps.length - 4} more steps</p>
+            <p className="text-[11px] text-fa-subtle pl-6">+{steps.length - 4} more steps</p>
           )}
         </div>
       )}
@@ -277,21 +277,21 @@ function VideoBody({ data }: { data: Record<string, unknown> }) {
 
   return (
     <div className="space-y-2">
-      {title && <p className="font-semibold text-[#e8e8e8] leading-tight text-sm">{title}</p>}
+      {title && <p className="font-semibold text-fa-primary leading-tight text-sm">{title}</p>}
       {summary && (
-        <p className="text-xs text-[#aaa] leading-relaxed line-clamp-3">{summary}</p>
+        <p className="text-xs text-fa-soft leading-relaxed line-clamp-3">{summary}</p>
       )}
       {keyPoints && keyPoints.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-[#555]">Key Points</p>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle">Key Points</p>
           {keyPoints.slice(0, 3).map((pt, i) => (
             <div key={i} className="flex items-start gap-1.5 text-xs">
               <span className="text-[#14b8a6] flex-shrink-0 mt-0.5">→</span>
-              <span className="text-[#999]">{pt}</span>
+              <span className="text-fa-dim">{pt}</span>
             </div>
           ))}
           {keyPoints.length > 3 && (
-            <p className="text-[11px] text-[#555] pl-4">+{keyPoints.length - 3} more</p>
+            <p className="text-[11px] text-fa-subtle pl-4">+{keyPoints.length - 3} more</p>
           )}
         </div>
       )}
@@ -305,9 +305,9 @@ function OtherBody({ data }: { data: Record<string, unknown> }) {
 
   return (
     <div className="space-y-2">
-      {title && <p className="font-semibold text-[#e8e8e8] leading-tight">{title}</p>}
+      {title && <p className="font-semibold text-fa-primary leading-tight">{title}</p>}
       {summary && (
-        <p className="text-xs text-[#aaa] leading-relaxed">{summary}</p>
+        <p className="text-xs text-fa-soft leading-relaxed">{summary}</p>
       )}
     </div>
   );
@@ -318,8 +318,8 @@ function OtherBody({ data }: { data: Record<string, unknown> }) {
 function PendingBody({ url }: { url: string }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs text-[#666]">Queued for processing…</p>
-      <p className="text-[11px] text-[#444] font-mono truncate">{url}</p>
+      <p className="text-xs text-fa-icon-muted">Queued for processing…</p>
+      <p className="text-[11px] text-fa-faint font-mono truncate">{url}</p>
       <div className="flex gap-1.5 items-center">
         <div className="h-1.5 w-1.5 rounded-full bg-[#f59e0b] animate-pulse" />
         <span className="text-[11px] text-[#f59e0b]">Waiting in queue</span>
@@ -331,8 +331,8 @@ function PendingBody({ url }: { url: string }) {
 function ProcessingBody({ url }: { url: string }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs text-[#888]">AI is analyzing this link…</p>
-      <p className="text-[11px] text-[#444] font-mono truncate">{url}</p>
+      <p className="text-xs text-fa-muted">AI is analyzing this link…</p>
+      <p className="text-[11px] text-fa-faint font-mono truncate">{url}</p>
       <div className="flex gap-1.5 items-center">
         <svg
           className="h-3 w-3 animate-spin text-[#6366f1]"
@@ -371,7 +371,7 @@ function FailedBody({
   return (
     <div className="space-y-2">
       <p className="text-xs text-[#ef4444]">Could not extract content</p>
-      <p className="text-[11px] text-[#444] font-mono truncate">{url}</p>
+      <p className="text-[11px] text-fa-faint font-mono truncate">{url}</p>
       <button
         onClick={onRetry}
         className="text-xs px-3 py-1.5 rounded bg-[#ef444415] text-[#ef4444] border border-[#ef444430] font-medium hover:bg-[#ef444425] transition-colors min-h-[44px] sm:min-h-0"
@@ -543,26 +543,26 @@ function GuideModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-xl bg-[#141418] border border-[#2a2a2a] rounded-xl shadow-2xl">
-        <div className="flex items-start justify-between p-5 border-b border-[#1f1f1f]">
+      <div className="w-full max-w-xl bg-fa-surface border border-fa-line rounded-xl shadow-2xl">
+        <div className="flex items-start justify-between p-5 border-b border-fa-separator">
           <div>
             <p className="text-[10px] font-medium uppercase tracking-wider text-[#a855f7] mb-1">
               Step-by-step guide
             </p>
-            <h2 className="text-base font-semibold text-[#e8e8e8] leading-tight">
+            <h2 className="text-base font-semibold text-fa-primary leading-tight">
               {title ?? "Guide"}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-[#555] hover:text-[#999] text-lg leading-none mt-0.5 ml-4 flex-shrink-0"
+            className="text-fa-subtle hover:text-fa-dim text-lg leading-none mt-0.5 ml-4 flex-shrink-0"
           >
             ✕
           </button>
         </div>
         {summary && (
           <div className="px-5 pt-4 pb-0">
-            <p className="text-xs text-[#888] leading-relaxed">{summary}</p>
+            <p className="text-xs text-fa-muted leading-relaxed">{summary}</p>
           </div>
         )}
         {steps && steps.length > 0 && (
@@ -572,7 +572,7 @@ function GuideModal({
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#a855f720] border border-[#a855f740] text-[#a855f7] text-[11px] font-bold flex items-center justify-center">
                   {i + 1}
                 </span>
-                <p className="text-sm text-[#ccc] leading-relaxed pt-0.5">{step}</p>
+                <p className="text-sm text-fa-secondary leading-relaxed pt-0.5">{step}</p>
               </div>
             ))}
           </div>
@@ -582,7 +582,7 @@ function GuideModal({
             href={item.source_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-[#555] hover:text-[#888] transition-colors"
+            className="text-xs text-fa-subtle hover:text-fa-muted transition-colors"
           >
             View original source ↗
           </a>
@@ -635,19 +635,19 @@ function CorrectionModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-md bg-[#141418] border border-[#2a2a2a] rounded-xl shadow-2xl">
-        <div className="flex items-start justify-between p-5 border-b border-[#1f1f1f]">
+      <div className="w-full max-w-md bg-fa-surface border border-fa-line rounded-xl shadow-2xl">
+        <div className="flex items-start justify-between p-5 border-b border-fa-separator">
           <div>
             <p className="text-[10px] font-medium uppercase tracking-wider text-[#ef4444] mb-1">
               Report correction
             </p>
-            <h2 className="text-sm font-semibold text-[#e8e8e8]">
+            <h2 className="text-sm font-semibold text-fa-primary">
               What&apos;s wrong with this?
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-[#555] hover:text-[#999] text-lg leading-none mt-0.5 ml-4 flex-shrink-0"
+            className="text-fa-subtle hover:text-fa-dim text-lg leading-none mt-0.5 ml-4 flex-shrink-0"
           >
             ✕
           </button>
@@ -663,7 +663,7 @@ function CorrectionModal({
           <form onSubmit={handleSubmit} className="p-5 space-y-4">
             {/* Category correction */}
             <div>
-              <label className="block text-[11px] font-medium text-[#555] uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-medium text-fa-subtle uppercase tracking-wider mb-1.5">
                 Correct category
               </label>
               <select
@@ -671,10 +671,10 @@ function CorrectionModal({
                 onChange={(e) =>
                   setSelectedCategory(e.target.value as CategoryType)
                 }
-                className="w-full bg-[#1a1a1e] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-[#e8e8e8] outline-none focus:border-[#3a3a4a]"
+                className="w-full bg-fa-input border border-fa-line rounded-lg px-3 py-2 text-sm text-fa-primary outline-none focus:border-fa-ring"
               >
                 {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat} className="bg-[#1a1a1a]">
+                  <option key={cat} value={cat} className="bg-fa-muted-bg">
                     {CATEGORY_META[cat].label}
                     {cat === item.category ? " (current)" : ""}
                   </option>
@@ -684,7 +684,7 @@ function CorrectionModal({
 
             {/* Note */}
             <div>
-              <label className="block text-[11px] font-medium text-[#555] uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-medium text-fa-subtle uppercase tracking-wider mb-1.5">
                 What&apos;s wrong? <span className="text-[#ef4444]">*</span>
               </label>
               <textarea
@@ -693,9 +693,9 @@ function CorrectionModal({
                 placeholder="e.g. This is a recipe, not a fitness video. Ingredients are listed in the caption."
                 rows={3}
                 maxLength={400}
-                className="w-full bg-[#1a1a1e] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-[#e8e8e8] placeholder-[#3a3a3a] outline-none focus:border-[#3a3a4a] resize-none"
+                className="w-full bg-fa-input border border-fa-line rounded-lg px-3 py-2 text-sm text-fa-primary placeholder-fa-placeholder outline-none focus:border-fa-ring resize-none"
               />
-              <p className="text-[10px] text-[#444] text-right mt-0.5">
+              <p className="text-[10px] text-fa-faint text-right mt-0.5">
                 {note.length}/400
               </p>
             </div>
@@ -737,8 +737,10 @@ export function ItemCard({ item }: ItemCardProps) {
   const [guideItem, setGuideItem] = useState<SavedItemResponse | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
   const [overriding, setOverriding] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   const updateCategory = useMutation(api.items.updateCategory);
   const retryItem = useMutation(api.items.retryItem);
+  const setArchived = useMutation(api.items.setArchived);
 
   const meta = CATEGORY_META[item.category];
 
@@ -761,16 +763,30 @@ export function ItemCard({ item }: ItemCardProps) {
     }
   };
 
+  const handleArchiveToggle = async () => {
+    setArchiving(true);
+    try {
+      await setArchived({
+        id: item.id as Id<"savedItems">,
+        archived: !item.archived,
+      });
+    } catch (err: unknown) {
+      console.error("[ItemCard] setArchived failed:", err);
+    } finally {
+      setArchiving(false);
+    }
+  };
+
   return (
     <>
       <div
-        className={`relative bg-[#141418] border border-[#222] border-l-4 ${meta.border} rounded-lg overflow-hidden transition-all duration-200 hover:border-[#333] hover:shadow-lg hover:shadow-black/30 flex flex-col`}
+        className={`relative bg-fa-surface border border-fa-line border-l-4 ${meta.border} rounded-lg overflow-hidden transition-all duration-200 hover:border-fa-strong hover:shadow-lg hover:shadow-fa-card flex flex-col`}
       >
         {/* Header */}
         <div className="px-4 pt-3 pb-2 flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
             <Badge className={`${meta.bg} ${meta.text}`}>{meta.label}</Badge>
-            <Badge className="bg-[#1a1a1a] text-[#555]">
+            <Badge className="bg-fa-muted-bg text-fa-subtle">
               {PLATFORM_LABELS[item.platform] ?? item.platform}
             </Badge>
           </div>
@@ -791,6 +807,15 @@ export function ItemCard({ item }: ItemCardProps) {
               </span>
             )}
             <RelativeTime iso={item.created_at} />
+            <button
+              type="button"
+              onClick={handleArchiveToggle}
+              disabled={archiving}
+              className="text-[10px] text-fa-subtle hover:text-fa-mid disabled:opacity-40 px-1.5 py-0.5 rounded border border-transparent hover:border-fa-line transition-colors"
+              title={item.archived ? "Move back to feed" : "Archive"}
+            >
+              {item.archived ? "Restore" : "Archive"}
+            </button>
           </div>
         </div>
 
@@ -821,13 +846,13 @@ export function ItemCard({ item }: ItemCardProps) {
 
         {/* Footer */}
         {item.status === "done" && (
-          <div className="px-4 py-3 border-t border-[#1c1c1c] flex flex-col gap-2">
+          <div className="px-4 py-3 border-t border-fa-separator flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <ActionButton item={item} category={item.category} onGuideOpen={setGuideItem} />
                 <button
                   onClick={() => setShowCorrection(true)}
-                  className="text-[11px] text-[#444] hover:text-[#ef4444] transition-colors px-1"
+                  className="text-[11px] text-fa-faint hover:text-[#ef4444] transition-colors px-1"
                   title="Report a correction"
                 >
                   ✗
@@ -836,16 +861,16 @@ export function ItemCard({ item }: ItemCardProps) {
 
               {/* Category override */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-[#444]">↺</span>
+                <span className="text-[10px] text-fa-faint">↺</span>
                 <select
                   value={item.category}
                   onChange={handleCategoryChange}
                   disabled={overriding}
-                  className="text-[11px] text-[#555] bg-transparent border-none outline-none cursor-pointer hover:text-[#888] transition-colors appearance-none"
+                  className="text-[11px] text-fa-subtle bg-transparent border-none outline-none cursor-pointer hover:text-fa-muted transition-colors appearance-none"
                   aria-label="Override category"
                 >
                   {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat} className="bg-[#1a1a1a] text-[#ccc]">
+                    <option key={cat} value={cat} className="bg-fa-muted-bg text-fa-secondary">
                       {CATEGORY_META[cat].label}
                     </option>
                   ))}
@@ -857,7 +882,7 @@ export function ItemCard({ item }: ItemCardProps) {
               href={item.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] text-[#555] hover:text-[#888] transition-colors flex items-center gap-1 w-fit"
+              className="text-[11px] text-fa-subtle hover:text-fa-muted transition-colors flex items-center gap-1 w-fit"
             >
               <span>↗</span>
               <span>View Original</span>

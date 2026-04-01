@@ -21,6 +21,8 @@ export interface SavedItemResponse {
   action_taken: string | null;
   user_correction: string | null;
   status: ItemStatus;
+  /** Hidden from main feed when true. */
+  archived: boolean;
   thumbnail_url: string | null;
   created_at: string;
   /** ISO timestamp when the item finished processing (approximated from creation time). */

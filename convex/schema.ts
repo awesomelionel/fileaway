@@ -33,6 +33,8 @@ export default defineSchema({
       v.literal("done"),
       v.literal("failed"),
     ),
+    /** When true, hidden from the main feed; shown in Archive view. */
+    archived: v.optional(v.boolean()),
   })
     .index("by_userId", ["userId"])
     .index("by_status", ["status"]),

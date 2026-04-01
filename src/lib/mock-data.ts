@@ -7,6 +7,7 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     platform: "tiktok",
     category: "food",
     status: "done",
+    archived: false,
     extracted_data: {
       name: "Kato",
       address: "4000 Sunset Blvd, Los Angeles, CA 90029",
@@ -28,6 +29,7 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     platform: "instagram",
     category: "food",
     status: "done",
+    archived: false,
     extracted_data: {
       name: "Roberta's",
       address: "261 Moore St, Brooklyn, NY 11206",
@@ -49,6 +51,7 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     platform: "youtube",
     category: "recipe",
     status: "done",
+    archived: false,
     extracted_data: {
       dish_name: "Crispy Smash Burgers",
       ingredients: [
@@ -86,6 +89,7 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     platform: "instagram",
     category: "recipe",
     status: "done",
+    archived: false,
     extracted_data: {
       dish_name: "Matcha Tiramisu",
       ingredients: [
@@ -122,6 +126,7 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     platform: "tiktok",
     category: "fitness",
     status: "done",
+    archived: false,
     extracted_data: {
       workout_name: "20-Minute AMRAP Circuit",
       exercises: [
@@ -147,6 +152,7 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     platform: "youtube",
     category: "fitness",
     status: "done",
+    archived: false,
     extracted_data: {
       workout_name: "Pull Day — Back & Biceps",
       exercises: [
@@ -173,6 +179,7 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     platform: "youtube",
     category: "how-to",
     status: "done",
+    archived: false,
     extracted_data: {
       title: "Set Up a Home Server with Proxmox",
       summary:
@@ -202,6 +209,7 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     platform: "instagram",
     category: "how-to",
     status: "done",
+    archived: false,
     extracted_data: {
       title: "DIY Sourdough Starter from Scratch",
       summary:
@@ -228,6 +236,7 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     platform: "youtube",
     category: "video-analysis",
     status: "done",
+    archived: false,
     extracted_data: {
       title: "Naval Ravikant — How to Get Rich (Without Getting Lucky)",
       summary:
@@ -253,6 +262,7 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     platform: "twitter",
     category: "other",
     status: "done",
+    archived: false,
     extracted_data: {
       title: "Paul Graham on startup mistakes",
       summary:
@@ -270,6 +280,7 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     platform: "tiktok",
     category: "other",
     status: "pending",
+    archived: false,
     extracted_data: null,
     action_taken: null,
     user_correction: null,
@@ -283,6 +294,7 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     platform: "instagram",
     category: "other",
     status: "failed",
+    archived: false,
     extracted_data: null,
     action_taken: null,
     user_correction: null,

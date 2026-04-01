@@ -24,50 +24,148 @@
   }
 }
 
+/**
+ * fileaway semantic theme — switches with system light / dark (prefers-color-scheme).
+ * Light: warm paper / ink (editorial, not generic gray-on-white).
+ * Dark: existing near-black UI.
+ */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    color-scheme: light;
+
+    --fa-canvas: #f3f0e8;
+    --fa-surface: #fcfaf6;
+    --fa-elevated: #ebe6db;
+    --fa-input: #fffcf7;
+    --fa-muted-bg: #e8e3d9;
+    --fa-chip: #e5dfd3;
+    --fa-border: #ddd6c8;
+    --fa-border-soft: #d8d1c4;
+    --fa-line: #cfc8ba;
+    --fa-strong: #9c9588;
+    --fa-separator: #e0d9cc;
+    --fa-primary: #14110c;
+    --fa-secondary: #3d3a34;
+    --fa-soft: #6b655b;
+    --fa-dim: #6b655b;
+    --fa-muted: #7a7468;
+    --fa-subtle: #5c574e;
+    --fa-faint: #8a8376;
+    --fa-mid: #7a7468;
+    --fa-placeholder: #9a9285;
+    --fa-ring: #8a8376;
+    --fa-logo-dim: #7a7468;
+    --fa-pill-active: #ddd5c8;
+    --fa-divider: #c4bdb0;
+    --fa-btn-bg: #1c1812;
+    --fa-btn-fg: #fdfcfa;
+    --fa-btn-hover: #2a241c;
+    --fa-count-active-bg: rgba(0, 0, 0, 0.06);
+    --fa-shadow-card: 0 12px 40px rgba(28, 22, 14, 0.1);
+    --fa-secondary-alt: #5c574e;
+    --fa-icon-muted: #6b655b;
+
+    /* shadcn-style HSL tokens — align with fa for components using bg-background */
+    --background: 40 20% 95%;
+    --foreground: 40 15% 8%;
+    --card: 40 25% 98%;
+    --card-foreground: 40 15% 8%;
+    --popover: 40 25% 98%;
+    --popover-foreground: 40 15% 8%;
+    --primary: 40 15% 12%;
+    --primary-foreground: 40 25% 98%;
+    --secondary: 40 12% 90%;
+    --secondary-foreground: 40 15% 12%;
+    --muted: 40 12% 90%;
+    --muted-foreground: 40 8% 42%;
+    --accent: 40 12% 90%;
+    --accent-foreground: 40 15% 12%;
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 40 25% 98%;
+    --border: 38 14% 82%;
+    --input: 38 14% 82%;
+    --ring: 40 8% 42%;
     --radius: 0.5rem;
   }
 
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+
+      --fa-canvas: #0d0d0f;
+      --fa-surface: #141418;
+      --fa-elevated: #141418;
+      --fa-input: #1a1a1e;
+      --fa-muted-bg: #1a1a1a;
+      --fa-chip: #1f1f1f;
+      --fa-border: #1a1a1a;
+      --fa-border-soft: #1e1e1e;
+      --fa-line: #2a2a2a;
+      --fa-strong: #444444;
+      --fa-separator: #1f1f1f;
+      --fa-primary: #e8e8e8;
+      --fa-secondary: #cccccc;
+      --fa-soft: #aaaaaa;
+      --fa-dim: #999999;
+      --fa-muted: #888888;
+      --fa-subtle: #555555;
+      --fa-faint: #444444;
+      --fa-mid: #bbbbbb;
+      --fa-placeholder: #3a3a3a;
+      --fa-ring: #3a3a4a;
+      --fa-logo-dim: #555555;
+      --fa-pill-active: #2a2a2e;
+      --fa-divider: #333333;
+      --fa-btn-bg: #e8e8e8;
+      --fa-btn-fg: #0d0d0f;
+      --fa-btn-hover: #ffffff;
+      --fa-count-active-bg: rgba(255, 255, 255, 0.06);
+      --fa-shadow-card: 0 12px 40px rgba(0, 0, 0, 0.45);
+      --fa-secondary-alt: #777777;
+      --fa-icon-muted: #666666;
+
+      --background: 240 6% 6%;
+      --foreground: 0 0% 93%;
+      --card: 240 5% 8%;
+      --card-foreground: 0 0% 93%;
+      --popover: 240 5% 8%;
+      --popover-foreground: 0 0% 93%;
+      --primary: 0 0% 93%;
+      --primary-foreground: 240 6% 6%;
+      --secondary: 240 4% 14%;
+      --secondary-foreground: 0 0% 93%;
+      --muted: 240 4% 14%;
+      --muted-foreground: 240 4% 58%;
+      --accent: 240 4% 14%;
+      --accent-foreground: 0 0% 93%;
+      --destructive: 0 55% 42%;
+      --destructive-foreground: 0 0% 93%;
+      --border: 240 4% 16%;
+      --input: 240 4% 16%;
+      --ring: 240 5% 48%;
+    }
+  }
+
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --background: 240 6% 6%;
+    --foreground: 0 0% 93%;
+    --card: 240 5% 8%;
+    --card-foreground: 0 0% 93%;
+    --popover: 240 5% 8%;
+    --popover-foreground: 0 0% 93%;
+    --primary: 0 0% 93%;
+    --primary-foreground: 240 6% 6%;
+    --secondary: 240 4% 14%;
+    --secondary-foreground: 0 0% 93%;
+    --muted: 240 4% 14%;
+    --muted-foreground: 240 4% 58%;
+    --accent: 240 4% 14%;
+    --accent-foreground: 0 0% 93%;
+    --destructive: 0 55% 42%;
+    --destructive-foreground: 0 0% 93%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 240 5% 48%;
   }
 
   * {
@@ -75,6 +173,6 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }
