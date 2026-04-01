@@ -86,6 +86,16 @@ function toResponse(
   };
 }
 
+async function getOwnedItem(
+  ctx: { db: { get: (id: Id<"savedItems">) => Promise<any> } },
+  userId: Id<"users">,
+  id: Id<"savedItems">,
+) {
+  const item = await ctx.db.get(id);
+  if (!item || item.userId !== userId) throw new Error("Item not found");
+  return item;
+}
+
 // ─── Public queries ───────────────────────────────────────────────────────────
 
 const LIST_SCAN = 250;
@@ -223,8 +233,7 @@ export const updateCategory = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    const item = await ctx.db.get(id);
-    if (!item || item.userId !== userId) throw new Error("Item not found");
+    await getOwnedItem(ctx, userId, id);
 
     await ctx.db.patch(id, { category });
     return true;
@@ -253,8 +262,7 @@ export const saveCorrection = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    const item = await ctx.db.get(id);
-    if (!item || item.userId !== userId) throw new Error("Item not found");
+    await getOwnedItem(ctx, userId, id);
 
     const correction = JSON.stringify({
       note,
@@ -283,8 +291,7 @@ export const setArchived = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    const item = await ctx.db.get(id);
-    if (!item || item.userId !== userId) throw new Error("Item not found");
+    await getOwnedItem(ctx, userId, id);
 
     await ctx.db.patch(id, { archived });
     return true;
@@ -298,8 +305,7 @@ export const retryItem = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    const item = await ctx.db.get(id);
-    if (!item || item.userId !== userId) throw new Error("Item not found");
+    const item = await getOwnedItem(ctx, userId, id);
     if (item.status !== "failed") throw new Error("Only failed items can be retried");
 
     await ctx.db.patch(id, { status: "pending" });
@@ -317,6 +323,8 @@ export const retryItem = mutation({
 export const markProcessing = internalMutation({
   args: { id: v.id("savedItems") },
   handler: async (ctx, { id }) => {
+    const item = await ctx.db.get(id);
+    if (!item) return;
     await ctx.db.patch(id, { status: "processing" });
   },
 });
@@ -345,7 +353,12 @@ export const updateResult = internalMutation({
     actionTaken: v.optional(v.string()),
     thumbnailStorageId: v.optional(v.id("_storage")),
   },
-  handler: async (ctx, { id, platform, category, rawContent, extractedData, actionTaken, thumbnailStorageId }) => {
+  handler: async (
+    ctx,
+    { id, platform, category, rawContent, extractedData, actionTaken, thumbnailStorageId },
+  ) => {
+    const item = await ctx.db.get(id);
+    if (!item) return;
     await ctx.db.patch(id, {
       platform,
       category,
@@ -386,6 +399,8 @@ export const setThumbnailStorage = internalMutation({
     storageId: v.id("_storage"),
   },
   handler: async (ctx, { id, storageId }) => {
+    const item = await ctx.db.get(id);
+    if (!item) return;
     await ctx.db.patch(id, { thumbnailStorageId: storageId });
   },
 });
@@ -394,6 +409,8 @@ export const setThumbnailStorage = internalMutation({
 export const markFailed = internalMutation({
   args: { id: v.id("savedItems") },
   handler: async (ctx, { id }) => {
+    const item = await ctx.db.get(id);
+    if (!item) return;
     await ctx.db.patch(id, { status: "failed" });
   },
 });
