@@ -103,6 +103,7 @@ User
 - [ ] Share extension / bookmarklet (paste URL from mobile)
 - [ ] Basic error handling and retry for failed jobs
 
+
 ---
 
 ## Tech Stack
@@ -114,7 +115,7 @@ User
 | Auth            | Supabase Auth                    | Built-in, easy social login                  |
 | Background Jobs | Supabase Edge Functions + pgboss | Queue processing without separate infra      |
 | Video Scraping  | Apify (TikTok/IG actors)         | Handles anti-bot, provides structured output |
-| AI Processing   | Google Gemini 1.5 Flash/Pro      | Multimodal, can analyze video natively       |
+| AI Processing   | Google Gemini 2.5 Flash/Pro      | Multimodal, can analyze video natively       |
 | File Storage    | Supabase Storage                 | For any downloaded thumbnails/screenshots    |
 | Hosting         | Vercel                           | Zero-config Next.js deployment               |
 | Styling         | Tailwind + shadcn/ui             | Fast, consistent UI components               |
