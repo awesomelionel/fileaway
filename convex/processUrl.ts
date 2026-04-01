@@ -45,7 +45,7 @@ function detectPlatform(url: string): PlatformType {
 // ─── Apify scraping ───────────────────────────────────────────────────────────
 
 const ACTOR_TIKTOK =
-  process.env.APIFY_ACTOR_TIKTOK ?? "apidojo/tiktok-scraper";
+  process.env.APIFY_ACTOR_TIKTOK ?? "clockworks/tiktok-video-scraper";
 const ACTOR_INSTAGRAM =
   process.env.APIFY_ACTOR_INSTAGRAM ?? "apify/instagram-scraper";
 
@@ -55,10 +55,46 @@ function getApifyClient(): ApifyClient {
   return new ApifyClient({ token });
 }
 
+async function resolveFinalUrl(inputUrl: string): Promise<string> {
+  try {
+    const res = await fetch(inputUrl, { redirect: "follow" });
+    // We only need the final resolved URL; don't buffer the body.
+    res.body?.cancel();
+    return res.url || inputUrl;
+  } catch {
+    return inputUrl;
+  }
+}
+
+function pickTikTokVideoUrl(item: Record<string, unknown>): string | undefined {
+  return (
+    (item.videoUrl as string | undefined) ??
+    (item.webVideoUrl as string | undefined) ??
+    undefined
+  );
+}
+
+function pickTikTokThumbnailUrl(
+  item: Record<string, unknown>,
+): string | undefined {
+  return (
+    (item["videoMeta.coverUrl"] as string | undefined) ??
+    ((item.videoMeta as Record<string, unknown> | undefined)?.coverUrl as
+      | string
+      | undefined) ??
+    (item.coverUrl as string | undefined) ??
+    (item.thumbnailUrl as string | undefined) ??
+    (item.videoThumbnail as string | undefined) ??
+    undefined
+  );
+}
+
 async function scrapeTikTok(url: string): Promise<ScrapeResult> {
   const client = getApifyClient();
+  const resolvedUrl = await resolveFinalUrl(url);
   const run = await client.actor(ACTOR_TIKTOK).call({
-    postURLs: [url],
+    // clockworks/tiktok-video-scraper expects "postURLs".
+    postURLs: [resolvedUrl],
     shouldDownloadVideos: false,
     shouldDownloadCovers: false,
   });
@@ -67,8 +103,11 @@ async function scrapeTikTok(url: string): Promise<ScrapeResult> {
     .listItems({ limit: 1 });
 
   if (!items.length) {
-    console.warn("[processUrl/tiktok] No items returned for URL:", url);
-    return { platform: "tiktok", metadata: { url, empty: true } };
+    console.warn("[processUrl/tiktok] No items returned for URL:", resolvedUrl);
+    return {
+      platform: "tiktok",
+      metadata: { url, resolvedUrl, empty: true },
+    };
   }
 
   const item = items[0] as Record<string, unknown>;
@@ -76,8 +115,8 @@ async function scrapeTikTok(url: string): Promise<ScrapeResult> {
     platform: "tiktok",
     title: (item.text as string | undefined) ?? undefined,
     description: (item.text as string | undefined) ?? undefined,
-    videoUrl: (item.videoUrl as string | undefined) ?? undefined,
-    thumbnailUrl: (item.coverUrl as string | undefined) ?? undefined,
+    videoUrl: pickTikTokVideoUrl(item),
+    thumbnailUrl: pickTikTokThumbnailUrl(item),
     authorName: (
       item.authorMeta as Record<string, unknown> | undefined
     )?.name as string | undefined,
@@ -92,6 +131,11 @@ async function scrapeTikTok(url: string): Promise<ScrapeResult> {
     metadata: item,
   };
 }
+
+export const __testables = {
+  pickTikTokVideoUrl,
+  pickTikTokThumbnailUrl,
+};
 
 async function scrapeInstagram(url: string): Promise<ScrapeResult> {
   const client = getApifyClient();
