@@ -14,14 +14,7 @@ export default defineSchema({
       v.literal("twitter"),
       v.literal("other"),
     ),
-    category: v.union(
-      v.literal("food"),
-      v.literal("fitness"),
-      v.literal("recipe"),
-      v.literal("how-to"),
-      v.literal("video-analysis"),
-      v.literal("other"),
-    ),
+    category: v.string(),
     rawContent: v.optional(v.any()),
     extractedData: v.optional(v.any()),
     thumbnailStorageId: v.optional(v.id("_storage")),
@@ -33,9 +26,17 @@ export default defineSchema({
       v.literal("done"),
       v.literal("failed"),
     ),
-    /** When true, hidden from the main feed; shown in Archive view. */
     archived: v.optional(v.boolean()),
   })
     .index("by_userId", ["userId"])
     .index("by_status", ["status"]),
+  categories: defineTable({
+    slug: v.string(),
+    label: v.string(),
+    extractionPrompt: v.string(),
+    categorizationHint: v.string(),
+    sortOrder: v.number(),
+    isBuiltIn: v.boolean(),
+  })
+    .index("by_slug", ["slug"]),
 });
