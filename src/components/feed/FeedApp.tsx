@@ -320,12 +320,6 @@ export function FeedApp() {
               >
                 Share
               </a>
-              <a
-                href="/cockpit"
-                className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-fa-subtle hover:text-fa-muted hover:bg-fa-elevated border border-transparent transition-all"
-              >
-                Cockpit
-              </a>
               <SignOutButton />
             </div>
           </div>
