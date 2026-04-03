@@ -10,13 +10,7 @@ import type { Id } from "./_generated/dataModel";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PlatformType = "tiktok" | "instagram" | "youtube" | "twitter" | "other";
-type CategoryType =
-  | "food"
-  | "fitness"
-  | "recipe"
-  | "how-to"
-  | "video-analysis"
-  | "other";
+type CategoryType = string;
 
 interface ScrapeResult {
   platform: PlatformType;
@@ -191,15 +185,6 @@ async function scrapeUrl(
 const FLASH_MODEL = "gemini-2.5-flash";
 const PRO_MODEL = "gemini-2.5-pro";
 
-const VALID_CATEGORIES: CategoryType[] = [
-  "food",
-  "fitness",
-  "recipe",
-  "how-to",
-  "video-analysis",
-  "other",
-];
-
 function getGeminiClient(): GoogleGenerativeAI {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
@@ -207,25 +192,32 @@ function getGeminiClient(): GoogleGenerativeAI {
 }
 
 async function categorizeContent(
+  ctx: { runQuery: (ref: any, args: any) => Promise<any> },
   scrape: ScrapeResult,
 ): Promise<CategoryType> {
   console.log(`[gemini/categorize] Starting — model: ${FLASH_MODEL}, platform: ${scrape.platform}`);
   console.log(`[gemini/categorize] Input — title: ${scrape.title ?? "(none)"}, description: ${(scrape.description ?? "").slice(0, 200)}, hashtags: ${(scrape.hashtags ?? []).join(", ") || "(none)"}`);
+
+  const dbCategories = await ctx.runQuery(internal.adminCategories.listCategorySlugsAndHints, {});
+  if (!dbCategories.length) {
+    console.warn(`[gemini/categorize] No categories found in DB, defaulting to "other"`);
+    return "other";
+  }
+
+  const validSlugs = dbCategories.map((c: { slug: string }) => c.slug);
+  const guidelines = dbCategories.map(
+    (c: { slug: string; categorizationHint: string }) => `- ${c.slug}: ${c.categorizationHint}`,
+  );
 
   const client = getGeminiClient();
   const model = client.getGenerativeModel({ model: FLASH_MODEL });
 
   const parts: string[] = [
     "You are classifying a saved social media post. Respond with ONLY one of these exact category labels — no explanation:",
-    "food | recipe | fitness | how-to | video-analysis | other",
+    validSlugs.join(" | "),
     "",
     "Guidelines:",
-    "- food: restaurants, food spots, dishes to try, cafe/bar recommendations",
-    "- recipe: cooking instructions, ingredients lists, baking steps",
-    "- fitness: workouts, exercise routines, gym tips, sports drills",
-    "- how-to: tutorials, life hacks, DIY projects, step-by-step guides (non-recipe)",
-    "- video-analysis: general video content where full analysis is needed",
-    "- other: everything else",
+    ...guidelines,
     "",
     "Post content:",
   ];
@@ -250,7 +242,7 @@ async function categorizeContent(
   const raw = result.response.text().trim().toLowerCase();
   console.log(`[gemini/categorize] Response in ${Date.now() - t0}ms — raw: "${raw}"`);
 
-  const matched = VALID_CATEGORIES.find((c) => raw.includes(c));
+  const matched = validSlugs.find((c: string) => raw.includes(c));
   if (!matched) {
     console.warn(`[gemini/categorize] No valid category matched in response, defaulting to "other"`);
   }
@@ -263,58 +255,6 @@ interface ExtractionResult {
   actionTaken: string;
 }
 
-export const EXTRACTION_SCHEMAS: Record<string, string> = {
-  food: `Return JSON:
-{
-  "name": "<restaurant or food item name — use creator's exact wording or infer from post>",
-  "address": "<full address if mentioned; infer city/neighbourhood from hashtags like #NYC or #LondonEats; null only if truly unknown>",
-  "cuisine": "<cuisine type — infer from dish names, hashtags (#italian #ramen), or location>",
-  "why_visit": "<one compelling reason to visit, written as a recommendation — infer from the vibe/tone of the post if not stated explicitly>",
-  "price_range": "<$ | $$ | $$$ — infer from context clues like 'budget', 'Michelin', 'street food'; null if no clues>",
-  "dishes_mentioned": ["<every dish, food item, or drink mentioned or shown — infer from emojis like 🍕🍜 if no text>"]
-}`,
-  recipe: `Return JSON:
-{
-  "dish_name": "<name of the dish — use post title or infer from ingredients shown>",
-  "ingredients": ["<ingredient with quantity — reconstruct from what's shown; include obvious staples if recipe type is clear>"],
-  "steps": ["<step 1>", "<step 2>", "<infer likely steps from recipe type if not all listed>"],
-  "prep_time_minutes": <number — infer from recipe complexity if not stated; null only if truly unknowable>,
-  "cook_time_minutes": <number — infer from recipe type (e.g. cookies ~12 min); null only if truly unknowable>,
-  "servings": <number — infer from context ('serves 4', 'family size', 'single serving'); null if no clues>
-}`,
-  fitness: `Return JSON:
-{
-  "workout_name": "<name or description of the workout — use post title or infer from exercises>",
-  "exercises": [{"name": "<exercise name>", "sets": <number — infer standard sets (3) if not specified>, "reps": <number or string like "30 seconds" — infer standard reps if not stated>}],
-  "muscle_groups": ["<muscle groups targeted — infer from exercise names; e.g. squats → legs, glutes>"],
-  "duration_minutes": <number — infer from number of exercises × typical time; null if no basis>,
-  "difficulty": "<beginner | intermediate | advanced — infer from exercise complexity and intensity>"
-}`,
-  "how-to": `Return JSON:
-{
-  "title": "<short descriptive title of what this guide teaches — infer from hashtags or context if not explicit>",
-  "summary": "<one sentence describing the outcome or main benefit of following this guide>",
-  "steps": ["<step 1>", "<step 2>", "<step 3 — infer likely steps from context if not all listed>"],
-  "tools_needed": ["<tool or material — omit array if none mentioned>"],
-  "difficulty": "<easy | medium | hard | null>",
-  "time_required": "<estimated time as a string, e.g. '10 minutes' — null if unknown>"
-}`,
-  "video-analysis": `Return JSON:
-{
-  "title": "<short descriptive title — use the post title, infer from caption/hashtags if missing>",
-  "summary": "<2-3 sentence summary of the video's main content and takeaway>",
-  "key_points": ["<key point 1>", "<key point 2>", "<key point 3 if applicable>"],
-  "topics": ["<topic tag>"],
-  "sentiment": "<positive | neutral | negative>"
-}`,
-  other: `Return JSON:
-{
-  "title": "<short descriptive title — infer from caption, hashtags, or creator context>",
-  "summary": "<2-3 sentence description of what this post is about and why someone saved it>",
-  "topics": ["<topic tag>"]
-}`,
-};
-
 export const WRAPPER_INSTRUCTIONS = `You are extracting structured data from a saved social media post.
 
 IMPORTANT: Social media captions are often brief (5-15 words), emoji-heavy, or rely on visual context. You must:
@@ -326,6 +266,7 @@ IMPORTANT: Social media captions are often brief (5-15 words), emoji-heavy, or r
 function buildExtractionPrompt(
   scrape: ScrapeResult,
   category: CategoryType,
+  extractionPrompt: string,
 ): string {
   const contentBlock = [
     `Platform: ${scrape.platform}`,
@@ -339,13 +280,11 @@ function buildExtractionPrompt(
     .filter(Boolean)
     .join("\n");
 
-  const schemas = EXTRACTION_SCHEMAS;
-
   return [
     `${WRAPPER_INSTRUCTIONS}`,
     `Category: ${category}`,
     "",
-    schemas[category],
+    extractionPrompt,
     "",
     "Post content:",
     contentBlock,
@@ -354,19 +293,21 @@ function buildExtractionPrompt(
   ].join("\n");
 }
 
+const BUILT_IN_ACTIONS: Record<string, string> = {
+  food: "Save to Google Maps",
+  recipe: "Export ingredient list",
+  fitness: "Add to my routine",
+  "how-to": "Save as guide",
+  "video-analysis": "Save transcript",
+  other: "Save for later",
+};
+
 function getDefaultAction(category: CategoryType): string {
-  const actions: Record<CategoryType, string> = {
-    food: "Save to Google Maps",
-    recipe: "Export ingredient list",
-    fitness: "Add to my routine",
-    "how-to": "Save as guide",
-    "video-analysis": "Save transcript",
-    other: "Save for later",
-  };
-  return actions[category];
+  return BUILT_IN_ACTIONS[category] ?? "Save for later";
 }
 
 async function extractStructuredData(
+  ctx: { runQuery: (ref: any, args: any) => Promise<any> },
   scrape: ScrapeResult,
   category: CategoryType,
 ): Promise<ExtractionResult> {
@@ -374,10 +315,14 @@ async function extractStructuredData(
   const modelName = useProModel ? PRO_MODEL : FLASH_MODEL;
   console.log(`[gemini/extract] Starting — model: ${modelName}, category: ${category}, useProModel: ${useProModel}`);
 
+  const categoryRow = await ctx.runQuery(internal.adminCategories.getCategoryBySlug, { slug: category });
+  const extractionPrompt = categoryRow?.extractionPrompt ??
+    `Return JSON:\n{\n  "title": "<short descriptive title>",\n  "summary": "<2-3 sentence description>",\n  "topics": ["<topic tag>"]\n}`;
+
   const client = getGeminiClient();
   const model = client.getGenerativeModel({ model: modelName });
 
-  const prompt = buildExtractionPrompt(scrape, category);
+  const prompt = buildExtractionPrompt(scrape, category, extractionPrompt);
   console.log(`[gemini/extract] Prompt length: ${prompt.length} chars`);
 
   const t0 = Date.now();
@@ -439,11 +384,11 @@ export const processItem = internalAction({
       console.log(`[processUrl] Scrape complete in ${Date.now() - scrapeStart}ms — platform: ${platform}, title: ${scrapeResult.title ?? "(none)"}, hasVideo: ${!!scrapeResult.videoUrl}, hashtags: ${(scrapeResult.hashtags ?? []).length}`);
 
       console.log(`[processUrl] Categorizing content...`);
-      const category = await categorizeContent(scrapeResult);
+      const category = await categorizeContent(ctx, scrapeResult);
       console.log(`[processUrl] Category resolved: ${category}`);
 
       console.log(`[processUrl] Extracting structured data...`);
-      const extraction = await extractStructuredData(scrapeResult, category);
+      const extraction = await extractStructuredData(ctx, scrapeResult, category);
       console.log(`[processUrl] Extraction complete — category: ${extraction.category}, action: ${extraction.actionTaken}, dataKeys: ${Object.keys(extraction.extractedData).join(", ")}`);
 
       // Download thumbnail and upload to Convex storage
