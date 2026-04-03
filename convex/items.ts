@@ -7,13 +7,7 @@ import type { Id } from "./_generated/dataModel";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 type PlatformType = "tiktok" | "instagram" | "youtube" | "twitter" | "other";
-type CategoryType =
-  | "food"
-  | "fitness"
-  | "recipe"
-  | "how-to"
-  | "video-analysis"
-  | "other";
+type CategoryType = string;
 type ItemStatus = "pending" | "processing" | "done" | "failed";
 
 function detectPlatform(url: string): PlatformType {
@@ -220,14 +214,7 @@ export const save = mutation({
 export const updateCategory = mutation({
   args: {
     id: v.id("savedItems"),
-    category: v.union(
-      v.literal("food"),
-      v.literal("fitness"),
-      v.literal("recipe"),
-      v.literal("how-to"),
-      v.literal("video-analysis"),
-      v.literal("other"),
-    ),
+    category: v.string(),
   },
   handler: async (ctx, { id, category }) => {
     const userId = await getAuthUserId(ctx);
@@ -245,16 +232,7 @@ export const saveCorrection = mutation({
   args: {
     id: v.id("savedItems"),
     note: v.string(),
-    correctedCategory: v.optional(
-      v.union(
-        v.literal("food"),
-        v.literal("fitness"),
-        v.literal("recipe"),
-        v.literal("how-to"),
-        v.literal("video-analysis"),
-        v.literal("other"),
-      ),
-    ),
+    correctedCategory: v.optional(v.string()),
   },
   handler: async (ctx, { id, note, correctedCategory }) => {
     if (!note.trim()) throw new Error("Correction note cannot be empty");
@@ -340,14 +318,7 @@ export const updateResult = internalMutation({
       v.literal("twitter"),
       v.literal("other"),
     ),
-    category: v.union(
-      v.literal("food"),
-      v.literal("fitness"),
-      v.literal("recipe"),
-      v.literal("how-to"),
-      v.literal("video-analysis"),
-      v.literal("other"),
-    ),
+    category: v.string(),
     rawContent: v.optional(v.any()),
     extractedData: v.optional(v.any()),
     actionTaken: v.optional(v.string()),
