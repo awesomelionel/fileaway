@@ -8,53 +8,36 @@ import type { Id } from "../../../convex/_generated/dataModel";
 
 // ─── Category metadata ───────────────────────────────────────────────────────
 
-export const CATEGORY_META: Record<
-  CategoryType,
+const BUILT_IN_CATEGORY_META: Record<
+  string,
   { label: string; color: string; border: string; bg: string; text: string }
 > = {
-  food: {
-    label: "Food",
-    color: "#f97316",
-    border: "border-l-[#f97316]",
-    bg: "bg-[#f9731610]",
-    text: "text-[#f97316]",
-  },
-  recipe: {
-    label: "Recipe",
-    color: "#22c55e",
-    border: "border-l-[#22c55e]",
-    bg: "bg-[#22c55e10]",
-    text: "text-[#22c55e]",
-  },
-  fitness: {
-    label: "Fitness",
-    color: "#3b82f6",
-    border: "border-l-[#3b82f6]",
-    bg: "bg-[#3b82f610]",
-    text: "text-[#3b82f6]",
-  },
-  "how-to": {
-    label: "How-To",
-    color: "#a855f7",
-    border: "border-l-[#a855f7]",
-    bg: "bg-[#a855f710]",
-    text: "text-[#a855f7]",
-  },
-  "video-analysis": {
-    label: "Video",
-    color: "#14b8a6",
-    border: "border-l-[#14b8a6]",
-    bg: "bg-[#14b8a610]",
-    text: "text-[#14b8a6]",
-  },
-  other: {
-    label: "Other",
-    color: "#6b7280",
-    border: "border-l-[#6b7280]",
-    bg: "bg-[#6b728010]",
-    text: "text-[#6b7280]",
-  },
+  food: { label: "Food", color: "#f97316", border: "border-l-[#f97316]", bg: "bg-[#f9731610]", text: "text-[#f97316]" },
+  recipe: { label: "Recipe", color: "#22c55e", border: "border-l-[#22c55e]", bg: "bg-[#22c55e10]", text: "text-[#22c55e]" },
+  fitness: { label: "Fitness", color: "#3b82f6", border: "border-l-[#3b82f6]", bg: "bg-[#3b82f610]", text: "text-[#3b82f6]" },
+  "how-to": { label: "How-To", color: "#a855f7", border: "border-l-[#a855f7]", bg: "bg-[#a855f710]", text: "text-[#a855f7]" },
+  "video-analysis": { label: "Video", color: "#14b8a6", border: "border-l-[#14b8a6]", bg: "bg-[#14b8a610]", text: "text-[#14b8a6]" },
+  other: { label: "Other", color: "#6b7280", border: "border-l-[#6b7280]", bg: "bg-[#6b728010]", text: "text-[#6b7280]" },
 };
+
+const FALLBACK_COLORS = ["#e11d48", "#d946ef", "#0ea5e9", "#84cc16", "#f59e0b", "#06b6d4"];
+
+export function getCategoryMeta(
+  slug: string,
+  index?: number,
+): { label: string; color: string; border: string; bg: string; text: string } {
+  if (BUILT_IN_CATEGORY_META[slug]) return BUILT_IN_CATEGORY_META[slug];
+  const color = FALLBACK_COLORS[(index ?? 0) % FALLBACK_COLORS.length];
+  return {
+    label: slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, " "),
+    color,
+    border: `border-l-[${color}]`,
+    bg: `bg-[${color}10]`,
+    text: `text-[${color}]`,
+  };
+}
+
+export const CATEGORY_META = BUILT_IN_CATEGORY_META;
 
 const PLATFORM_LABELS: Record<string, string> = {
   tiktok: "TikTok",
@@ -309,6 +292,40 @@ function OtherBody({ data }: { data: Record<string, unknown> }) {
       {summary && (
         <p className="text-xs text-fa-soft leading-relaxed">{summary}</p>
       )}
+    </div>
+  );
+}
+
+function GenericBody({ data }: { data: Record<string, unknown> }) {
+  const entries = Object.entries(data).filter(([, v]) => v !== null && v !== undefined);
+  return (
+    <div className="space-y-2">
+      {entries.slice(0, 8).map(([key, value]) => {
+        const label = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        if (Array.isArray(value)) {
+          return (
+            <div key={key}>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle mb-1">{label}</p>
+              <ul className="space-y-0.5">
+                {(value as unknown[]).slice(0, 5).map((item, i) => (
+                  <li key={i} className="text-xs text-fa-soft flex items-start gap-1.5">
+                    <span className="text-fa-faint mt-0.5 flex-shrink-0">·</span>
+                    {typeof item === "object" ? JSON.stringify(item) : String(item)}
+                  </li>
+                ))}
+                {value.length > 5 && <li className="text-[11px] text-fa-subtle">+{value.length - 5} more</li>}
+              </ul>
+            </div>
+          );
+        }
+        if (typeof value === "object") return null;
+        return (
+          <div key={key}>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle">{label}</p>
+            <p className="text-xs text-fa-soft leading-relaxed">{String(value)}</p>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -596,9 +613,11 @@ function GuideModal({
 
 function CorrectionModal({
   item,
+  categories,
   onClose,
 }: {
   item: SavedItemResponse;
+  categories?: { slug: string; label: string }[];
   onClose: () => void;
 }) {
   const [note, setNote] = useState("");
@@ -673,10 +692,9 @@ function CorrectionModal({
                 }
                 className="w-full bg-fa-input border border-fa-line rounded-lg px-3 py-2 text-sm text-fa-primary outline-none focus:border-fa-ring"
               >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat} className="bg-fa-muted-bg">
-                    {CATEGORY_META[cat].label}
-                    {cat === item.category ? " (current)" : ""}
+                {(categories ?? []).map((cat) => (
+                  <option key={cat.slug} value={cat.slug} className="bg-fa-muted-bg">
+                    {cat.label}{cat.slug === item.category ? " (current)" : ""}
                   </option>
                 ))}
               </select>
@@ -722,18 +740,10 @@ function CorrectionModal({
 
 interface ItemCardProps {
   item: SavedItemResponse;
+  categories?: { slug: string; label: string }[];
 }
 
-const CATEGORIES: CategoryType[] = [
-  "food",
-  "recipe",
-  "fitness",
-  "how-to",
-  "video-analysis",
-  "other",
-];
-
-export function ItemCard({ item }: ItemCardProps) {
+export function ItemCard({ item, categories }: ItemCardProps) {
   const [guideItem, setGuideItem] = useState<SavedItemResponse | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
   const [overriding, setOverriding] = useState(false);
@@ -742,7 +752,7 @@ export function ItemCard({ item }: ItemCardProps) {
   const retryItem = useMutation(api.items.retryItem);
   const setArchived = useMutation(api.items.setArchived);
 
-  const meta = CATEGORY_META[item.category];
+  const meta = getCategoryMeta(item.category);
 
   const handleCategoryChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCat = e.target.value as CategoryType;
@@ -834,12 +844,13 @@ export function ItemCard({ item }: ItemCardProps) {
           {item.status === "failed" && <FailedBody url={item.source_url} onRetry={handleRetry} />}
           {item.status === "done" && item.extracted_data && (
             <>
-              {item.category === "food" && <FoodBody data={item.extracted_data} />}
-              {item.category === "recipe" && <RecipeBody data={item.extracted_data} />}
-              {item.category === "fitness" && <FitnessBody data={item.extracted_data} />}
-              {item.category === "how-to" && <HowToBody data={item.extracted_data} />}
-              {item.category === "video-analysis" && <VideoBody data={item.extracted_data} />}
-              {item.category === "other" && <OtherBody data={item.extracted_data} />}
+              {item.category === "food" ? <FoodBody data={item.extracted_data} />
+              : item.category === "recipe" ? <RecipeBody data={item.extracted_data} />
+              : item.category === "fitness" ? <FitnessBody data={item.extracted_data} />
+              : item.category === "how-to" ? <HowToBody data={item.extracted_data} />
+              : item.category === "video-analysis" ? <VideoBody data={item.extracted_data} />
+              : item.category === "other" ? <OtherBody data={item.extracted_data} />
+              : <GenericBody data={item.extracted_data} />}
             </>
           )}
         </div>
@@ -869,9 +880,9 @@ export function ItemCard({ item }: ItemCardProps) {
                   className="text-[11px] text-fa-subtle bg-transparent border-none outline-none cursor-pointer hover:text-fa-muted transition-colors appearance-none"
                   aria-label="Override category"
                 >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat} className="bg-fa-muted-bg text-fa-secondary">
-                      {CATEGORY_META[cat].label}
+                  {(categories ?? []).map((cat) => (
+                    <option key={cat.slug} value={cat.slug} className="bg-fa-muted-bg text-fa-secondary">
+                      {cat.label}
                     </option>
                   ))}
                 </select>
@@ -896,7 +907,7 @@ export function ItemCard({ item }: ItemCardProps) {
         <GuideModal item={guideItem} onClose={() => setGuideItem(null)} />
       )}
       {showCorrection && (
-        <CorrectionModal item={item} onClose={() => setShowCorrection(false)} />
+        <CorrectionModal item={item} categories={categories} onClose={() => setShowCorrection(false)} />
       )}
     </>
   );
