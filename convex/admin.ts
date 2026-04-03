@@ -1,7 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 
-export const ADMIN_EMAIL = "lioneltan@gmail.com";
+export const ADMIN_EMAIL = "lionel.ttl@gmail.com";
 
 export async function getAuthUserEmail(
   ctx: QueryCtx | MutationCtx,
