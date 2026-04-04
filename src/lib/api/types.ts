@@ -8,7 +8,7 @@
  */
 
 export type PlatformType = "tiktok" | "instagram" | "youtube" | "twitter" | "other";
-export type CategoryType = "food" | "fitness" | "recipe" | "how-to" | "video-analysis" | "other";
+export type CategoryType = string;
 export type ItemStatus = "pending" | "processing" | "done" | "failed";
 
 /** A single saved item as returned by the API. */

@@ -2,25 +2,14 @@
 
 import { useState, useCallback, useTransition } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import type { CategoryType } from "@/lib/api/types";
-import { ItemCard, CATEGORY_META } from "@/components/feed/ItemCard";
+import { ItemCard, getCategoryMeta } from "@/components/feed/ItemCard";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type TabValue = "all" | CategoryType;
-
-const TABS: { value: TabValue; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "food", label: "Food" },
-  { value: "recipe", label: "Recipe" },
-  { value: "fitness", label: "Fitness" },
-  { value: "how-to", label: "How-To" },
-  { value: "video-analysis", label: "Video" },
-  { value: "other", label: "Other" },
-];
+type TabValue = string;
 
 // ─── URL input form ───────────────────────────────────────────────────────────
 
@@ -87,19 +76,20 @@ function UrlInput() {
 function CategoryTabs({
   active,
   counts,
+  tabs,
   onChange,
 }: {
-  active: TabValue;
+  active: string;
   counts: Record<string, number>;
-  onChange: (v: TabValue) => void;
+  tabs: { value: string; label: string }[];
+  onChange: (v: string) => void;
 }) {
   return (
     <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
-      {TABS.map(({ value, label }) => {
+      {tabs.map(({ value, label }) => {
         const isActive = active === value;
-        const color = value !== "all" ? CATEGORY_META[value as CategoryType].color : undefined;
+        const color = value !== "all" ? getCategoryMeta(value).color : undefined;
         const count = value === "all" ? counts._total : counts[value];
-
         return (
           <button
             key={value}
@@ -113,11 +103,7 @@ function CategoryTabs({
           >
             {label}
             {count !== undefined && count > 0 && (
-              <span
-                className={`text-[10px] font-mono px-1 py-0.5 rounded ${
-                  isActive ? "bg-fa-count-active" : "bg-fa-muted-bg text-fa-faint"
-                }`}
-              >
+              <span className={`text-[10px] font-mono px-1 py-0.5 rounded ${isActive ? "bg-fa-count-active" : "bg-fa-muted-bg text-fa-faint"}`}>
                 {count}
               </span>
             )}
@@ -182,7 +168,7 @@ function EmptyState({
       <p className="text-sm text-fa-faint">
         {category === "all"
           ? "No items yet — paste a link above to get started"
-          : `No ${CATEGORY_META[category as CategoryType]?.label ?? category} items yet`}
+          : `No ${getCategoryMeta(category).label} items yet`}
       </p>
     </div>
   );
@@ -229,6 +215,13 @@ export function FeedApp() {
   const rawItems = useQuery(api.items.list, { view: archiveView ? "archive" : "feed" });
   const allItems = rawItems ?? [];
   const loading = rawItems === undefined;
+
+  const categoriesData = useQuery(api.adminCategories.listCategories);
+  const categories = categoriesData ?? [];
+  const tabs: { value: string; label: string }[] = [
+    { value: "all", label: "All" },
+    ...categories.map((c) => ({ value: c.slug, label: c.label })),
+  ];
 
   const updateParam = useCallback(
     (updates: Record<string, string | null>) => {
@@ -358,6 +351,7 @@ export function FeedApp() {
             <CategoryTabs
               active={activeCategory}
               counts={counts}
+              tabs={tabs}
               onChange={(v) => updateParam({ category: v === "all" ? null : v })}
             />
           </div>
@@ -404,7 +398,7 @@ export function FeedApp() {
             <EmptyState category={activeCategory} archiveView={archiveView} />
           ) : (
             filteredItems.map((item) => (
-              <ItemCard key={item.id} item={item} />
+              <ItemCard key={item.id} item={item} categories={categories.map((c) => ({ slug: c.slug, label: c.label }))} />
             ))
           )}
         </div>
