@@ -272,7 +272,10 @@ async function extractWithVideo(
     }
 
     const genAI = getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: PRO_MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PRO_MODEL,
+      generationConfig: { temperature: 0 },
+    });
 
     const t0 = Date.now();
     const result = await model.generateContent([
@@ -334,7 +337,10 @@ async function categorizeContent(
   );
 
   const client = getGeminiClient();
-  const model = client.getGenerativeModel({ model: FLASH_MODEL });
+  const model = client.getGenerativeModel({
+    model: FLASH_MODEL,
+    generationConfig: { temperature: 0 },
+  });
 
   const parts: string[] = [
     "You are classifying a saved social media post. Respond with ONLY one of these exact category labels — no explanation:",
@@ -379,13 +385,14 @@ interface ExtractionResult {
   actionTaken: string;
 }
 
-export const WRAPPER_INSTRUCTIONS = `You are extracting structured data from a saved social media post.
+export const WRAPPER_INSTRUCTIONS = `You are extracting structured data from a saved social media post. Your job is to be thorough and complete — extract EVERYTHING visible or inferable.
 
-IMPORTANT: Social media captions are often brief (5-15 words), emoji-heavy, or rely on visual context. You must:
-- Infer missing fields from hashtags, emojis, creator name, and platform context
-- Never return null for a string field if you can make a reasonable inference
-- For arrays (steps, ingredients, exercises), reconstruct likely items from context clues
-- Prefer a specific inferred value over null — e.g., infer cuisine from hashtags like #italian or #pasta`;
+CRITICAL RULES:
+- For ALL array fields (exercises, ingredients, steps, dishes, tools): extract EVERY item shown, mentioned, or clearly implied. Never stop early. Never truncate. If 6 exercises are shown, return all 6. If 10 ingredients are listed, return all 10.
+- Never return null for a string field if you can make a reasonable inference from hashtags, emojis, author name, platform context, or visual cues.
+- Infer missing numeric values from context (e.g. duration from number of exercises × typical set time).
+- Prefer a specific inferred value over null — e.g. infer cuisine from #italian or #pasta, infer location from @restaurantname or city hashtags.
+- If the caption is brief or emoji-heavy, use ALL available signals: hashtags, creator handle, audio cues described, on-screen text, and common knowledge about the content type.`;
 
 function buildExtractionPrompt(
   scrape: ScrapeResult,
@@ -460,7 +467,10 @@ async function extractStructuredData(
     `Return JSON:\n{\n  "title": "<short descriptive title>",\n  "summary": "<2-3 sentence description>",\n  "topics": ["<topic tag>"]\n}`;
 
   const client = getGeminiClient();
-  const model = client.getGenerativeModel({ model: modelName });
+  const model = client.getGenerativeModel({
+    model: modelName,
+    generationConfig: { temperature: 0 },
+  });
 
   const prompt = buildExtractionPrompt(scrape, category, extractionPrompt);
   console.log(`[gemini/extract] Prompt length: ${prompt.length} chars`);
