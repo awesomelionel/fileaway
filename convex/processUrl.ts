@@ -5,6 +5,9 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { ApifyClient } from "apify-client";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleAIFileManager } from "@google/generative-ai/server";
+import * as fs from "fs/promises";
+import * as path from "path";
 import type { Id } from "./_generated/dataModel";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -203,6 +206,101 @@ function getGeminiClient(): GoogleGenerativeAI {
   return new GoogleGenerativeAI(apiKey);
 }
 
+const VIDEO_ANALYSIS_PROMPT = `You are analyzing a short social media video. Watch it carefully and return a JSON object with exactly this structure:
+
+{
+  "title": "<short descriptive title for the video>",
+  "summary": "<2-3 sentence overview of the full video>",
+  "shots": [
+    {
+      "timestamp": "<approximate timestamp e.g. '0:05'>",
+      "description": "<one-line label for this scene e.g. 'Overhead ingredient shot'>",
+      "detail": "<1-2 sentences explaining what is happening and why it matters in context — e.g. technique being used, location detail, exercise being performed>"
+    }
+  ],
+  "takeaways": [
+    "<specific actionable item the viewer can act on>"
+  ]
+}
+
+Guidelines:
+- Include 3 to 8 shots covering the key moments in the video.
+- Make each shot description concise (5-10 words) and each detail 1-2 sentences.
+- Include 3-6 takeaways that are specific and actionable, not generic.
+- Return ONLY valid JSON. No markdown fences, no explanation, no extra fields.`;
+
+async function extractWithVideo(
+  videoUrl: string,
+  itemId: string,
+): Promise<Record<string, unknown> | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
+
+  const tmpPath = path.join("/tmp", `fileaway-video-${itemId}.mp4`);
+
+  try {
+    console.log(`[gemini/video] Downloading video for item ${itemId}...`);
+    const response = await fetch(videoUrl);
+    if (!response.ok) {
+      console.warn(`[gemini/video] Video download failed — HTTP ${response.status}`);
+      return null;
+    }
+    const buffer = Buffer.from(await response.arrayBuffer());
+    await fs.writeFile(tmpPath, buffer);
+    console.log(`[gemini/video] Video written to ${tmpPath} (${buffer.length} bytes)`);
+
+    const fileManager = new GoogleAIFileManager(apiKey);
+    console.log(`[gemini/video] Uploading to Gemini Files API...`);
+    const uploadResult = await fileManager.uploadFile(tmpPath, {
+      mimeType: "video/mp4",
+      displayName: `fileaway-${itemId}`,
+    });
+    console.log(`[gemini/video] Uploaded — uri: ${uploadResult.file.uri}`);
+
+    const genAI = getGeminiClient();
+    const model = genAI.getGenerativeModel({ model: PRO_MODEL });
+
+    const t0 = Date.now();
+    const result = await model.generateContent([
+      {
+        fileData: {
+          fileUri: uploadResult.file.uri,
+          mimeType: "video/mp4",
+        },
+      },
+      VIDEO_ANALYSIS_PROMPT,
+    ]);
+    console.log(`[gemini/video] Extraction complete in ${Date.now() - t0}ms`);
+
+    // Cleanup uploaded file from Gemini
+    try {
+      await fileManager.deleteFile(uploadResult.file.name);
+      console.log(`[gemini/video] Deleted uploaded file from Gemini Files API`);
+    } catch (deleteErr) {
+      console.warn(`[gemini/video] Failed to delete uploaded file:`, deleteErr);
+    }
+
+    const raw = result.response.text().trim()
+      .replace(/^```(?:json)?\n?/, "")
+      .replace(/\n?```$/, "");
+
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      console.log(`[gemini/video] JSON parsed — keys: ${Object.keys(parsed).join(", ")}`);
+      return parsed;
+    } catch (parseErr) {
+      console.warn(`[gemini/video] JSON parse failed:`, parseErr);
+      return null;
+    }
+  } catch (err) {
+    console.warn(`[gemini/video] extractWithVideo failed:`, err);
+    return null;
+  } finally {
+    // Always clean up tmp file
+    await fs.unlink(tmpPath).catch(() => {});
+  }
+}
+
 async function categorizeContent(
   ctx: { runQuery: (ref: any, args: any) => Promise<any> },
   scrape: ScrapeResult,
@@ -322,7 +420,23 @@ async function extractStructuredData(
   ctx: { runQuery: (ref: any, args: any) => Promise<any> },
   scrape: ScrapeResult,
   category: CategoryType,
+  itemId: string,
 ): Promise<ExtractionResult> {
+  // Video analysis path: use Gemini Files API with actual video
+  if (shouldUseVideoAnalysis(category, scrape.platform, scrape.videoUrl)) {
+    console.log(`[gemini/extract] Using video analysis path — platform: ${scrape.platform}`);
+    const videoData = await extractWithVideo(scrape.videoUrl!, itemId);
+    if (videoData) {
+      return {
+        category,
+        extractedData: videoData,
+        actionTaken: getDefaultAction(category),
+      };
+    }
+    console.warn(`[gemini/extract] Video analysis failed, falling back to text extraction`);
+  }
+
+  // Text extraction path (unchanged)
   const useProModel = ["food", "recipe", "fitness"].includes(category);
   const modelName = useProModel ? PRO_MODEL : FLASH_MODEL;
   console.log(`[gemini/extract] Starting — model: ${modelName}, category: ${category}, useProModel: ${useProModel}`);
@@ -400,7 +514,7 @@ export const processItem = internalAction({
       console.log(`[processUrl] Category resolved: ${category}`);
 
       console.log(`[processUrl] Extracting structured data...`);
-      const extraction = await extractStructuredData(ctx, scrapeResult, category);
+      const extraction = await extractStructuredData(ctx, scrapeResult, category, savedItemId);
       console.log(`[processUrl] Extraction complete — category: ${extraction.category}, action: ${extraction.actionTaken}, dataKeys: ${Object.keys(extraction.extractedData).join(", ")}`);
 
       // Download thumbnail and upload to Convex storage
