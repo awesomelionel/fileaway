@@ -422,9 +422,11 @@ function useAction() {
 function ActionButton({
   item,
   category,
+  onCardClick,
 }: {
   item: SavedItemResponse;
   category: CategoryType;
+  onCardClick?: (id: string) => void;
 }) {
   const { result, fire } = useAction();
 
@@ -502,9 +504,12 @@ function ActionButton({
 
   if (category === "how-to") {
     return (
-      <span className="text-xs px-3 py-1.5 rounded bg-[#a855f715] text-[#a855f7] border border-[#a855f730] font-medium">
+      <button
+        onClick={(e) => { e.stopPropagation(); onCardClick?.(item.id); }}
+        className="text-xs px-3 py-1.5 rounded bg-[#a855f715] text-[#a855f7] border border-[#a855f730] font-medium hover:bg-[#a855f725] transition-colors min-h-[44px] sm:min-h-0"
+      >
         View guide ↗
-      </span>
+      </button>
     );
   }
 
@@ -790,7 +795,7 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
           <div className="px-4 py-3 border-t border-fa-separator flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <ActionButton item={item} category={item.category} />
+                <ActionButton item={item} category={item.category} onCardClick={onCardClick} />
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowCorrection(true); }}
                   className="text-[11px] text-fa-faint hover:text-[#ef4444] transition-colors px-1"
