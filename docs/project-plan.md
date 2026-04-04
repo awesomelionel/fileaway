@@ -103,7 +103,6 @@ User
 - [ ] Share extension / bookmarklet (paste URL from mobile)
 - [ ] Basic error handling and retry for failed jobs
 
-
 ---
 
 ## Tech Stack
