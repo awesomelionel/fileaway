@@ -3,6 +3,7 @@
 import { useState, useCallback, useTransition } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { ItemCard, getCategoryMeta } from "@/components/feed/ItemCard";
+import { DetailModal } from "@/components/feed/DetailModal";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -223,6 +224,18 @@ export function FeedApp() {
     ...categories.map((c) => ({ value: c.slug, label: c.label })),
   ];
 
+  const activeItemId = searchParams.get("item");
+  const activeItem = activeItemId ? allItems.find((i) => i.id === activeItemId) ?? null : null;
+
+  const openItem = useCallback(
+    (id: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("item", id);
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [searchParams, router, pathname],
+  );
+
   const updateParam = useCallback(
     (updates: Record<string, string | null>) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -398,11 +411,17 @@ export function FeedApp() {
             <EmptyState category={activeCategory} archiveView={archiveView} />
           ) : (
             filteredItems.map((item) => (
-              <ItemCard key={item.id} item={item} categories={categories.map((c) => ({ slug: c.slug, label: c.label }))} />
+              <ItemCard
+                key={item.id}
+                item={item}
+                categories={categories.map((c) => ({ slug: c.slug, label: c.label }))}
+                onCardClick={openItem}
+              />
             ))
           )}
         </div>
       </main>
+      {activeItem && <DetailModal item={activeItem} />}
     </div>
   );
 }

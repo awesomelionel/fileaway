@@ -86,6 +86,7 @@ function ThumbnailBanner({
       target="_blank"
       rel="noopener noreferrer"
       className="block w-full overflow-hidden"
+      onClick={(e) => e.stopPropagation()}
     >
       <img
         src={thumbnailUrl}
@@ -421,11 +422,9 @@ function useAction() {
 function ActionButton({
   item,
   category,
-  onGuideOpen,
 }: {
   item: SavedItemResponse;
   category: CategoryType;
-  onGuideOpen?: (item: SavedItemResponse) => void;
 }) {
   const { result, fire } = useAction();
 
@@ -503,12 +502,9 @@ function ActionButton({
 
   if (category === "how-to") {
     return (
-      <button
-        onClick={() => onGuideOpen?.(item)}
-        className="text-xs px-3 py-1.5 rounded bg-[#a855f715] text-[#a855f7] border border-[#a855f730] font-medium hover:bg-[#a855f725] transition-colors min-h-[44px] sm:min-h-0"
-      >
-        View guide
-      </button>
+      <span className="text-xs px-3 py-1.5 rounded bg-[#a855f715] text-[#a855f7] border border-[#a855f730] font-medium">
+        View guide ↗
+      </span>
     );
   }
 
@@ -741,10 +737,10 @@ function CorrectionModal({
 interface ItemCardProps {
   item: SavedItemResponse;
   categories?: { slug: string; label: string }[];
+  onCardClick?: (id: string) => void;
 }
 
-export function ItemCard({ item, categories }: ItemCardProps) {
-  const [guideItem, setGuideItem] = useState<SavedItemResponse | null>(null);
+export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
   const [showCorrection, setShowCorrection] = useState(false);
   const [overriding, setOverriding] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -790,7 +786,10 @@ export function ItemCard({ item, categories }: ItemCardProps) {
   return (
     <>
       <div
-        className={`relative bg-fa-surface border border-fa-line border-l-4 ${meta.border} rounded-lg overflow-hidden transition-all duration-200 hover:border-fa-strong hover:shadow-lg hover:shadow-fa-card flex flex-col`}
+        className={`relative bg-fa-surface border border-fa-line border-l-4 ${meta.border} rounded-lg overflow-hidden transition-all duration-200 hover:border-fa-strong hover:shadow-lg hover:shadow-fa-card flex flex-col ${onCardClick && item.status === "done" ? "cursor-pointer" : ""}`}
+        onClick={() => {
+          if (onCardClick && item.status === "done") onCardClick(item.id);
+        }}
       >
         {/* Header */}
         <div className="px-4 pt-3 pb-2 flex items-start justify-between gap-2">
@@ -819,7 +818,7 @@ export function ItemCard({ item, categories }: ItemCardProps) {
             <RelativeTime iso={item.created_at} />
             <button
               type="button"
-              onClick={handleArchiveToggle}
+              onClick={(e) => { e.stopPropagation(); handleArchiveToggle(); }}
               disabled={archiving}
               className="text-[10px] text-fa-subtle hover:text-fa-mid disabled:opacity-40 px-1.5 py-0.5 rounded border border-transparent hover:border-fa-line transition-colors"
               title={item.archived ? "Move back to feed" : "Archive"}
@@ -859,10 +858,10 @@ export function ItemCard({ item, categories }: ItemCardProps) {
         {item.status === "done" && (
           <div className="px-4 py-3 border-t border-fa-separator flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <ActionButton item={item} category={item.category} onGuideOpen={setGuideItem} />
+              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                <ActionButton item={item} category={item.category} />
                 <button
-                  onClick={() => setShowCorrection(true)}
+                  onClick={(e) => { e.stopPropagation(); setShowCorrection(true); }}
                   className="text-[11px] text-fa-faint hover:text-[#ef4444] transition-colors px-1"
                   title="Report a correction"
                 >
@@ -871,7 +870,7 @@ export function ItemCard({ item, categories }: ItemCardProps) {
               </div>
 
               {/* Category override */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                 <span className="text-[10px] text-fa-faint">↺</span>
                 <select
                   value={item.category}
@@ -894,6 +893,7 @@ export function ItemCard({ item, categories }: ItemCardProps) {
               target="_blank"
               rel="noopener noreferrer"
               className="text-[11px] text-fa-subtle hover:text-fa-muted transition-colors flex items-center gap-1 w-fit"
+              onClick={(e) => e.stopPropagation()}
             >
               <span>↗</span>
               <span>View Original</span>
@@ -902,10 +902,6 @@ export function ItemCard({ item, categories }: ItemCardProps) {
         )}
       </div>
 
-      {/* Guide modal */}
-      {guideItem && (
-        <GuideModal item={guideItem} onClose={() => setGuideItem(null)} />
-      )}
       {showCorrection && (
         <CorrectionModal item={item} categories={categories} onClose={() => setShowCorrection(false)} />
       )}
