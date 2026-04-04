@@ -245,6 +245,7 @@ async function extractWithVideo(
       console.warn(`[gemini/video] Video download failed — HTTP ${response.status}`);
       return null;
     }
+    const contentType = response.headers.get("content-type") ?? "video/mp4";
     const buffer = Buffer.from(await response.arrayBuffer());
     await fs.writeFile(tmpPath, buffer);
     console.log(`[gemini/video] Video written to ${tmpPath} (${buffer.length} bytes)`);
@@ -252,10 +253,23 @@ async function extractWithVideo(
     const fileManager = new GoogleAIFileManager(apiKey);
     console.log(`[gemini/video] Uploading to Gemini Files API...`);
     const uploadResult = await fileManager.uploadFile(tmpPath, {
-      mimeType: "video/mp4",
+      mimeType: contentType,
       displayName: `fileaway-${itemId}`,
     });
     console.log(`[gemini/video] Uploaded — uri: ${uploadResult.file.uri}`);
+
+    const { FileState } = await import("@google/generative-ai/server");
+
+    let file = uploadResult.file;
+    while (file.state === FileState.PROCESSING) {
+      await new Promise((r) => setTimeout(r, 2000));
+      file = await fileManager.getFile(file.name);
+      console.log(`[gemini/video] File state: ${file.state}`);
+    }
+    if (file.state === FileState.FAILED) {
+      console.warn(`[gemini/video] File processing failed`);
+      return null;
+    }
 
     const genAI = getGeminiClient();
     const model = genAI.getGenerativeModel({ model: PRO_MODEL });
@@ -264,8 +278,8 @@ async function extractWithVideo(
     const result = await model.generateContent([
       {
         fileData: {
-          fileUri: uploadResult.file.uri,
-          mimeType: "video/mp4",
+          fileUri: file.uri,
+          mimeType: file.mimeType ?? "video/mp4",
         },
       },
       VIDEO_ANALYSIS_PROMPT,
