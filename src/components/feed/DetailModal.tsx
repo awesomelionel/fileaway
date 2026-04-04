@@ -2,7 +2,7 @@
 
 import type { SavedItemResponse } from "@/lib/api/types";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
 // ─── Per-category detail renderers ───────────────────────────────────────────
 
@@ -105,7 +105,7 @@ function FitnessDetail({ data }: { data: Record<string, unknown> }) {
     <div className="space-y-4">
       {workoutName && <p className="font-semibold text-fa-primary text-base leading-tight">{workoutName}</p>}
       <div className="flex gap-3 flex-wrap">
-        {duration && <span className="text-xs text-[#3b82f6] bg-[#3b82f610] px-2 py-0.5 rounded font-mono">{duration}m</span>}
+        {duration !== undefined && <span className="text-xs text-[#3b82f6] bg-[#3b82f610] px-2 py-0.5 rounded font-mono">{duration}m</span>}
         {difficulty && <span className="text-xs text-fa-dim bg-fa-chip px-2 py-0.5 rounded">{difficulty}</span>}
       </div>
       {muscleGroups && muscleGroups.length > 0 && (
@@ -294,7 +294,7 @@ interface DetailModalProps {
 export function DetailModal({ item }: DetailModalProps) {
   const router = useRouter();
 
-  const close = () => router.back();
+  const close = useCallback(() => router.back(), [router]);
 
   // Close on Escape key
   useEffect(() => {
@@ -303,7 +303,7 @@ export function DetailModal({ item }: DetailModalProps) {
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, []);
+  }, [close]);
 
   const categoryLabel = CATEGORY_LABELS[item.category] ?? item.category;
   const platformLabel = PLATFORM_LABELS[item.platform] ?? item.platform;
