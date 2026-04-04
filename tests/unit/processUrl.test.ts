@@ -6,6 +6,9 @@ describe("Extraction prompt schemas", () => {
       expect(WRAPPER_INSTRUCTIONS).toContain("infer");
       expect(WRAPPER_INSTRUCTIONS).toContain("hashtags");
       expect(WRAPPER_INSTRUCTIONS).toContain("null");
+      expect(WRAPPER_INSTRUCTIONS).toContain("CRITICAL");
+      expect(WRAPPER_INSTRUCTIONS).toContain("truncate");
+      expect(WRAPPER_INSTRUCTIONS).toContain("array");
     });
   });
 });
