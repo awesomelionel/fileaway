@@ -129,4 +129,5 @@ User clicks card
 - No changes to card visual design on the home feed.
 - No shot breakdown for YouTube — Gemini Files API requires a downloadable video URL; YouTube links are not directly downloadable.
 - No timestamp scrubbing or video playback in the modal.
-- Twitter/X video support depends on Apify returning a valid `videoUrl` — if absent, falls back gracefully.
+- Twitter/X scraping is not currently implemented (no Apify actor wired up for X). X links will fall through to the unsupported-platform path, returning no `videoUrl`. The video analysis feature will therefore not activate for X in practice until an X scraper is added. The condition check (`platform === 'twitter'`) is included in the code so it works automatically once scraping is wired up.
+- Twitter/X video support otherwise depends on Apify returning a valid `videoUrl` — if absent, falls back gracefully.
