@@ -185,6 +185,18 @@ async function scrapeUrl(
 const FLASH_MODEL = "gemini-2.5-flash";
 const PRO_MODEL = "gemini-2.5-pro";
 
+export function shouldUseVideoAnalysis(
+  category: CategoryType,
+  platform: PlatformType,
+  videoUrl: string | undefined,
+): boolean {
+  return (
+    category === "video-analysis" &&
+    (platform === "tiktok" || platform === "instagram" || platform === "twitter") &&
+    !!videoUrl
+  );
+}
+
 function getGeminiClient(): GoogleGenerativeAI {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
