@@ -2,7 +2,10 @@
 
 import type { SavedItemResponse } from "@/lib/api/types";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 // ─── Per-category detail renderers ───────────────────────────────────────────
 
@@ -289,12 +292,27 @@ const PLATFORM_LABELS: Record<string, string> = {
 
 interface DetailModalProps {
   item: SavedItemResponse;
+  categories: { slug: string; label: string }[];
 }
 
-export function DetailModal({ item }: DetailModalProps) {
+export function DetailModal({ item, categories }: DetailModalProps) {
   const router = useRouter();
+  const [selectedCategory, setSelectedCategory] = useState(item.category);
+  const [reprocessing, setReprocessing] = useState(false);
+  const reprocessWithCategory = useMutation(api.items.reprocessWithCategory);
 
   const close = useCallback(() => router.back(), [router]);
+
+  const handleReprocess = async () => {
+    if (selectedCategory === item.category) return;
+    setReprocessing(true);
+    try {
+      await reprocessWithCategory({ id: item.id as Id<"savedItems">, category: selectedCategory });
+      close();
+    } finally {
+      setReprocessing(false);
+    }
+  };
 
   // Close on Escape key
   useEffect(() => {
@@ -361,7 +379,7 @@ export function DetailModal({ item }: DetailModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 pb-5">
+        <div className="px-5 pb-5 space-y-3">
           <a
             href={item.source_url}
             target="_blank"
@@ -370,6 +388,28 @@ export function DetailModal({ item }: DetailModalProps) {
           >
             View original source ↗
           </a>
+
+          {item.status === "done" && categories.length > 0 && (
+            <div className="flex items-center gap-2 pt-3 border-t border-fa-separator">
+              <span className="text-[11px] text-fa-faint flex-shrink-0">Wrong category?</span>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="text-[11px] text-fa-subtle bg-fa-input border border-fa-line rounded px-2 py-0.5 outline-none focus:border-fa-ring flex-1 min-w-0"
+              >
+                {categories.map((cat) => (
+                  <option key={cat.slug} value={cat.slug}>{cat.label}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleReprocess}
+                disabled={selectedCategory === item.category || reprocessing}
+                className="text-[11px] text-fa-subtle bg-fa-input border border-fa-line rounded px-2.5 py-0.5 hover:text-fa-primary hover:border-fa-ring transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+              >
+                {reprocessing ? "Queuing…" : "Re-process ↺"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
