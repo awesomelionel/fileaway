@@ -680,7 +680,7 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
   const [showCorrection, setShowCorrection] = useState(false);
   const [overriding, setOverriding] = useState(false);
   const [archiving, setArchiving] = useState(false);
-  const updateCategory = useMutation(api.items.updateCategory);
+  const reprocessWithCategory = useMutation(api.items.reprocessWithCategory);
   const retryItem = useMutation(api.items.retryItem);
   const setArchived = useMutation(api.items.setArchived);
 
@@ -691,7 +691,7 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
     if (newCat === item.category) return;
     setOverriding(true);
     try {
-      await updateCategory({ id: item.id as Id<"savedItems">, category: newCat });
+      await reprocessWithCategory({ id: item.id as Id<"savedItems">, category: newCat });
     } finally {
       setOverriding(false);
     }
