@@ -678,24 +678,11 @@ interface ItemCardProps {
 
 export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
   const [showCorrection, setShowCorrection] = useState(false);
-  const [overriding, setOverriding] = useState(false);
   const [archiving, setArchiving] = useState(false);
-  const reprocessWithCategory = useMutation(api.items.reprocessWithCategory);
   const retryItem = useMutation(api.items.retryItem);
   const setArchived = useMutation(api.items.setArchived);
 
   const meta = getCategoryMeta(item.category);
-
-  const handleCategoryChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newCat = e.target.value as CategoryType;
-    if (newCat === item.category) return;
-    setOverriding(true);
-    try {
-      await reprocessWithCategory({ id: item.id as Id<"savedItems">, category: newCat });
-    } finally {
-      setOverriding(false);
-    }
-  };
 
   const handleRetry = async () => {
     try {
@@ -805,23 +792,7 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
                 </button>
               </div>
 
-              {/* Category override */}
-              <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                <span className="text-[10px] text-fa-faint">↺</span>
-                <select
-                  value={item.category}
-                  onChange={handleCategoryChange}
-                  disabled={overriding}
-                  className="text-[11px] text-fa-subtle bg-transparent border-none outline-none cursor-pointer hover:text-fa-muted transition-colors appearance-none"
-                  aria-label="Override category"
-                >
-                  {(categories ?? []).map((cat) => (
-                    <option key={cat.slug} value={cat.slug} className="bg-fa-muted-bg text-fa-secondary">
-                      {cat.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+
             </div>
 
             <a

@@ -421,7 +421,13 @@ export function FeedApp() {
           )}
         </div>
       </main>
-      {activeItem && <DetailModal item={activeItem} />}
+      {activeItem && (
+        <DetailModal
+          key={activeItem.id}
+          item={activeItem}
+          categories={categories.map((c) => ({ slug: c.slug, label: c.label }))}
+        />
+      )}
     </div>
   );
 }

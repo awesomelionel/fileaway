@@ -309,6 +309,8 @@ export function DetailModal({ item, categories }: DetailModalProps) {
     try {
       await reprocessWithCategory({ id: item.id as Id<"savedItems">, category: selectedCategory });
       close();
+    } catch (err) {
+      console.error("Failed to reprocess item:", err);
     } finally {
       setReprocessing(false);
     }
