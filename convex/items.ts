@@ -300,6 +300,32 @@ export const retryItem = mutation({
   },
 });
 
+/** Re-processes a done item with a user-specified category override. */
+export const reprocessWithCategory = mutation({
+  args: {
+    id: v.id("savedItems"),
+    category: v.string(),
+  },
+  handler: async (ctx, { id, category }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const item = await getOwnedItem(ctx, userId, id);
+    if (!canReprocess(item.status)) {
+      throw new Error("Only done items can be re-processed");
+    }
+
+    await ctx.db.patch(id, { status: "pending", category });
+    // @ts-expect-error – overrideCategory added in Task 3
+    await ctx.scheduler.runAfter(0, internal.processUrl.processItem, {
+      savedItemId: id,
+      url: item.sourceUrl,
+      overrideCategory: category,
+    });
+    return true;
+  },
+});
+
 // ─── Internal mutations (called from processUrl action) ───────────────────────
 
 /** Marks item as processing. */
