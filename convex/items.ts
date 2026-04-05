@@ -90,6 +90,11 @@ async function getOwnedItem(
   return item;
 }
 
+/** Returns true if the item is eligible for re-processing with a new category. */
+export function canReprocess(status: ItemStatus): boolean {
+  return status === "done";
+}
+
 // ─── Public queries ───────────────────────────────────────────────────────────
 
 const LIST_SCAN = 250;
