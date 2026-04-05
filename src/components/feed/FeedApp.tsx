@@ -194,7 +194,7 @@ function SignOutButton() {
       disabled={loading}
       className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-fa-subtle hover:text-fa-muted hover:bg-fa-elevated border border-transparent transition-all disabled:opacity-40"
     >
-      {loading ? "Signing out…" : "Sign out"}
+      {loading ? "Logging out…" : "Logout"}
     </button>
   );
 }
