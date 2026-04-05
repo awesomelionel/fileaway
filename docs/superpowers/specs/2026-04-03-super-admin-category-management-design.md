@@ -154,3 +154,96 @@ Existing `savedItems` rows are unaffected — their `category` string values alr
 - Custom card renderer templates for admin-created categories
 - Category archival / soft-delete
 - Per-user category preferences (covered by the separate user-managed-categories plan)
+
+
+## Current seeded prompts
+  fitness
+  Extract ALL details from this fitness/workout video. Return JSON:
+  {
+    "workout_name": "<descriptive name of the workout>",
+    "exercises": [
+      {
+        "name": "<exercise name>",
+        "sets": "<number>",
+        "reps": "<number or range e.g. '10-12'>",
+        "notes": "<form tip, tempo, or variation if mentioned>"
+      }
+    ],
+    "muscle_groups": ["<every muscle group targeted>"],
+    "equipment": ["<every piece of equipment shown or mentioned>"],
+    "duration_minutes": "<total estimated duration as number>",
+    "difficulty": "<beginner | intermediate | advanced>",
+    "rest_between_sets": "<rest period if mentioned, else null>"
+  }
+  IMPORTANT: List EVERY exercise shown or performed. Do not stop after 2-3. If 6 exercises are demonstrated, return
+  all 6.
+
+  ---
+  recipe
+  Extract ALL details from this recipe video or post. Return JSON:
+  {
+    "dish_name": "<name of the dish>",
+    "ingredients": ["<every ingredient with quantity and unit — list ALL of them>"],
+    "steps": ["<every step in order — list ALL of them>"],
+    "prep_time_minutes": "<number or null>",
+    "cook_time_minutes": "<number or null>",
+    "servings": "<number or null>",
+    "cuisine": "<cuisine type if known>",
+    "dietary_tags": ["<e.g. vegan, gluten-free, dairy-free — infer from ingredients>"]
+  }
+  IMPORTANT: List EVERY ingredient and EVERY step. Never truncate.
+
+  ---
+  food
+  Extract ALL details about this restaurant or food spot. Return JSON:
+  {
+    "name": "<restaurant or food item name>",
+    "address": "<full address; infer city/neighbourhood from hashtags or handle; null only if truly unknown>",
+    "cuisine": "<cuisine type>",
+    "why_visit": "<the most compelling reason to visit, based on what's shown>",
+    "price_range": "<$ | $$ | $$$ — infer from context if not stated>",
+    "dishes_mentioned": ["<every dish, drink, or food item shown or mentioned>"],
+    "hours": "<opening hours if mentioned, else null>",
+    "phone": "<phone number if mentioned, else null>"
+  }
+
+  ---
+  how-to
+  Extract ALL details from this how-to or tutorial. Return JSON:
+  {
+    "title": "<short descriptive title for what is being taught>",
+    "summary": "<one sentence describing the end result or skill gained>",
+    "steps": ["<every step in order — be specific and actionable, list ALL steps>"],
+    "tools_needed": ["<every tool, material, or app required>"],
+    "difficulty": "<easy | medium | hard>",
+    "time_required": "<estimated total time as a string, e.g. '30 minutes'>",
+    "tips": ["<any pro tips, warnings, or shortcuts mentioned>"]
+  }
+
+  ---
+  video-analysis
+  Extract ALL details from this video. Return JSON:
+  {
+    "title": "<short descriptive title>",
+    "summary": "<2-3 sentence summary of the full video>",
+    "shots": [
+      {
+        "timestamp": "<approximate timestamp e.g. '0:05' — infer sequence if unknown>",
+        "description": "<one-line label for this scene>",
+        "detail": "<1-2 sentences on what happens and why it matters>"
+      }
+    ],
+    "takeaways": ["<specific actionable item the viewer can act on>"],
+    "key_points": ["<key point or insight from the video>"],
+    "topics": ["<topic tag>"]
+  }
+  Include 3-8 shots and 3-6 takeaways. Infer shots from caption/hashtags if no video available.
+
+  ---
+  other
+  Extract the key details from this saved post. Return JSON:
+  {
+    "title": "<short descriptive title>",
+    "summary": "<2-3 sentence description of what this is about>",
+    "topics": ["<relevant topic tags>"]
+  }
