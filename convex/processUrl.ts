@@ -512,8 +512,9 @@ export const processItem = internalAction({
   args: {
     savedItemId: v.id("savedItems"),
     url: v.string(),
+    overrideCategory: v.optional(v.string()),
   },
-  handler: async (ctx, { savedItemId, url }) => {
+  handler: async (ctx, { savedItemId, url, overrideCategory }) => {
     console.log(
       `[processUrl] Processing item ${savedItemId} — url: ${url}`,
     );
@@ -534,7 +535,7 @@ export const processItem = internalAction({
       console.log(`[processUrl] Scrape complete in ${Date.now() - scrapeStart}ms — platform: ${platform}, title: ${scrapeResult.title ?? "(none)"}, hasVideo: ${!!scrapeResult.videoUrl}, hashtags: ${(scrapeResult.hashtags ?? []).length}`);
 
       console.log(`[processUrl] Categorizing content...`);
-      const category = await categorizeContent(ctx, scrapeResult);
+      const category = overrideCategory ?? await categorizeContent(ctx, scrapeResult);
       console.log(`[processUrl] Category resolved: ${category}`);
 
       console.log(`[processUrl] Extracting structured data...`);

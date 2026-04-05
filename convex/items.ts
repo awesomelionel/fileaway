@@ -316,7 +316,6 @@ export const reprocessWithCategory = mutation({
     }
 
     await ctx.db.patch(id, { status: "pending", category });
-    // @ts-expect-error – overrideCategory added in Task 3
     await ctx.scheduler.runAfter(0, internal.processUrl.processItem, {
       savedItemId: id,
       url: item.sourceUrl,
