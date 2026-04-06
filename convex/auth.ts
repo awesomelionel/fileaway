@@ -6,7 +6,7 @@ import Google from "@auth/core/providers/google";
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [Password, GitHub, Google],
   callbacks: {
-    redirect({ redirectTo }) {
+    async redirect({ redirectTo }) {
       const allowed = [
         process.env.APP_URL,
         "http://localhost:3000",
