@@ -3,10 +3,15 @@
 import { useState, useCallback, useTransition } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { ItemCard, getCategoryMeta } from "@/components/feed/ItemCard";
-import { DetailModal } from "@/components/feed/DetailModal";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, usePreloadedQuery, Preloaded } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import dynamic from "next/dynamic";
+
+const DetailModal = dynamic(
+  () => import("@/components/feed/DetailModal").then((m) => ({ default: m.DetailModal })),
+  { ssr: false },
+);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -201,7 +206,12 @@ function SignOutButton() {
 
 // ─── Main FeedApp ─────────────────────────────────────────────────────────────
 
-export function FeedApp() {
+type FeedAppProps = {
+  preloadedItems: Preloaded<typeof api.items.list>;
+  preloadedCategories: Preloaded<typeof api.adminCategories.listCategories>;
+};
+
+export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -212,13 +222,13 @@ export function FeedApp() {
   const searchQuery = searchParams.get("q") ?? "";
   const archiveView = searchParams.get("view") === "archive";
 
-  // Convex reactive query — automatically updates when items change
-  const rawItems = useQuery(api.items.list, { view: archiveView ? "archive" : "feed" });
-  const allItems = rawItems ?? [];
-  const loading = rawItems === undefined;
+  // Feed view: SSR-preloaded, stays reactive. Archive view: lazy client query.
+  const feedItems = usePreloadedQuery(preloadedItems);
+  const archiveItems = useQuery(api.items.list, archiveView ? { view: "archive" } : "skip");
+  const allItems = archiveView ? (archiveItems ?? []) : feedItems;
+  const loading = archiveView && archiveItems === undefined;
 
-  const categoriesData = useQuery(api.adminCategories.listCategories);
-  const categories = categoriesData ?? [];
+  const categories = usePreloadedQuery(preloadedCategories);
   const tabs: { value: string; label: string }[] = [
     { value: "all", label: "All" },
     ...categories.map((c) => ({ value: c.slug, label: c.label })),
