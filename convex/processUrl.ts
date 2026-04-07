@@ -6,9 +6,24 @@ import { internal } from "./_generated/api";
 import { ApifyClient } from "apify-client";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import * as fs from "fs/promises";
 import * as path from "path";
 import type { Id } from "./_generated/dataModel";
+
+function getR2Client(): S3Client {
+  const raw = process.env.R2_ENDPOINT_URL ?? "";
+  const endpoint = raw.startsWith("https://") ? raw : `https://${raw}`;
+  return new S3Client({
+    region: "auto",
+    endpoint,
+    forcePathStyle: true,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID ?? "",
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
+    },
+  });
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -542,22 +557,30 @@ export const processItem = internalAction({
       const extraction = await extractStructuredData(ctx, scrapeResult, category, savedItemId);
       console.log(`[processUrl] Extraction complete — category: ${extraction.category}, action: ${extraction.actionTaken}, dataKeys: ${Object.keys(extraction.extractedData).join(", ")}`);
 
-      // Download thumbnail and upload to Convex storage
-      let thumbnailStorageId: Id<"_storage"> | undefined;
+      // Download thumbnail and upload to Cloudflare R2
+      let thumbnailR2Key: string | undefined;
       if (scrapeResult.thumbnailUrl) {
         try {
           console.log(`[processUrl] Downloading thumbnail from CDN...`);
           const imgResponse = await fetch(scrapeResult.thumbnailUrl);
           if (imgResponse.ok) {
             const blob = await imgResponse.blob();
-            const storageId = await ctx.storage.store(blob);
-            thumbnailStorageId = storageId;
-            console.log(`[processUrl] Thumbnail stored — storageId: ${storageId}`);
+            const r2Key = `thumbs/${savedItemId}`;
+            const s3 = getR2Client();
+            await s3.send(new PutObjectCommand({
+              Bucket: process.env.R2_BUCKET_NAME,
+              Key: r2Key,
+              Body: Buffer.from(await blob.arrayBuffer()),
+              ContentType: blob.type,
+              CacheControl: "public, max-age=31536000, immutable",
+            }));
+            thumbnailR2Key = r2Key;
+            console.log(`[processUrl] Thumbnail uploaded to R2 — key: ${r2Key}`);
           } else {
             console.warn(`[processUrl] Thumbnail download failed — status: ${imgResponse.status}`);
           }
         } catch (thumbErr) {
-          console.warn(`[processUrl] Thumbnail download error:`, thumbErr);
+          console.warn(`[processUrl] Thumbnail upload error:`, thumbErr);
         }
       }
 
@@ -568,7 +591,7 @@ export const processItem = internalAction({
         rawContent: scrapeResult.metadata,
         extractedData: extraction.extractedData,
         actionTaken: extraction.actionTaken,
-        thumbnailStorageId,
+        thumbnailR2Key,
       });
 
       console.log(`[processUrl] Item ${savedItemId} done in ${Date.now() - pipelineStart}ms`);
@@ -580,7 +603,7 @@ export const processItem = internalAction({
   },
 });
 
-/** Downloads thumbnails from CDN URLs and stores them in Convex for existing items. */
+/** Downloads thumbnails from CDN URLs and stores them in R2 for existing items without an R2 key. */
 export const backfillThumbnails = internalAction({
   args: {},
   handler: async (ctx) => {
@@ -589,6 +612,7 @@ export const backfillThumbnails = internalAction({
 
     let success = 0;
     let failed = 0;
+    const s3 = getR2Client();
     for (const item of items) {
       try {
         const response = await fetch(item.cdnUrl);
@@ -598,10 +622,17 @@ export const backfillThumbnails = internalAction({
           continue;
         }
         const blob = await response.blob();
-        const storageId = await ctx.storage.store(blob);
-        await ctx.runMutation(internal.items.setThumbnailStorage, {
+        const r2Key = `thumbs/${item.id}`;
+        await s3.send(new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: r2Key,
+          Body: Buffer.from(await blob.arrayBuffer()),
+          ContentType: blob.type,
+          CacheControl: "public, max-age=31536000, immutable",
+        }));
+        await ctx.runMutation(internal.items.setThumbnailR2Key, {
           id: item.id as Id<"savedItems">,
-          storageId,
+          r2Key,
         });
         success++;
       } catch (err) {
@@ -609,6 +640,49 @@ export const backfillThumbnails = internalAction({
         failed++;
       }
     }
-    console.log(`[backfill] Done — ${success} stored, ${failed} failed`);
+    console.log(`[backfill] Done — ${success} stored in R2, ${failed} failed`);
+  },
+});
+
+/** Migrates existing Convex storage thumbnails to R2. */
+export const migrateConvexThumbnailsToR2 = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const items: { id: string; storageUrl: string }[] = await ctx.runQuery(
+      internal.items.listItemsNeedingR2Migration,
+    );
+    console.log(`[r2-migrate] Found ${items.length} items with Convex thumbnails to migrate`);
+
+    let success = 0;
+    let failed = 0;
+    const s3 = getR2Client();
+    for (const item of items) {
+      try {
+        const response = await fetch(item.storageUrl);
+        if (!response.ok) {
+          console.warn(`[r2-migrate] ${item.id} — HTTP ${response.status}`);
+          failed++;
+          continue;
+        }
+        const blob = await response.blob();
+        const r2Key = `thumbs/${item.id}`;
+        await s3.send(new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: r2Key,
+          Body: Buffer.from(await blob.arrayBuffer()),
+          ContentType: blob.type,
+          CacheControl: "public, max-age=31536000, immutable",
+        }));
+        await ctx.runMutation(internal.items.setThumbnailR2Key, {
+          id: item.id as Id<"savedItems">,
+          r2Key,
+        });
+        success++;
+      } catch (err) {
+        console.warn(`[r2-migrate] ${item.id} — error:`, err);
+        failed++;
+      }
+    }
+    console.log(`[r2-migrate] Done — ${success} migrated to R2, ${failed} failed`);
   },
 });

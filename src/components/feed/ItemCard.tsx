@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import type { SavedItemResponse, CategoryType } from "@/lib/api/types";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -85,16 +86,18 @@ function ThumbnailBanner({
       href={sourceUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="block w-full overflow-hidden"
+      className="block w-full overflow-hidden relative h-40"
       onClick={(e) => e.stopPropagation()}
     >
-      <img
+      <Image
         src={thumbnailUrl}
         alt=""
+        fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         referrerPolicy="no-referrer"
         onError={() => setFailed(true)}
-        className="w-full h-40 object-cover transition-opacity duration-200 hover:opacity-85"
-        loading="lazy"
+        className="object-cover transition-opacity duration-200 hover:opacity-85"
+        unoptimized
       />
     </a>
   );

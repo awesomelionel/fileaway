@@ -1,6 +1,7 @@
 "use client";
 
 import type { SavedItemResponse } from "@/lib/api/types";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useMutation } from "convex/react";
@@ -366,13 +367,17 @@ export function DetailModal({ item, categories }: DetailModalProps) {
 
         {/* Thumbnail */}
         {item.thumbnail_url && (
-          <img
-            src={item.thumbnail_url}
-            alt=""
-            referrerPolicy="no-referrer"
-            className="w-full h-48 object-cover"
-            loading="lazy"
-          />
+          <div className="relative w-full h-48">
+            <Image
+              src={item.thumbnail_url}
+              alt=""
+              fill
+              sizes="(max-width: 640px) 100vw, 576px"
+              referrerPolicy="no-referrer"
+              className="object-cover"
+              unoptimized
+            />
+          </div>
         )}
 
         {/* Body */}

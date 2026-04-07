@@ -52,6 +52,7 @@ function toResponse(
     rawContent?: unknown;
     extractedData?: unknown;
     thumbnailStorageId?: Id<"_storage">;
+    thumbnailR2Key?: string;
     actionTaken?: string;
     userCorrection?: string;
     status: ItemStatus;
@@ -121,10 +122,13 @@ export const list = query({
     );
     const items = matched.slice(0, LIST_LIMIT);
 
+    const r2PublicUrl = process.env.R2_PUBLIC_URL;
     return Promise.all(
       items.map(async (item) => {
         let thumbnailUrl: string | null = null;
-        if (item.thumbnailStorageId) {
+        if (item.thumbnailR2Key && r2PublicUrl) {
+          thumbnailUrl = `${r2PublicUrl}/${item.thumbnailR2Key}`;
+        } else if (item.thumbnailStorageId) {
           thumbnailUrl = await ctx.storage.getUrl(item.thumbnailStorageId);
         }
         if (!thumbnailUrl) {
@@ -353,10 +357,11 @@ export const updateResult = internalMutation({
     extractedData: v.optional(v.any()),
     actionTaken: v.optional(v.string()),
     thumbnailStorageId: v.optional(v.id("_storage")),
+    thumbnailR2Key: v.optional(v.string()),
   },
   handler: async (
     ctx,
-    { id, platform, category, rawContent, extractedData, actionTaken, thumbnailStorageId },
+    { id, platform, category, rawContent, extractedData, actionTaken, thumbnailStorageId, thumbnailR2Key },
   ) => {
     const item = await ctx.db.get(id);
     if (!item) return;
@@ -367,12 +372,13 @@ export const updateResult = internalMutation({
       extractedData,
       actionTaken,
       thumbnailStorageId,
+      thumbnailR2Key,
       status: "done",
     });
   },
 });
 
-/** Returns done items that have a CDN thumbnail URL but no stored thumbnail. */
+/** Returns done items that have a CDN thumbnail URL but no stored thumbnail (Convex or R2). */
 export const listItemsNeedingThumbnail = internalQuery({
   args: {},
   handler: async (ctx) => {
@@ -383,7 +389,7 @@ export const listItemsNeedingThumbnail = internalQuery({
 
     const results: { id: string; cdnUrl: string }[] = [];
     for (const item of items) {
-      if (item.thumbnailStorageId) continue;
+      if (item.thumbnailR2Key || item.thumbnailStorageId) continue;
       const extracted = (item.extractedData as Record<string, unknown> | null) ?? null;
       const raw = (item.rawContent as Record<string, unknown> | null) ?? null;
       const url = extractThumbnailUrl(extracted, raw);
@@ -403,6 +409,38 @@ export const setThumbnailStorage = internalMutation({
     const item = await ctx.db.get(id);
     if (!item) return;
     await ctx.db.patch(id, { thumbnailStorageId: storageId });
+  },
+});
+
+/** Sets the R2 key for a migrated thumbnail. */
+export const setThumbnailR2Key = internalMutation({
+  args: {
+    id: v.id("savedItems"),
+    r2Key: v.string(),
+  },
+  handler: async (ctx, { id, r2Key }) => {
+    const item = await ctx.db.get(id);
+    if (!item) return;
+    await ctx.db.patch(id, { thumbnailR2Key: r2Key });
+  },
+});
+
+/** Returns done items with Convex storage thumbnails that haven't been migrated to R2 yet. */
+export const listItemsNeedingR2Migration = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const items = await ctx.db
+      .query("savedItems")
+      .withIndex("by_status", (q) => q.eq("status", "done"))
+      .collect();
+
+    const results: { id: string; storageUrl: string }[] = [];
+    for (const item of items) {
+      if (item.thumbnailR2Key || !item.thumbnailStorageId) continue;
+      const url = await ctx.storage.getUrl(item.thumbnailStorageId);
+      if (url) results.push({ id: item._id, storageUrl: url });
+    }
+    return results;
   },
 });
 
