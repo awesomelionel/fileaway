@@ -5,7 +5,8 @@ import { api } from "../../convex/_generated/api";
 import { FeedApp } from "@/components/feed/FeedApp";
 import { FeedSkeleton } from "@/components/feed/FeedSkeleton";
 
-export default async function Home() {
+/** Preloads Convex data inside Suspense so the shell can stream before queries finish (better FCP/TTFB). */
+async function FeedWithPreload() {
   const token = await convexAuthNextjsToken();
   const [preloadedItems, preloadedCategories] = await Promise.all([
     preloadQuery(api.items.list, { view: "feed" }, { token }),
@@ -13,8 +14,14 @@ export default async function Home() {
   ]);
 
   return (
+    <FeedApp preloadedItems={preloadedItems} preloadedCategories={preloadedCategories} />
+  );
+}
+
+export default function Home() {
+  return (
     <Suspense fallback={<FeedSkeleton />}>
-      <FeedApp preloadedItems={preloadedItems} preloadedCategories={preloadedCategories} />
+      <FeedWithPreload />
     </Suspense>
   );
 }
