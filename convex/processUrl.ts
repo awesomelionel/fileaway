@@ -432,10 +432,15 @@ function buildExtractionPrompt(
     "",
     extractionPrompt,
     "",
+    "Additional required fields:",
+    '- Always include "bullets": an array of 3-15 short bullet points summarizing the key details (chronological if applicable).',
+    '- If category is "video-analysis" or "other", also include "shots": an array of 3-12 scene/moment objects with { timestamp (string|null), description, detail }. If you lack video frames, infer shots from caption/hashtags and on-screen text cues mentioned.',
+    "",
     "Post content:",
     contentBlock,
     "",
-    "Return ONLY valid JSON matching the schema above. No markdown fences, no explanation, no extra fields.",
+    'Return ONLY valid JSON matching the schema above. No markdown fences, no explanation, no extra fields.',
+    'Important: string values must be valid JSON strings. Do NOT include raw double-quotes inside a string value unless you escape them (use \\"like this\\"). Prefer avoiding quotes entirely.',
   ].join("\n");
 }
 
@@ -446,6 +451,95 @@ const BUILT_IN_ACTIONS: Record<string, string> = {
   "how-to": "Save as guide",
   "video-analysis": "Save transcript",
   other: "Save for later",
+};
+
+const BUILT_IN_EXTRACTION_PROMPTS: Record<string, string> = {
+  food: `Extract ALL details about this restaurant or food spot. Return JSON:
+{
+  "name": "<restaurant or food item name>",
+  "address": "<full address; infer city/neighbourhood from hashtags or handle; null only if truly unknown>",
+  "cuisine": "<cuisine type>",
+  "why_visit": "<the most compelling reason to visit, based on what's shown>",
+  "price_range": "<$ | $$ | $$$ — infer from context if not stated>",
+  "dishes_mentioned": ["<every dish, drink, or food item shown or mentioned>"],
+  "bullets": ["<3-10 short key details as bullet points: what to order, vibe, location hints, pricing clues, etc.>"],
+  "hours": "<opening hours if mentioned, else null>",
+  "phone": "<phone number if mentioned, else null>"
+}`,
+  recipe: `Extract ALL details from this recipe video or post. Return JSON:
+{
+  "dish_name": "<name of the dish>",
+  "ingredients": ["<every ingredient with quantity and unit — list ALL of them>"],
+  "steps": ["<every step in order — list ALL of them>"],
+  "bullets": ["<3-10 short key details as bullet points: tips, substitutions, temps, texture cues, etc.>"],
+  "prep_time_minutes": "<number or null>",
+  "cook_time_minutes": "<number or null>",
+  "servings": "<number or null>",
+  "cuisine": "<cuisine type if known>",
+  "dietary_tags": ["<e.g. vegan, gluten-free, dairy-free — infer from ingredients>"]
+}
+IMPORTANT: List EVERY ingredient and EVERY step. Never truncate.`,
+  fitness: `Extract ALL details from this fitness/workout video. Return JSON:
+{
+  "workout_name": "<descriptive name of the workout>",
+  "exercises": [
+    {
+      "name": "<exercise name>",
+      "sets": "<number>",
+      "reps": "<number or range e.g. '10-12'>",
+      "notes": "<form tip, tempo, or variation if mentioned>"
+    }
+  ],
+  "muscle_groups": ["<every muscle group targeted>"],
+  "equipment": ["<every piece of equipment shown or mentioned>"],
+  "bullets": ["<3-10 short key details as bullet points: cues, common mistakes, progression/regression, etc.>"],
+  "duration_minutes": "<total estimated duration as number>",
+  "difficulty": "<beginner | intermediate | advanced>",
+  "rest_between_sets": "<rest period if mentioned, else null>"
+}
+IMPORTANT: List EVERY exercise shown or performed. Do not stop after 2-3. If 6 exercises are demonstrated, return all 6.`,
+  "how-to": `Extract ALL details from this how-to or tutorial. Return JSON:
+{
+  "title": "<short descriptive title for what is being taught>",
+  "summary": "<one sentence describing the end result or skill gained>",
+  "steps": ["<every step in order — be specific and actionable, list ALL steps>"],
+  "tools_needed": ["<every tool, material, or app required>"],
+  "bullets": ["<3-10 short key details as bullet points: gotchas, key measurements, safety notes, etc.>"],
+  "difficulty": "<easy | medium | hard>",
+  "time_required": "<estimated total time as a string, e.g. '30 minutes'>",
+  "tips": ["<any pro tips, warnings, or shortcuts mentioned>"]
+}`,
+  "video-analysis": `Extract ALL details from this video. Return JSON:
+{
+  "title": "<short descriptive title>",
+  "summary": "<2-3 sentence summary of the full video>",
+  "shots": [
+    {
+      "timestamp": "<approximate timestamp e.g. '0:05' — infer sequence if unknown>",
+      "description": "<one-line label for this scene>",
+      "detail": "<1-2 sentences on what happens and why it matters>"
+    }
+  ],
+  "bullets": ["<5-15 short bullet points in chronological order capturing what happens, beat-by-beat>"],
+  "takeaways": ["<specific actionable item the viewer can act on>"],
+  "key_points": ["<key point or insight from the video>"],
+  "topics": ["<topic tag>"]
+}
+Include 3-8 shots and 3-6 takeaways. Infer shots from caption/hashtags if no video available.`,
+  other: `Extract the key details from this saved post. If it appears to describe a video or sequence of events, infer a shot-by-shot breakdown from captions/hashtags. Return JSON:
+{
+  "title": "<short descriptive title>",
+  "summary": "<2-3 sentence description of what this is about>",
+  "bullets": ["<3-15 bullet points of the most important details (facts, claims, steps, items, recommendations, etc.)>"],
+  "shots": [
+    {
+      "timestamp": "<optional; set to null if unknown>",
+      "description": "<one-line label for this moment/scene>",
+      "detail": "<1-2 sentences describing what happens or what the caption implies>"
+    }
+  ],
+  "topics": ["<relevant topic tags>"]
+}`,
 };
 
 function getDefaultAction(category: CategoryType): string {
@@ -478,13 +572,20 @@ async function extractStructuredData(
   console.log(`[gemini/extract] Starting — model: ${modelName}, category: ${category}, useProModel: ${useProModel}`);
 
   const categoryRow = await ctx.runQuery(internal.adminCategories.getCategoryBySlug, { slug: category });
+  // Prefer cockpit/DB prompt (so edits take effect), fall back to built-in defaults.
   const extractionPrompt = categoryRow?.extractionPrompt ??
+  BUILT_IN_EXTRACTION_PROMPTS[category] ??
     `Return JSON:\n{\n  "title": "<short descriptive title>",\n  "summary": "<2-3 sentence description>",\n  "topics": ["<topic tag>"]\n}`;
 
   const client = getGeminiClient();
   const model = client.getGenerativeModel({
     model: modelName,
-    generationConfig: { temperature: 0 },
+    generationConfig: {
+      temperature: 0,
+      // Instruct Gemini SDK to return machine-parseable JSON.
+      // This is best-effort (model can still misbehave), so we still keep the parse fallback below.
+      responseMimeType: "application/json",
+    },
   });
 
   const prompt = buildExtractionPrompt(scrape, category, extractionPrompt);
