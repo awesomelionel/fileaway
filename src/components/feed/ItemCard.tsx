@@ -18,6 +18,7 @@ const BUILT_IN_CATEGORY_META: Record<
   fitness: { label: "Fitness", color: "#3b82f6", border: "border-l-[#3b82f6]", bg: "bg-[#3b82f610]", text: "text-[#3b82f6]" },
   "how-to": { label: "How-To", color: "#a855f7", border: "border-l-[#a855f7]", bg: "bg-[#a855f710]", text: "text-[#a855f7]" },
   "video-analysis": { label: "Video", color: "#14b8a6", border: "border-l-[#14b8a6]", bg: "bg-[#14b8a610]", text: "text-[#14b8a6]" },
+  travel: { label: "Travel", color: "#f59e0b", border: "border-l-[#f59e0b]", bg: "bg-[#f59e0b10]", text: "text-[#f59e0b]" },
   other: { label: "Other", color: "#6b7280", border: "border-l-[#6b7280]", bg: "bg-[#6b728010]", text: "text-[#6b7280]" },
 };
 
@@ -286,6 +287,63 @@ function VideoBody({ data }: { data: Record<string, unknown> }) {
   );
 }
 
+function TravelBody({ data }: { data: Record<string, unknown> }) {
+  const title = data.title as string | undefined;
+  const primaryLocation = data.primary_location as string | null | undefined;
+  const itinerary = data.itinerary as
+    | Array<{
+        order?: number | string;
+        name?: string;
+        location_text?: string;
+        google_maps_url?: string;
+      }>
+    | undefined;
+
+  return (
+    <div className="space-y-2">
+      {title && <p className="font-semibold text-fa-primary leading-tight">{title}</p>}
+      {primaryLocation && (
+        <p className="text-xs text-fa-secondary-alt flex items-start gap-1">
+          <span className="mt-0.5">🗺️</span>
+          <span>{primaryLocation}</span>
+        </p>
+      )}
+      {itinerary && itinerary.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle">Itinerary</p>
+          {itinerary.slice(0, 4).map((stop, i) => (
+            <div key={i} className="flex items-start justify-between gap-2 text-xs">
+              <div className="min-w-0">
+                <p className="text-fa-mid truncate">
+                  <span className="text-[#f59e0b] font-mono mr-2">{(stop.order ?? i + 1).toString()}.</span>
+                  {stop.name ?? "Stop"}
+                </p>
+                {stop.location_text && (
+                  <p className="text-[11px] text-fa-subtle truncate">{stop.location_text}</p>
+                )}
+              </div>
+              {stop.google_maps_url ? (
+                <a
+                  href={stop.google_maps_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0 text-[11px] text-[#f59e0b] hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Maps ↗
+                </a>
+              ) : null}
+            </div>
+          ))}
+          {itinerary.length > 4 && (
+            <p className="text-[11px] text-fa-subtle">+{itinerary.length - 4} more stops</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OtherBody({ data }: { data: Record<string, unknown> }) {
   const title = data.title as string | undefined;
   const summary = data.summary as string | undefined;
@@ -524,6 +582,45 @@ function ActionButton({
       <button
         onClick={() => fire(() => copyText(text), "Copied!")}
         className="text-xs px-3 py-1.5 rounded bg-[#14b8a615] text-[#14b8a6] border border-[#14b8a630] font-medium hover:bg-[#14b8a625] transition-colors min-h-[44px] sm:min-h-0"
+      >
+        Copy summary
+      </button>
+    );
+  }
+
+  if (category === "travel") {
+    const itinerary = item.extracted_data?.itinerary as
+      | Array<{
+          order?: number | string;
+          name?: string;
+          location_text?: string;
+          google_maps_url?: string;
+        }>
+      | undefined;
+
+    const firstUrl = itinerary?.find((s) => typeof s.google_maps_url === "string")
+      ?.google_maps_url as string | undefined;
+
+    if (firstUrl) {
+      return (
+        <a
+          href={firstUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex text-xs px-3 py-1.5 rounded bg-[#f59e0b15] text-[#f59e0b] border border-[#f59e0b30] font-medium hover:bg-[#f59e0b25] transition-colors min-h-[44px] sm:min-h-0"
+        >
+          Open in Maps ↗
+        </a>
+      );
+    }
+
+    const title = item.extracted_data?.title as string | undefined;
+    const summary = item.extracted_data?.summary as string | undefined;
+    const text = [title, summary].filter(Boolean).join("\n\n");
+    return (
+      <button
+        onClick={() => fire(() => copyText(text), "Copied!")}
+        className="text-xs px-3 py-1.5 rounded bg-[#f59e0b15] text-[#f59e0b] border border-[#f59e0b30] font-medium hover:bg-[#f59e0b25] transition-colors min-h-[44px] sm:min-h-0"
       >
         Copy summary
       </button>
@@ -774,6 +871,7 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
               : item.category === "fitness" ? <FitnessBody data={item.extracted_data} />
               : item.category === "how-to" ? <HowToBody data={item.extracted_data} />
               : item.category === "video-analysis" ? <VideoBody data={item.extracted_data} />
+              : item.category === "travel" ? <TravelBody data={item.extracted_data} />
               : item.category === "other" ? <OtherBody data={item.extracted_data} />
               : <GenericBody data={item.extracted_data} />}
             </>

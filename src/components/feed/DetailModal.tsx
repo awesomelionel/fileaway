@@ -239,6 +239,107 @@ function VideoAnalysisDetail({ data }: { data: Record<string, unknown> }) {
   );
 }
 
+function TravelDetail({ data }: { data: Record<string, unknown> }) {
+  const title = data.title as string | undefined;
+  const summary = data.summary as string | undefined;
+  const primaryLocation = data.primary_location as string | null | undefined;
+  const itinerary = data.itinerary as
+    | Array<{
+        order?: number | string;
+        timestamp?: string | null;
+        name?: string;
+        type?: string;
+        location_text?: string;
+        why_go?: string;
+        what_you_see?: string;
+        google_maps_url?: string;
+        tips?: string[];
+      }>
+    | undefined;
+
+  return (
+    <div className="space-y-4">
+      {title && <p className="font-semibold text-fa-primary text-base leading-tight">{title}</p>}
+      {summary && <p className="text-sm text-fa-soft leading-relaxed">{summary}</p>}
+      {primaryLocation && (
+        <p className="text-sm text-fa-secondary-alt flex items-start gap-2">
+          <span className="mt-0.5 flex-shrink-0">🗺️</span>
+          <span>{primaryLocation}</span>
+        </p>
+      )}
+
+      {itinerary && itinerary.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle">Itinerary</p>
+          <div className="space-y-3">
+            {itinerary.map((stop, i) => (
+              <div key={i} className="border border-fa-separator rounded-lg p-3 bg-fa-elevated/40">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-fa-primary leading-snug">
+                      <span className="text-[#f59e0b] font-mono mr-2">
+                        {(stop.order ?? i + 1).toString()}.
+                      </span>
+                      {stop.name ?? "Stop"}
+                    </p>
+                    <p className="text-xs text-fa-subtle mt-0.5">
+                      {[stop.type, stop.location_text].filter(Boolean).join(" · ")}
+                      {stop.timestamp ? ` · ${stop.timestamp}` : ""}
+                    </p>
+                  </div>
+                  {stop.google_maps_url ? (
+                    <a
+                      href={stop.google_maps_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#f59e0b] border border-[#f59e0b30] bg-[#f59e0b12] px-2 py-1 rounded hover:bg-[#f59e0b20] transition-colors flex-shrink-0"
+                    >
+                      Maps ↗
+                    </a>
+                  ) : null}
+                </div>
+
+                {(stop.what_you_see || stop.why_go) && (
+                  <div className="mt-2 space-y-1">
+                    {stop.what_you_see && (
+                      <p className="text-xs text-fa-soft leading-relaxed">
+                        <span className="text-fa-faint">Seen: </span>
+                        {stop.what_you_see}
+                      </p>
+                    )}
+                    {stop.why_go && (
+                      <p className="text-xs text-fa-soft leading-relaxed">
+                        <span className="text-fa-faint">Why go: </span>
+                        {stop.why_go}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {stop.tips && stop.tips.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-fa-faint mb-1">
+                      Tips
+                    </p>
+                    <ul className="space-y-1">
+                      {stop.tips.slice(0, 5).map((t, idx) => (
+                        <li key={idx} className="text-xs text-fa-dim flex items-start gap-2">
+                          <span className="text-[#f59e0b] flex-shrink-0 mt-0.5">·</span>
+                          <span className="leading-relaxed">{t}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OtherDetail({ data }: { data: Record<string, unknown> }) {
   const title = data.title as string | undefined;
   const summary = data.summary as string | undefined;
@@ -267,6 +368,7 @@ function DetailContent({ item }: { item: SavedItemResponse }) {
     case "fitness": return <FitnessDetail data={data} />;
     case "how-to": return <HowToDetail data={data} />;
     case "video-analysis": return <VideoAnalysisDetail data={data} />;
+    case "travel": return <TravelDetail data={data} />;
     case "other": return <OtherDetail data={data} />;
     default: return <OtherDetail data={data} />;
   }
@@ -280,6 +382,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   fitness: "Fitness",
   "how-to": "How-To Guide",
   "video-analysis": "Video Analysis",
+  travel: "Travel",
   other: "Saved Item",
 };
 

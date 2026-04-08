@@ -169,6 +169,8 @@ function EmptyState({
           ? "📖"
           : category === "video-analysis"
           ? "🎬"
+          : category === "travel"
+          ? "🧭"
           : "📂"}
       </p>
       <p className="text-sm text-fa-faint">

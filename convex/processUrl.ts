@@ -209,7 +209,7 @@ export function shouldUseVideoAnalysis(
   videoUrl: string | undefined,
 ): boolean {
   return (
-    category === "video-analysis" &&
+    (category === "video-analysis" || category === "travel") &&
     (platform === "tiktok" || platform === "instagram" || platform === "twitter") &&
     !!videoUrl
   );
@@ -244,9 +244,41 @@ Guidelines:
 - Include 3-6 takeaways that are specific and actionable, not generic.
 - Return ONLY valid JSON. No markdown fences, no explanation, no extra fields.`;
 
+const TRAVEL_VIDEO_PROMPT = `You are analyzing a travel video. Watch it carefully and extract EVERY distinct location/place shown or clearly implied.
+
+Return a JSON object with exactly this structure:
+
+{
+  "title": "<short descriptive title for the travel video>",
+  "summary": "<2-3 sentence overview of the route / destination / vibe>",
+  "primary_location": "<city/region/country if inferable, else null>",
+  "itinerary": [
+    {
+      "order": "<1..N in the sequence shown>",
+      "timestamp": "<approximate timestamp e.g. '0:05' — null if unknown>",
+      "name": "<place name (POI, neighborhood, viewpoint, museum, cafe, etc.)>",
+      "type": "<attraction | neighborhood | viewpoint | cafe | restaurant | hotel | beach | hike | market | museum | transit | other>",
+      "location_text": "<city + area, or best available location description>",
+      "what_you_see": "<1 sentence describing what is shown here>",
+      "why_go": "<1 sentence describing why a traveler should go>",
+      "google_maps_query": "<a query string that would find it in Google Maps>",
+      "google_maps_url": "<https://maps.google.com/?q=... built from name + location_text>",
+      "tips": ["<0-5 practical tips: timing, tickets, reservations, costs, crowds, best photo spot, etc.>"]
+    }
+  ],
+  "highlights": ["<3-10 standout moments/places>"],
+  "bullets": ["<5-15 bullet points in chronological order capturing the itinerary and key context>"]
+}
+
+Guidelines:
+- Include 3 to 12 itinerary stops if present. If the video shows more, include them all.
+- Prefer specific proper names from on-screen text/signage. If you cannot identify the exact name, use a descriptive placeholder and make google_maps_query as findable as possible.
+- Return ONLY valid JSON. No markdown fences, no explanation, no extra fields.`;
+
 async function extractWithVideo(
   videoUrl: string,
   itemId: string,
+  prompt: string = VIDEO_ANALYSIS_PROMPT,
 ): Promise<Record<string, unknown> | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
@@ -300,7 +332,7 @@ async function extractWithVideo(
           mimeType: file.mimeType ?? "video/mp4",
         },
       },
-      VIDEO_ANALYSIS_PROMPT,
+      prompt,
     ]);
     console.log(`[gemini/video] Extraction complete in ${Date.now() - t0}ms`);
 
@@ -450,6 +482,7 @@ const BUILT_IN_ACTIONS: Record<string, string> = {
   fitness: "Add to my routine",
   "how-to": "Save as guide",
   "video-analysis": "Save transcript",
+  travel: "Open itinerary in Maps",
   other: "Save for later",
 };
 
@@ -526,6 +559,34 @@ IMPORTANT: List EVERY exercise shown or performed. Do not stop after 2-3. If 6 e
   "topics": ["<topic tag>"]
 }
 Include 3-8 shots and 3-6 takeaways. Infer shots from caption/hashtags if no video available.`,
+  travel: `Extract ALL travel-relevant details from this post/video. You MUST infer locations and places shown from visual cues, on-screen text, captions, hashtags, and creator context.
+
+Return JSON:
+{
+  "title": "<short descriptive title>",
+  "summary": "<2-3 sentence overview of the trip/route>",
+  "primary_location": "<city/region/country if inferable, else null>",
+  "itinerary": [
+    {
+      "order": "<1..N in the sequence shown>",
+      "name": "<place name as shown/mentioned (POI, neighborhood, viewpoint, museum, cafe, etc.)>",
+      "type": "<attraction | neighborhood | viewpoint | cafe | restaurant | hotel | beach | hike | market | museum | transit | other>",
+      "location_text": "<city + area, or best available location description>",
+      "why_go": "<1 sentence: what you do/see here>",
+      "google_maps_query": "<a query string that would find it in Google Maps>",
+      "google_maps_url": "<https://maps.google.com/?q=... built from name + location_text>",
+      "tips": ["<0-5 practical tips: timing, tickets, reservations, costs, crowds, best photo spot, etc.>"]
+    }
+  ],
+  "highlights": ["<3-10 standout moments/places>"],
+  "bullets": ["<5-15 bullet points in chronological order>"]
+}
+
+Rules:
+- Itinerary must include EVERY distinct place shown or clearly implied (don’t stop at 3-4).
+- Always include google_maps_query and google_maps_url for each itinerary stop.
+- If a stop’s exact name is unknown, use a descriptive placeholder (e.g. "Riverside night market") and make the google_maps_query as findable as possible.
+- Return ONLY valid JSON. No markdown fences, no extra fields.`,
   other: `Extract the key details from this saved post. If it appears to describe a video or sequence of events, infer a shot-by-shot breakdown from captions/hashtags. Return JSON:
 {
   "title": "<short descriptive title>",
@@ -555,7 +616,8 @@ async function extractStructuredData(
   // Video analysis path: use Gemini Files API with actual video
   if (shouldUseVideoAnalysis(category, scrape.platform, scrape.videoUrl)) {
     console.log(`[gemini/extract] Using video analysis path — platform: ${scrape.platform}`);
-    const videoData = await extractWithVideo(scrape.videoUrl!, itemId);
+    const prompt = category === "travel" ? TRAVEL_VIDEO_PROMPT : VIDEO_ANALYSIS_PROMPT;
+    const videoData = await extractWithVideo(scrape.videoUrl!, itemId, prompt);
     if (videoData) {
       return {
         category,

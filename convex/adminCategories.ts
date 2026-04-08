@@ -115,9 +115,44 @@ IMPORTANT: List EVERY exercise shown or performed. Do not stop after 2-3. If 6 e
 Include 3-8 shots and 3-6 takeaways. Infer shots from caption/hashtags if no video available.`,
   },
   {
+    slug: "travel",
+    label: "Travel",
+    sortOrder: 5,
+    categorizationHint:
+      "travel destinations, itineraries, sightseeing, city guides, hotels, attractions, neighborhood walks, places to visit",
+    extractionPrompt: `Extract ALL travel-relevant details from this post/video. You MUST infer locations and places shown from visual cues, on-screen text, captions, hashtags, and creator context.
+
+Return JSON:
+{
+  "title": "<short descriptive title>",
+  "summary": "<2-3 sentence overview of the trip/route>",
+  "primary_location": "<city/region/country if inferable, else null>",
+  "itinerary": [
+    {
+      "order": "<1..N in the sequence shown>",
+      "name": "<place name as shown/mentioned (POI, neighborhood, viewpoint, museum, cafe, etc.)>",
+      "type": "<attraction | neighborhood | viewpoint | cafe | restaurant | hotel | beach | hike | market | museum | transit | other>",
+      "location_text": "<city + area, or best available location description>",
+      "why_go": "<1 sentence: what you do/see here>",
+      "google_maps_query": "<a query string that would find it in Google Maps>",
+      "google_maps_url": "<https://maps.google.com/?q=... built from name + location_text>",
+      "tips": ["<0-5 practical tips: timing, tickets, reservations, costs, crowds, best photo spot, etc.>"]
+    }
+  ],
+  "highlights": ["<3-10 standout moments/places>"],
+  "bullets": ["<5-15 bullet points in chronological order>"]
+}
+
+Rules:
+- Itinerary must include EVERY distinct place shown or clearly implied (don’t stop at 3-4).
+- Always include google_maps_query and google_maps_url for each itinerary stop.
+- If a stop’s exact name is unknown, use a descriptive placeholder (e.g. "Riverside night market") and make the google_maps_query as findable as possible.
+- Return ONLY valid JSON. No markdown fences, no extra fields.`,
+  },
+  {
     slug: "other",
     label: "Other",
-    sortOrder: 5,
+    sortOrder: 6,
     categorizationHint: "everything else",
     extractionPrompt: `Extract the key details from this saved post. If it appears to describe a video or sequence of events, infer a shot-by-shot breakdown from captions/hashtags. Return JSON:
 {
@@ -248,7 +283,7 @@ export const seedCategories = mutation({
         inserted++;
       }
     }
-    return { inserted, total: SEED_DATA.length };
+    return { inserted, total: BUILT_IN_SEED_CATEGORIES.length };
   },
 });
 
