@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import type { SavedItemResponse, CategoryType } from "@/lib/api/types";
+import { FoodExtractCard } from "@/components/feed/foodExtract";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -105,41 +106,6 @@ function ThumbnailBanner({
 }
 
 // ─── Category-specific card bodies ───────────────────────────────────────────
-
-function FoodBody({ data }: { data: Record<string, unknown> }) {
-  const name = data.name as string | undefined;
-  const address = data.address as string | undefined;
-  const cuisine = data.cuisine as string | undefined;
-  const whyVisit = data.why_visit as string | undefined;
-  const priceRange = data.price_range as string | undefined;
-
-  return (
-    <div className="space-y-2">
-      {name && <p className="font-semibold text-fa-primary leading-tight">{name}</p>}
-      <div className="flex flex-wrap gap-2">
-        {cuisine && (
-          <span className="text-xs text-fa-dim bg-fa-chip px-2 py-0.5 rounded">{cuisine}</span>
-        )}
-        {priceRange && (
-          <span className="text-xs text-[#f97316] font-mono bg-fa-chip px-2 py-0.5 rounded">
-            {priceRange}
-          </span>
-        )}
-      </div>
-      {address && (
-        <p className="text-xs text-fa-secondary-alt flex items-start gap-1">
-          <span className="mt-0.5">📍</span>
-          <span>{address}</span>
-        </p>
-      )}
-      {whyVisit && (
-        <p className="text-xs text-fa-soft leading-relaxed border-l-2 border-[#f97316]/30 pl-2 italic">
-          {whyVisit}
-        </p>
-      )}
-    </div>
-  );
-}
 
 function RecipeBody({ data }: { data: Record<string, unknown> }) {
   const dishName = data.dish_name as string | undefined;
@@ -866,7 +832,7 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
           {item.status === "failed" && <FailedBody url={item.source_url} onRetry={handleRetry} />}
           {item.status === "done" && item.extracted_data && (
             <>
-              {item.category === "food" ? <FoodBody data={item.extracted_data} />
+              {item.category === "food" ? <FoodExtractCard data={item.extracted_data} />
               : item.category === "recipe" ? <RecipeBody data={item.extracted_data} />
               : item.category === "fitness" ? <FitnessBody data={item.extracted_data} />
               : item.category === "how-to" ? <HowToBody data={item.extracted_data} />

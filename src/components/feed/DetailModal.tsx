@@ -7,47 +7,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { FoodExtractModal } from "@/components/feed/foodExtract";
 
 // ─── Per-category detail renderers ───────────────────────────────────────────
-
-function FoodDetail({ data }: { data: Record<string, unknown> }) {
-  const name = data.name as string | undefined;
-  const address = data.address as string | undefined;
-  const cuisine = data.cuisine as string | undefined;
-  const whyVisit = data.why_visit as string | undefined;
-  const priceRange = data.price_range as string | undefined;
-  const hours = data.hours as string | undefined;
-  const phone = data.phone as string | undefined;
-
-  return (
-    <div className="space-y-3">
-      {name && <p className="font-semibold text-fa-primary text-base leading-tight">{name}</p>}
-      <div className="flex flex-wrap gap-2">
-        {cuisine && <span className="text-xs text-fa-dim bg-fa-chip px-2 py-0.5 rounded">{cuisine}</span>}
-        {priceRange && <span className="text-xs text-[#f97316] font-mono bg-fa-chip px-2 py-0.5 rounded">{priceRange}</span>}
-      </div>
-      {address && (
-        <p className="text-sm text-fa-secondary-alt flex items-start gap-1.5">
-          <span className="mt-0.5 flex-shrink-0">📍</span>
-          <span>{address}</span>
-        </p>
-      )}
-      {whyVisit && (
-        <p className="text-sm text-fa-soft leading-relaxed border-l-2 border-[#f97316]/30 pl-3 italic">{whyVisit}</p>
-      )}
-      {hours && (
-        <p className="text-xs text-fa-dim">
-          <span className="font-medium text-fa-subtle">Hours: </span>{hours}
-        </p>
-      )}
-      {phone && (
-        <p className="text-xs text-fa-dim">
-          <span className="font-medium text-fa-subtle">Phone: </span>{phone}
-        </p>
-      )}
-    </div>
-  );
-}
 
 function RecipeDetail({ data }: { data: Record<string, unknown> }) {
   const dishName = data.dish_name as string | undefined;
@@ -363,7 +325,7 @@ function OtherDetail({ data }: { data: Record<string, unknown> }) {
 function DetailContent({ item }: { item: SavedItemResponse }) {
   const data = item.extracted_data ?? {};
   switch (item.category) {
-    case "food": return <FoodDetail data={data} />;
+    case "food": return <FoodExtractModal data={data} />;
     case "recipe": return <RecipeDetail data={data} />;
     case "fitness": return <FitnessDetail data={data} />;
     case "how-to": return <HowToDetail data={data} />;
