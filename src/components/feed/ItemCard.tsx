@@ -199,24 +199,34 @@ function FitnessBody({ data }: { data: Record<string, unknown> }) {
 function HowToBody({ data }: { data: Record<string, unknown> }) {
   const title = data.title as string | undefined;
   const summary = data.summary as string | undefined;
+  const keyPoints = data.key_points as string[] | undefined;
+  const shots = data.shots as Array<{ description?: string }> | undefined;
   const steps = data.steps as string[] | undefined;
+
+  const previewPoints =
+    keyPoints && keyPoints.length > 0
+      ? keyPoints
+      : shots?.length
+        ? shots.map((s) => s.description).filter((s): s is string => Boolean(s))
+        : steps ?? [];
 
   return (
     <div className="space-y-2">
       {title && <p className="font-semibold text-fa-primary leading-tight">{title}</p>}
-      {summary && <p className="text-xs text-fa-dim leading-relaxed">{summary}</p>}
-      {steps && steps.length > 0 && (
+      {summary && (
+        <p className="text-xs text-fa-soft leading-relaxed line-clamp-3">{summary}</p>
+      )}
+      {previewPoints.length > 0 && (
         <div className="space-y-1">
-          {steps.slice(0, 4).map((step, i) => (
-            <div key={i} className="flex items-start gap-2 text-xs">
-              <span className="text-[10px] text-[#a855f7] font-mono font-bold flex-shrink-0 mt-0.5 w-4">
-                {i + 1}.
-              </span>
-              <span className="text-fa-soft leading-relaxed">{step}</span>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle">Key Points</p>
+          {previewPoints.slice(0, 3).map((pt, i) => (
+            <div key={i} className="flex items-start gap-1.5 text-xs">
+              <span className="text-[#a855f7] flex-shrink-0 mt-0.5">→</span>
+              <span className="text-fa-dim">{pt}</span>
             </div>
           ))}
-          {steps.length > 4 && (
-            <p className="text-[11px] text-fa-subtle pl-6">+{steps.length - 4} more steps</p>
+          {previewPoints.length > 3 && (
+            <p className="text-[11px] text-fa-subtle pl-4">+{previewPoints.length - 3} more</p>
           )}
         </div>
       )}

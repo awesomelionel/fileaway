@@ -11,6 +11,12 @@ import { FoodExtractModal } from "@/components/feed/foodExtract";
 
 // ─── Per-category detail renderers ───────────────────────────────────────────
 
+interface Shot {
+  timestamp: string;
+  description: string;
+  detail: string;
+}
+
 function RecipeDetail({ data }: { data: Record<string, unknown> }) {
   const dishName = data.dish_name as string | undefined;
   const ingredients = data.ingredients as string[] | undefined;
@@ -104,7 +110,64 @@ function FitnessDetail({ data }: { data: Record<string, unknown> }) {
 function HowToDetail({ data }: { data: Record<string, unknown> }) {
   const title = data.title as string | undefined;
   const summary = data.summary as string | undefined;
+  const shots = data.shots as Shot[] | undefined;
+  const takeaways = data.takeaways as string[] | undefined;
+  const keyPoints = data.key_points as string[] | undefined;
   const steps = data.steps as string[] | undefined;
+
+  if (shots && shots.length > 0) {
+    return (
+      <div className="space-y-5">
+        {title && <p className="font-semibold text-fa-primary text-base leading-tight">{title}</p>}
+        {summary && <p className="text-sm text-fa-soft leading-relaxed">{summary}</p>}
+
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle mb-3">Tutorial Beats</p>
+          <div className="space-y-3">
+            {shots.map((shot, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <span className="flex-shrink-0 font-mono text-[10px] text-[#a855f7] bg-[#a855f710] border border-[#a855f730] px-1.5 py-0.5 rounded mt-0.5 whitespace-nowrap">
+                  {shot.timestamp ?? "—"}
+                </span>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium text-fa-primary leading-snug">{shot.description}</p>
+                  <p className="text-xs text-fa-soft leading-relaxed">{shot.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {takeaways && takeaways.length > 0 && (
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle mb-2">Takeaways</p>
+            <ul className="space-y-1.5">
+              {takeaways.map((t, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <span className="text-[#a855f7] flex-shrink-0 mt-0.5">✓</span>
+                  <span className="text-fa-dim leading-relaxed">{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {keyPoints && keyPoints.length > 0 && (
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle mb-2">Key Points</p>
+            <ul className="space-y-1.5">
+              {keyPoints.map((pt, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <span className="text-[#a855f7] flex-shrink-0 mt-0.5">→</span>
+                  <span className="text-fa-dim leading-relaxed">{pt}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -122,14 +185,19 @@ function HowToDetail({ data }: { data: Record<string, unknown> }) {
           ))}
         </div>
       )}
+      {!steps?.length && keyPoints && keyPoints.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle">Key Points</p>
+          {keyPoints.map((pt, i) => (
+            <div key={i} className="flex items-start gap-2 text-sm">
+              <span className="text-[#a855f7] flex-shrink-0 mt-0.5">→</span>
+              <span className="text-fa-dim">{pt}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
-}
-
-interface Shot {
-  timestamp: string;
-  description: string;
-  detail: string;
 }
 
 function VideoAnalysisDetail({ data }: { data: Record<string, unknown> }) {

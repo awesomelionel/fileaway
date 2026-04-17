@@ -435,7 +435,7 @@ interface ExtractionResult {
 export const WRAPPER_INSTRUCTIONS = `You are extracting structured data from a saved social media post. Your job is to be thorough and complete — extract EVERYTHING visible or inferable.
 
 CRITICAL RULES:
-- For ALL array fields (exercises, ingredients, steps, dishes, tools): extract EVERY item shown, mentioned, or clearly implied. Never stop early. Never truncate. If 6 exercises are shown, return all 6. If 10 ingredients are listed, return all 10.
+- For ALL array fields (exercises, ingredients, steps, dishes, tools, shots, takeaways): extract EVERY item shown, mentioned, or clearly implied. Never stop early. Never truncate. If 6 exercises are shown, return all 6. If 10 ingredients are listed, return all 10. If a how-to has 12 distinct beats, return 12 shots.
 - Never return null for a string field if you can make a reasonable inference from hashtags, emojis, author name, platform context, or visual cues.
 - Infer missing numeric values from context (e.g. duration from number of exercises × typical set time).
 - Prefer a specific inferred value over null — e.g. infer cuisine from #italian or #pasta, infer location from @restaurantname or city hashtags.
@@ -466,7 +466,7 @@ function buildExtractionPrompt(
     "",
     "Additional required fields:",
     '- Always include "bullets": an array of 3-15 short bullet points summarizing the key details (chronological if applicable).',
-    '- If category is "video-analysis" or "other", also include "shots": an array of 3-12 scene/moment objects with { timestamp (string|null), description, detail }. If you lack video frames, infer shots from caption/hashtags and on-screen text cues mentioned.',
+    '- If category is "how-to", "video-analysis", or "other", also include "shots": an array of scene/moment objects with { timestamp (string|null), description, detail }. For how-to and video-analysis, use one shot per distinct beat or scene in order; infer from caption/hashtags/on-screen text if you lack video frames.',
     "",
     "Post content:",
     contentBlock,
@@ -531,17 +531,23 @@ IMPORTANT: List EVERY ingredient and EVERY step. Never truncate.`,
   "rest_between_sets": "<rest period if mentioned, else null>"
 }
 IMPORTANT: List EVERY exercise shown or performed. Do not stop after 2-3. If 6 exercises are demonstrated, return all 6.`,
-  "how-to": `Extract ALL details from this how-to or tutorial. Return JSON:
+  "how-to": `Extract ALL details from this how-to or tutorial. Use the same JSON shape and depth as a full video analysis: chronological beats ("shots"), rich summary, actionable takeaways, and memorable key points. Return JSON:
 {
-  "title": "<short descriptive title for what is being taught>",
-  "summary": "<one sentence describing the end result or skill gained>",
-  "steps": ["<every step in order — be specific and actionable, list ALL steps>"],
-  "tools_needed": ["<every tool, material, or app required>"],
-  "bullets": ["<3-10 short key details as bullet points: gotchas, key measurements, safety notes, etc.>"],
-  "difficulty": "<easy | medium | hard>",
-  "time_required": "<estimated total time as a string, e.g. '30 minutes'>",
-  "tips": ["<any pro tips, warnings, or shortcuts mentioned>"]
-}`,
+  "title": "<short descriptive title>",
+  "summary": "<2-3 sentence summary of the full tutorial: what you will achieve, who it suits, and how the sequence flows>",
+  "shots": [
+    {
+      "timestamp": "<approximate timestamp e.g. '0:05' — infer sequence if unknown>",
+      "description": "<one-line label for this beat (prep, technique, troubleshooting, wrap-up, etc.)>",
+      "detail": "<1-2 sentences: the specific action, tools/materials/settings involved, and why this beat matters>"
+    }
+  ],
+  "bullets": ["<5-15 short bullet points in chronological order: measurements, materials, app settings, safety, order of operations — be exhaustive>"],
+  "takeaways": ["<specific actionable items the viewer can do after following this>"],
+  "key_points": ["<insights, pro tips, warnings, shortcuts, difficulty or time estimates, common mistakes — one string each>"],
+  "topics": ["<topic tags>"]
+}
+Include one shot per distinct instructional beat in order — list ALL beats (never truncate; if twelve steps are implied, return twelve shots). Include at least 3 shots and 3 takeaways when the content supports it; add more whenever the tutorial has more beats or outcomes. Put tools/materials/app names inside shot detail and key_points as appropriate. Infer shots from caption/hashtags/on-screen text if no video is available.`,
   "video-analysis": `Extract ALL details from this video. Return JSON:
 {
   "title": "<short descriptive title>",

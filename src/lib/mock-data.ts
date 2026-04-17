@@ -183,19 +183,23 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     extracted_data: {
       title: "Set Up a Home Server with Proxmox",
       summary:
-        "Complete guide to turning an old PC into a virtualization server running Proxmox VE with VMs for Plex, Pi-hole, and Nextcloud.",
-      steps: [
-        "Download Proxmox VE ISO and flash to USB drive",
-        "Boot from USB, install to SSD (separate from VMs)",
-        "Configure static IP in /etc/network/interfaces",
-        "Create ZFS pool across HDDs for VM storage",
-        "Set up VM template from Ubuntu Server 22.04",
-        "Deploy Plex VM: 4 cores, 8GB RAM, GPU passthrough",
-        "Deploy Pi-hole VM: 1 core, 512MB RAM, set as DNS",
-        "Deploy Nextcloud VM: 2 cores, 4GB RAM, mount ZFS share",
-        "Configure Nginx reverse proxy with SSL (Cloudflare tunnel)",
-        "Set up automated Proxmox Backup Server snapshots",
+        "Turn an old PC into a Proxmox VE host and run Plex, Pi-hole, and Nextcloud as VMs. Walks from bare metal through storage, templates, per-service sizing, reverse proxy TLS, and backups so the lab stays maintainable.",
+      shots: [
+        { timestamp: "0:00", description: "Install media", detail: "Download the Proxmox VE ISO and flash it to a USB installer; boot the target machine and install Proxmox to a dedicated SSD, keeping VM disks on separate storage later." },
+        { timestamp: "0:45", description: "Networking baseline", detail: "Assign a static LAN IP in /etc/network/interfaces so services and DNS entries stay stable when the hypervisor reboots." },
+        { timestamp: "2:10", description: "ZFS pool for VMs", detail: "Create a ZFS pool across HDDs for bulk VM images and datasets; this isolates VM I/O from the Proxmox OS disk." },
       ],
+      takeaways: [
+        "Keep the hypervisor OS on its own SSD and bulk VM storage on ZFS HDDs.",
+        "Size Plex with GPU passthrough only after IOMMU groups are verified in the BIOS.",
+        "Front everything with Nginx + Cloudflare tunnel instead of opening home ports.",
+      ],
+      key_points: [
+        "Pi-hole VM should be lightweight (1 vCPU / 512MB) but set as upstream DNS for the LAN.",
+        "Automate snapshots to Proxmox Backup Server before major upgrades.",
+        "Use an Ubuntu Server template to spin consistent app VMs faster.",
+      ],
+      topics: ["homelab", "Proxmox", "self-hosting", "Linux"],
     },
     action_taken: "Save as guide",
     user_correction: null,
@@ -213,16 +217,23 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     extracted_data: {
       title: "DIY Sourdough Starter from Scratch",
       summary:
-        "7-day process to cultivate a wild yeast starter using only flour and water. Ready to bake by day 7.",
-      steps: [
-        "Day 1: Mix 50g whole wheat flour + 50g warm water in jar",
-        "Day 2: Discard half, feed 50g flour + 50g water",
-        "Day 3–4: Repeat discards, bubbles should appear",
-        "Day 5: Switch to 1:5:5 ratio (starter:flour:water)",
-        "Day 6: Starter should double in 4–6 hours after feeding",
-        "Day 7: Float test — drop teaspoon in water, if it floats it's ready",
-        "Maintain weekly: feed 1:5:5, store in fridge if baking <weekly",
+        "A week-long rhythm of mix, discard, and feed builds a stable wild yeast culture from flour and water alone. Emphasis on ratios, rise times, and a simple float test before you commit flour to a loaf.",
+      shots: [
+        { timestamp: "Day 1", description: "Initial mix", detail: "Combine 50g whole wheat flour and 50g warm water in a clean jar; whole wheat jump-starts wild yeast colonization." },
+        { timestamp: "Day 2", description: "First discard + feed", detail: "Remove half the mass, then feed 50g flour and 50g water to refresh sugars without drowning the culture." },
+        { timestamp: "Day 5–7", description: "1:5:5 feed + float test", detail: "Tighten to a 1:5:5 starter:flour:water ratio; by day 7 the starter should double in 4–6 hours and pass the float test when ready to bake." },
       ],
+      takeaways: [
+        "Use a kitchen scale — volume feeds are inconsistent for starters.",
+        "Expect acidity early; patience through days 3–4 is normal.",
+        "Refrigerate and feed 1:5:5 weekly if you bake less than once a week.",
+      ],
+      key_points: [
+        "Bubbles by day 3–4 mean fermentation is waking up; keep discarding.",
+        "The float test confirms enough CO₂ capture for dough leavening.",
+        "Room-temperature doubling window tells you when the starter is peak.",
+      ],
+      topics: ["baking", "sourdough", "fermentation"],
     },
     action_taken: "Save as guide",
     user_correction: null,

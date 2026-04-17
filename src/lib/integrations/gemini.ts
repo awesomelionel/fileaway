@@ -136,11 +136,12 @@ function buildExtractionPrompt(scrape: ScrapeResult, category: CategoryType): st
 }`,
     "how-to": `Return JSON:
 {
-  "topic": "<what this guide is about>",
-  "steps": ["<step 1>", "<step 2>"],
-  "tools_needed": ["<tool or material>"],
-  "difficulty": "<easy | medium | hard | null>",
-  "time_required": "<estimated time or null>"
+  "title": "<short descriptive title>",
+  "summary": "<2-3 sentence summary of the tutorial>",
+  "shots": [{"timestamp": "<string or null>", "description": "<beat label>", "detail": "<what to do and why>"}],
+  "takeaways": ["<actionable item>"],
+  "key_points": ["<tip, warning, or insight>"],
+  "topics": ["<topic tag>"]
 }`,
     "video-analysis": `Return JSON:
 {
