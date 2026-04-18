@@ -44,6 +44,30 @@ interface ScrapeResult {
   metadata: Record<string, unknown>;
 }
 
+export interface ApifyTweet {
+  id?: string;
+  text?: string;
+  author?: {
+    name?: string;
+    userName?: string;
+    profilePicture?: string;
+  };
+  likeCount?: number;
+  retweetCount?: number;
+  replyCount?: number;
+  viewCount?: number;
+  bookmarkCount?: number;
+  media?: Array<{
+    type?: string;
+    url?: string;
+    thumbnailUrl?: string;
+  }>;
+  hashtags?: string[];
+  createdAt?: string;
+  twitterUrl?: string;
+  conversationId?: string;
+}
+
 // ─── Platform detection ────────────────────────────────────────────────────────
 
 function detectPlatform(url: string): PlatformType {
@@ -60,6 +84,8 @@ const ACTOR_TIKTOK =
   process.env.APIFY_ACTOR_TIKTOK ?? "clockworks/tiktok-video-scraper";
 const ACTOR_INSTAGRAM =
   process.env.APIFY_ACTOR_INSTAGRAM ?? "apify/instagram-scraper";
+const ACTOR_TWITTER =
+  process.env.APIFY_ACTOR_TWITTER ?? "apidojo/twitter-scraper-lite";
 
 function getApifyClient(): ApifyClient {
   const token = process.env.APIFY_API_TOKEN;
@@ -178,6 +204,40 @@ async function scrapeInstagram(url: string): Promise<ScrapeResult> {
     viewCount: (item.videoViewCount as number | undefined) ?? undefined,
     hashtags: ((item.hashtags as string[] | undefined) ?? []),
     metadata: item,
+  };
+}
+
+export function mapApifyTweetToScrapeResult(
+  item: ApifyTweet,
+  originalUrl: string,
+): ScrapeResult {
+  const tweetText = (item.text ?? "").trim();
+  const hashtags = (item.hashtags ?? []).map((h) => h.replace(/^#/, ""));
+
+  const firstMedia = (item.media ?? [])[0];
+  const thumbnailUrl =
+    firstMedia?.thumbnailUrl ??
+    (firstMedia?.type === "photo" ? firstMedia.url : undefined);
+
+  return {
+    platform: "twitter",
+    title: tweetText || undefined,
+    description: tweetText || undefined,
+    thumbnailUrl,
+    authorName: item.author?.name,
+    authorHandle: item.author?.userName,
+    likeCount: item.likeCount,
+    viewCount: item.viewCount,
+    hashtags: hashtags.length ? hashtags : undefined,
+    metadata: {
+      url: originalUrl,
+      twitterId: item.id,
+      retweetCount: item.retweetCount,
+      replyCount: item.replyCount,
+      bookmarkCount: item.bookmarkCount,
+      createdAt: item.createdAt,
+      apifyTweet: item,
+    },
   };
 }
 
