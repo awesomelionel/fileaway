@@ -1,11 +1,12 @@
 import { Suspense } from "react";
 import { preloadQuery } from "convex/nextjs";
 import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import { isAuthenticatedNextjs } from "@convex-dev/auth/nextjs/server";
 import { api } from "../../convex/_generated/api";
 import { FeedApp } from "@/components/feed/FeedApp";
 import { FeedSkeleton } from "@/components/feed/FeedSkeleton";
+import { LandingPage } from "@/components/LandingPage";
 
-/** Preloads Convex data inside Suspense so the shell can stream before queries finish (better FCP/TTFB). */
 async function FeedWithPreload() {
   const token = await convexAuthNextjsToken();
   const [preloadedItems, preloadedCategories] = await Promise.all([
@@ -18,7 +19,13 @@ async function FeedWithPreload() {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const authenticated = await isAuthenticatedNextjs();
+
+  if (!authenticated) {
+    return <LandingPage />;
+  }
+
   return (
     <Suspense fallback={<FeedSkeleton />}>
       <FeedWithPreload />
