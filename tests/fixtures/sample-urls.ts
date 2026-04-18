@@ -143,3 +143,63 @@ export const SAMPLE_EXTRACTION_RESULTS = {
     confidence: 0.88,
   },
 };
+
+import type { ApifyTweet } from "../../convex/processUrl";
+
+export const SAMPLE_APIFY_TWEETS: Record<string, ApifyTweet> = {
+  textOnly: {
+    id: "1001",
+    text: "Just shipped a new feature for Ethereum devs 🚀 #ethereum #dev",
+    author: { name: "Leopard Racer", userName: "leopardracer" },
+    likeCount: 100,
+    retweetCount: 20,
+    replyCount: 5,
+    viewCount: 1000,
+    hashtags: ["ethereum", "dev"],
+    createdAt: "2024-01-01T10:00:00.000Z",
+    twitterUrl: "https://x.com/leopardracer/status/1001",
+  },
+  withPhoto: {
+    id: "1002",
+    text: "Amazing view from the summit 🏔️",
+    author: { name: "Hiker Jane", userName: "hikerjane" },
+    likeCount: 500,
+    viewCount: 8000,
+    media: [
+      { type: "photo", url: "https://pbs.twimg.com/media/photo123.jpg" },
+    ],
+    hashtags: [],
+    createdAt: "2024-02-15T08:30:00.000Z",
+    twitterUrl: "https://x.com/hikerjane/status/1002",
+  },
+  withVideo: {
+    id: "1003",
+    text: "Watch this incredible trick 🎯",
+    author: { name: "Trick Master", userName: "trickmaster" },
+    likeCount: 2000,
+    viewCount: 50000,
+    media: [
+      {
+        type: "video",
+        url: "https://video.twimg.com/ext_tw_video/1003.mp4",
+        thumbnailUrl: "https://pbs.twimg.com/ext_tw_video_thumb/1003/pu/img/thumb.jpg",
+      },
+    ],
+    hashtags: [],
+    createdAt: "2024-03-10T15:00:00.000Z",
+    twitterUrl: "https://x.com/trickmaster/status/1003",
+  },
+  emptyText: {
+    id: "1004",
+    text: "",
+    author: { name: "Silent Bob", userName: "silentbob" },
+    twitterUrl: "https://x.com/silentbob/status/1004",
+  },
+  hashtagsWithHash: {
+    id: "1005",
+    text: "Tweet with prefixed hashtags",
+    author: { name: "Tagger", userName: "tagger" },
+    hashtags: ["#web3", "#zkp", "noprefix"],
+    twitterUrl: "https://x.com/tagger/status/1005",
+  },
+};
