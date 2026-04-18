@@ -241,6 +241,37 @@ export function mapApifyTweetToScrapeResult(
   };
 }
 
+async function scrapeTwitter(url: string): Promise<ScrapeResult> {
+  const client = getApifyClient();
+  console.log(`[processUrl/twitter] Fetching tweet — url: ${url}`);
+
+  const run = await client.actor(ACTOR_TWITTER).call({
+    includeSearchTerms: false,
+    maxItems: 1,
+    sort: "Latest",
+    startUrls: [url],
+  });
+  const { items } = await client
+    .dataset(run.defaultDatasetId)
+    .listItems({ limit: 1 });
+
+  if (!items.length) {
+    console.warn(`[processUrl/twitter] No items returned for URL: ${url}`);
+    return {
+      platform: "twitter",
+      metadata: { url, empty: true },
+    };
+  }
+
+  const item = items[0] as unknown as ApifyTweet;
+  const result = mapApifyTweetToScrapeResult(item, url);
+  console.log(
+    `[processUrl/twitter] Done — author: @${result.authorHandle ?? "unknown"}, ` +
+    `text: ${(item.text ?? "").length} chars, hasMedia: ${!!(item.media?.length)}`,
+  );
+  return result;
+}
+
 async function scrapeUrl(
   url: string,
   platform: PlatformType,
@@ -250,6 +281,8 @@ async function scrapeUrl(
       return scrapeTikTok(url);
     case "instagram":
       return scrapeInstagram(url);
+    case "twitter":
+      return scrapeTwitter(url);
     default:
       return {
         platform,
