@@ -75,6 +75,7 @@ Required in `.env.local`:
 CONVEX_DEPLOYMENT=dev:your-project-name
 NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
 APIFY_API_TOKEN=...
+APIFY_ACTOR_TWITTER=apidojo/twitter-scraper-lite   # optional, this is the default
 GEMINI_API_KEY=...
 ```
 
