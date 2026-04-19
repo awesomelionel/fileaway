@@ -275,7 +275,7 @@ async function scrapeTwitter(url: string): Promise<ScrapeResult> {
   });
 
   const response = await fetch(
-    `https://api.twitter.com/2/tweets/${tweetId}?${params}`,
+    `https://api.x.com/2/tweets/${tweetId}?${params}`,
     { headers: { Authorization: `Bearer ${bearerToken}` } },
   );
 
