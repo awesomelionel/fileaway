@@ -1,11 +1,26 @@
-import { mapApifyTweetToScrapeResult } from "../../convex/processUrl";
-import { SAMPLE_APIFY_TWEETS } from "../fixtures/sample-urls";
+import { mapXApiTweetToScrapeResult, extractTweetId } from "../../convex/processUrl";
+import { SAMPLE_X_API_TWEETS } from "../fixtures/sample-urls";
 
-describe("mapApifyTweetToScrapeResult", () => {
+describe("extractTweetId", () => {
+  it("extracts ID from x.com URL", () => {
+    expect(extractTweetId("https://x.com/user/status/1234567890")).toBe("1234567890");
+  });
+
+  it("extracts ID from twitter.com URL", () => {
+    expect(extractTweetId("https://twitter.com/user/status/9876543210")).toBe("9876543210");
+  });
+
+  it("returns null for non-tweet URL", () => {
+    expect(extractTweetId("https://x.com/user")).toBeNull();
+    expect(extractTweetId("https://example.com")).toBeNull();
+  });
+});
+
+describe("mapXApiTweetToScrapeResult", () => {
   describe("text mapping", () => {
     it("maps tweet text to title and description", () => {
-      const result = mapApifyTweetToScrapeResult(
-        SAMPLE_APIFY_TWEETS.textOnly,
+      const result = mapXApiTweetToScrapeResult(
+        SAMPLE_X_API_TWEETS.textOnly,
         "https://x.com/leopardracer/status/1001",
       );
       expect(result.platform).toBe("twitter");
@@ -16,8 +31,8 @@ describe("mapApifyTweetToScrapeResult", () => {
     });
 
     it("returns undefined title and description for empty tweet text", () => {
-      const result = mapApifyTweetToScrapeResult(
-        SAMPLE_APIFY_TWEETS.emptyText,
+      const result = mapXApiTweetToScrapeResult(
+        SAMPLE_X_API_TWEETS.emptyText,
         "https://x.com/silentbob/status/1004",
       );
       expect(result.title).toBeUndefined();
@@ -26,9 +41,9 @@ describe("mapApifyTweetToScrapeResult", () => {
   });
 
   describe("author mapping", () => {
-    it("maps author name and handle", () => {
-      const result = mapApifyTweetToScrapeResult(
-        SAMPLE_APIFY_TWEETS.textOnly,
+    it("maps author name and handle from includes.users", () => {
+      const result = mapXApiTweetToScrapeResult(
+        SAMPLE_X_API_TWEETS.textOnly,
         "https://x.com/leopardracer/status/1001",
       );
       expect(result.authorName).toBe("Leopard Racer");
@@ -37,17 +52,17 @@ describe("mapApifyTweetToScrapeResult", () => {
   });
 
   describe("hashtag mapping", () => {
-    it("strips leading # from hashtags", () => {
-      const result = mapApifyTweetToScrapeResult(
-        SAMPLE_APIFY_TWEETS.hashtagsWithHash,
+    it("maps hashtags from entities.hashtags", () => {
+      const result = mapXApiTweetToScrapeResult(
+        SAMPLE_X_API_TWEETS.withHashtags,
         "https://x.com/tagger/status/1005",
       );
-      expect(result.hashtags).toEqual(["web3", "zkp", "noprefix"]);
+      expect(result.hashtags).toEqual(["web3", "zkp"]);
     });
 
-    it("returns undefined hashtags when array is empty", () => {
-      const result = mapApifyTweetToScrapeResult(
-        SAMPLE_APIFY_TWEETS.withPhoto,
+    it("returns undefined hashtags when no entities", () => {
+      const result = mapXApiTweetToScrapeResult(
+        SAMPLE_X_API_TWEETS.withPhoto,
         "https://x.com/hikerjane/status/1002",
       );
       expect(result.hashtags).toBeUndefined();
@@ -56,8 +71,8 @@ describe("mapApifyTweetToScrapeResult", () => {
 
   describe("thumbnail mapping", () => {
     it("uses photo url as thumbnailUrl for photo tweets", () => {
-      const result = mapApifyTweetToScrapeResult(
-        SAMPLE_APIFY_TWEETS.withPhoto,
+      const result = mapXApiTweetToScrapeResult(
+        SAMPLE_X_API_TWEETS.withPhoto,
         "https://x.com/hikerjane/status/1002",
       );
       expect(result.thumbnailUrl).toBe(
@@ -65,9 +80,9 @@ describe("mapApifyTweetToScrapeResult", () => {
       );
     });
 
-    it("uses video thumbnailUrl (poster frame) for video tweets", () => {
-      const result = mapApifyTweetToScrapeResult(
-        SAMPLE_APIFY_TWEETS.withVideo,
+    it("uses preview_image_url (poster frame) for video tweets", () => {
+      const result = mapXApiTweetToScrapeResult(
+        SAMPLE_X_API_TWEETS.withVideo,
         "https://x.com/trickmaster/status/1003",
       );
       expect(result.thumbnailUrl).toBe(
@@ -76,8 +91,8 @@ describe("mapApifyTweetToScrapeResult", () => {
     });
 
     it("returns undefined thumbnailUrl when no media", () => {
-      const result = mapApifyTweetToScrapeResult(
-        SAMPLE_APIFY_TWEETS.textOnly,
+      const result = mapXApiTweetToScrapeResult(
+        SAMPLE_X_API_TWEETS.textOnly,
         "https://x.com/leopardracer/status/1001",
       );
       expect(result.thumbnailUrl).toBeUndefined();
@@ -85,9 +100,9 @@ describe("mapApifyTweetToScrapeResult", () => {
   });
 
   describe("engagement stats", () => {
-    it("maps likeCount and viewCount", () => {
-      const result = mapApifyTweetToScrapeResult(
-        SAMPLE_APIFY_TWEETS.textOnly,
+    it("maps like_count to likeCount and impression_count to viewCount", () => {
+      const result = mapXApiTweetToScrapeResult(
+        SAMPLE_X_API_TWEETS.textOnly,
         "https://x.com/leopardracer/status/1001",
       );
       expect(result.likeCount).toBe(100);
@@ -95,8 +110,8 @@ describe("mapApifyTweetToScrapeResult", () => {
     });
 
     it("stores retweetCount and replyCount in metadata", () => {
-      const result = mapApifyTweetToScrapeResult(
-        SAMPLE_APIFY_TWEETS.textOnly,
+      const result = mapXApiTweetToScrapeResult(
+        SAMPLE_X_API_TWEETS.textOnly,
         "https://x.com/leopardracer/status/1001",
       );
       expect((result.metadata as Record<string, unknown>).retweetCount).toBe(20);
