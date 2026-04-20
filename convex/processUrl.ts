@@ -44,6 +44,37 @@ interface ScrapeResult {
   metadata: Record<string, unknown>;
 }
 
+export interface XApiTweet {
+  data: {
+    id: string;
+    text: string;
+    author_id: string;
+    created_at?: string;
+    public_metrics?: {
+      like_count: number;
+      retweet_count: number;
+      reply_count: number;
+      impression_count: number;
+      bookmark_count?: number;
+    };
+    entities?: {
+      hashtags?: Array<{ tag: string }>;
+    };
+    attachments?: {
+      media_keys?: string[];
+    };
+  };
+  includes?: {
+    users?: Array<{ id: string; name: string; username: string }>;
+    media?: Array<{
+      media_key: string;
+      type: string;
+      url?: string;
+      preview_image_url?: string;
+    }>;
+  };
+}
+
 // ─── Platform detection ────────────────────────────────────────────────────────
 
 function detectPlatform(url: string): PlatformType {
@@ -181,6 +212,93 @@ async function scrapeInstagram(url: string): Promise<ScrapeResult> {
   };
 }
 
+export function extractTweetId(url: string): string | null {
+  const match = url.match(/(?:twitter\.com|x\.com)\/[^/]+\/status\/(\d+)/);
+  return match ? match[1] : null;
+}
+
+export function mapXApiTweetToScrapeResult(
+  response: XApiTweet,
+  originalUrl: string,
+): ScrapeResult {
+  const tweet = response.data;
+  const author = response.includes?.users?.find((u) => u.id === tweet.author_id);
+  const tweetText = (tweet.text ?? "").trim();
+  const hashtags = (tweet.entities?.hashtags ?? []).map((h) => h.tag);
+
+  const mediaKeys = tweet.attachments?.media_keys ?? [];
+  const allMedia = response.includes?.media ?? [];
+  const firstMedia = allMedia.find((m) => mediaKeys.includes(m.media_key));
+  const thumbnailUrl =
+    firstMedia?.preview_image_url ??
+    (firstMedia?.type === "photo" ? firstMedia.url : undefined);
+
+  return {
+    platform: "twitter",
+    title: tweetText || undefined,
+    description: tweetText || undefined,
+    thumbnailUrl,
+    authorName: author?.name,
+    authorHandle: author?.username,
+    likeCount: tweet.public_metrics?.like_count,
+    viewCount: tweet.public_metrics?.impression_count,
+    hashtags: hashtags.length ? hashtags : undefined,
+    metadata: {
+      url: originalUrl,
+      twitterId: tweet.id,
+      retweetCount: tweet.public_metrics?.retweet_count,
+      replyCount: tweet.public_metrics?.reply_count,
+      bookmarkCount: tweet.public_metrics?.bookmark_count,
+      createdAt: tweet.created_at,
+      xApiResponse: response,
+    },
+  };
+}
+
+async function scrapeTwitter(url: string): Promise<ScrapeResult> {
+  const bearerToken = process.env.X_BEARER_TOKEN;
+  if (!bearerToken) throw new Error("X_BEARER_TOKEN is not configured");
+
+  const tweetId = extractTweetId(url);
+  if (!tweetId) {
+    console.warn(`[processUrl/twitter] Could not extract tweet ID from URL: ${url}`);
+    return { platform: "twitter", metadata: { url, error: "invalid_url" } };
+  }
+
+  console.log(`[processUrl/twitter] Fetching tweet ${tweetId} via X API`);
+
+  const params = new URLSearchParams({
+    "tweet.fields": "text,author_id,created_at,public_metrics,entities,attachments",
+    "expansions": "author_id,attachments.media_keys",
+    "user.fields": "name,username",
+    "media.fields": "url,preview_image_url,type",
+  });
+
+  const response = await fetch(
+    `https://api.x.com/2/tweets/${tweetId}?${params}`,
+    { headers: { Authorization: `Bearer ${bearerToken}` } },
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    console.warn(`[processUrl/twitter] X API error — HTTP ${response.status}: ${body}`);
+    return { platform: "twitter", metadata: { url, error: `http_${response.status}` } };
+  }
+
+  const xResponse = await response.json() as XApiTweet;
+  if (!xResponse.data?.text) {
+    console.warn(`[processUrl/twitter] X API returned empty tweet data for: ${url}`);
+    return { platform: "twitter", metadata: { url, empty: true } };
+  }
+
+  const result = mapXApiTweetToScrapeResult(xResponse, url);
+  console.log(
+    `[processUrl/twitter] Done — author: @${result.authorHandle ?? "unknown"}, ` +
+    `text: ${xResponse.data.text.length} chars, hasMedia: ${!!(xResponse.includes?.media?.length)}`,
+  );
+  return result;
+}
+
 async function scrapeUrl(
   url: string,
   platform: PlatformType,
@@ -190,6 +308,8 @@ async function scrapeUrl(
       return scrapeTikTok(url);
     case "instagram":
       return scrapeInstagram(url);
+    case "twitter":
+      return scrapeTwitter(url);
     default:
       return {
         platform,

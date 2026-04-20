@@ -143,3 +143,71 @@ export const SAMPLE_EXTRACTION_RESULTS = {
     confidence: 0.88,
   },
 };
+
+import type { XApiTweet } from "../../convex/processUrl";
+
+export const SAMPLE_X_API_TWEETS: Record<string, XApiTweet> = {
+  textOnly: {
+    data: {
+      id: "1001",
+      text: "Just shipped a new feature for Ethereum devs 🚀 #ethereum #dev",
+      author_id: "u001",
+      created_at: "2024-01-01T10:00:00.000Z",
+      public_metrics: { like_count: 100, retweet_count: 20, reply_count: 5, impression_count: 1000 },
+      entities: { hashtags: [{ tag: "ethereum" }, { tag: "dev" }] },
+    },
+    includes: {
+      users: [{ id: "u001", name: "Leopard Racer", username: "leopardracer" }],
+    },
+  },
+  withPhoto: {
+    data: {
+      id: "1002",
+      text: "Amazing view from the summit 🏔️",
+      author_id: "u002",
+      created_at: "2024-02-15T08:30:00.000Z",
+      public_metrics: { like_count: 500, retweet_count: 10, reply_count: 3, impression_count: 8000 },
+      attachments: { media_keys: ["mk_photo"] },
+    },
+    includes: {
+      users: [{ id: "u002", name: "Hiker Jane", username: "hikerjane" }],
+      media: [{ media_key: "mk_photo", type: "photo", url: "https://pbs.twimg.com/media/photo123.jpg" }],
+    },
+  },
+  withVideo: {
+    data: {
+      id: "1003",
+      text: "Watch this incredible trick 🎯",
+      author_id: "u003",
+      created_at: "2024-03-10T15:00:00.000Z",
+      public_metrics: { like_count: 2000, retweet_count: 500, reply_count: 80, impression_count: 50000 },
+      attachments: { media_keys: ["mk_video"] },
+    },
+    includes: {
+      users: [{ id: "u003", name: "Trick Master", username: "trickmaster" }],
+      media: [{ media_key: "mk_video", type: "video", preview_image_url: "https://pbs.twimg.com/ext_tw_video_thumb/1003/pu/img/thumb.jpg" }],
+    },
+  },
+  emptyText: {
+    data: {
+      id: "1004",
+      text: "",
+      author_id: "u004",
+    },
+    includes: {
+      users: [{ id: "u004", name: "Silent Bob", username: "silentbob" }],
+    },
+  },
+  withHashtags: {
+    data: {
+      id: "1005",
+      text: "Tweet with hashtags",
+      author_id: "u005",
+      public_metrics: { like_count: 0, retweet_count: 0, reply_count: 0, impression_count: 0 },
+      entities: { hashtags: [{ tag: "web3" }, { tag: "zkp" }] },
+    },
+    includes: {
+      users: [{ id: "u005", name: "Tagger", username: "tagger" }],
+    },
+  },
+};
