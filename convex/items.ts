@@ -122,25 +122,36 @@ export const list = query({
     );
     const items = matched.slice(0, LIST_LIMIT);
 
-    const r2PublicUrl = process.env.R2_PUBLIC_URL;
     return Promise.all(
       items.map(async (item) => {
-        let thumbnailUrl: string | null = null;
-        if (item.thumbnailR2Key && r2PublicUrl) {
-          thumbnailUrl = `${r2PublicUrl}/${item.thumbnailR2Key}`;
-        } else if (item.thumbnailStorageId) {
-          thumbnailUrl = await ctx.storage.getUrl(item.thumbnailStorageId);
-        }
-        if (!thumbnailUrl) {
-          const extracted = (item.extractedData as Record<string, unknown> | null) ?? null;
-          const raw = (item.rawContent as Record<string, unknown> | null) ?? null;
-          thumbnailUrl = extractThumbnailUrl(extracted, raw);
-        }
+        const thumbnailUrl = await resolveThumbnailUrl(ctx, item);
         return toResponse(item, thumbnailUrl);
       }),
     );
   },
 });
+
+export async function resolveThumbnailUrl(
+  ctx: { storage: { getUrl: (id: Id<"_storage">) => Promise<string | null> } },
+  item: {
+    thumbnailStorageId?: Id<"_storage">;
+    thumbnailR2Key?: string;
+    extractedData?: unknown;
+    rawContent?: unknown;
+  },
+): Promise<string | null> {
+  const r2PublicUrl = process.env.R2_PUBLIC_URL;
+  if (item.thumbnailR2Key && r2PublicUrl) {
+    return `${r2PublicUrl}/${item.thumbnailR2Key}`;
+  }
+  if (item.thumbnailStorageId) {
+    const url = await ctx.storage.getUrl(item.thumbnailStorageId);
+    if (url) return url;
+  }
+  const extracted = (item.extractedData as Record<string, unknown> | null) ?? null;
+  const raw = (item.rawContent as Record<string, unknown> | null) ?? null;
+  return extractThumbnailUrl(extracted, raw);
+}
 
 /** Returns aggregate stats for the authenticated user's saved items. */
 export const stats = query({

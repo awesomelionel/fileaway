@@ -2,6 +2,7 @@ import { query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id } from "./_generated/dataModel";
+import { resolveThumbnailUrl } from "./items";
 
 export type MapPoint = {
   point_id: string;
@@ -98,18 +99,19 @@ export const mapPoints = query({
       .order("desc")
       .take(250);
 
-    return flattenToPoints(
-      rows
-        .filter((r) => r.category === args.category)
-        .map((r) => ({
-          _id: r._id,
-          sourceUrl: r.sourceUrl,
-          category: r.category,
-          status: r.status,
-          archived: r.archived === true,
-          extractedData: r.extractedData ?? null,
-          thumbnailUrl: null,
-        })),
+    const filtered = rows.filter((r) => r.category === args.category);
+    const enriched = await Promise.all(
+      filtered.map(async (r) => ({
+        _id: r._id,
+        sourceUrl: r.sourceUrl,
+        category: r.category,
+        status: r.status,
+        archived: r.archived === true,
+        extractedData: r.extractedData ?? null,
+        thumbnailUrl: await resolveThumbnailUrl(ctx, r),
+      })),
     );
+
+    return flattenToPoints(enriched);
   },
 });
