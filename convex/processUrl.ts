@@ -12,6 +12,39 @@ import * as path from "path";
 import type { Id } from "./_generated/dataModel";
 import { captureServer, SERVER_EVENTS } from "./analytics";
 
+async function emitAiGeneration(
+  distinctId: string,
+  props: {
+    item_id: string;
+    category: string | null;
+    model: string;
+    span: "categorize" | "extract" | "extract_video";
+    latency_ms: number;
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+    error?: string;
+  },
+) {
+  await captureServer({
+    distinctId,
+    event: SERVER_EVENTS.LLM_GENERATION,
+    properties: {
+      $ai_provider: "google",
+      $ai_model: props.model,
+      $ai_latency: props.latency_ms / 1000,
+      $ai_input_tokens: props.input_tokens ?? null,
+      $ai_output_tokens: props.output_tokens ?? null,
+      $ai_total_tokens: props.total_tokens ?? null,
+      $ai_is_error: !!props.error,
+      $ai_error: props.error ?? null,
+      item_id: props.item_id,
+      category: props.category,
+      span: props.span,
+    },
+  });
+}
+
 function getR2Client(): S3Client {
   const raw = process.env.R2_ENDPOINT_URL ?? "";
   const endpoint = raw.startsWith("https://") ? raw : `https://${raw}`;
@@ -399,12 +432,15 @@ Guidelines:
 async function extractWithVideo(
   videoUrl: string,
   itemId: string,
+  distinctId: string,
+  category: string,
   prompt: string = VIDEO_ANALYSIS_PROMPT,
 ): Promise<Record<string, unknown> | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
 
   const tmpPath = path.join("/tmp", `fileaway-video-${itemId}.mp4`);
+  const t0 = Date.now();
 
   try {
     console.log(`[gemini/video] Downloading video for item ${itemId}...`);
@@ -445,7 +481,6 @@ async function extractWithVideo(
       generationConfig: { temperature: 0 },
     });
 
-    const t0 = Date.now();
     const result = await model.generateContent([
       {
         fileData: {
@@ -455,6 +490,17 @@ async function extractWithVideo(
       },
       prompt,
     ]);
+    const videoUsage = (result.response as unknown as { usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } }).usageMetadata;
+    await emitAiGeneration(distinctId, {
+      item_id: itemId,
+      category,
+      model: PRO_MODEL,
+      span: "extract_video",
+      latency_ms: Date.now() - t0,
+      input_tokens: videoUsage?.promptTokenCount,
+      output_tokens: videoUsage?.candidatesTokenCount,
+      total_tokens: videoUsage?.totalTokenCount,
+    });
     console.log(`[gemini/video] Extraction complete in ${Date.now() - t0}ms`);
 
     // Cleanup uploaded file from Gemini
@@ -479,9 +525,16 @@ async function extractWithVideo(
     }
   } catch (err) {
     console.warn(`[gemini/video] extractWithVideo failed:`, err);
+    await emitAiGeneration(distinctId, {
+      item_id: itemId,
+      category,
+      model: PRO_MODEL,
+      span: "extract_video",
+      latency_ms: Date.now() - t0,
+      error: err instanceof Error ? err.message : "unknown",
+    });
     return null;
   } finally {
-    // Always clean up tmp file
     await fs.unlink(tmpPath).catch(() => {});
   }
 }
@@ -489,6 +542,8 @@ async function extractWithVideo(
 async function categorizeContent(
   ctx: { runQuery: (ref: any, args: any) => Promise<any> },
   scrape: ScrapeResult,
+  itemId: string,
+  distinctId: string,
 ): Promise<CategoryType> {
   console.log(`[gemini/categorize] Starting — model: ${FLASH_MODEL}, platform: ${scrape.platform}`);
   console.log(`[gemini/categorize] Input — title: ${scrape.title ?? "(none)"}, description: ${(scrape.description ?? "").slice(0, 200)}, hashtags: ${(scrape.hashtags ?? []).join(", ") || "(none)"}`);
@@ -535,9 +590,28 @@ async function categorizeContent(
     result = await model.generateContent(parts.join("\n"));
   } catch (err) {
     console.error(`[gemini/categorize] API error after ${Date.now() - t0}ms — model: ${FLASH_MODEL}`, err);
+    await emitAiGeneration(distinctId, {
+      item_id: itemId,
+      category: null,
+      model: FLASH_MODEL,
+      span: "categorize",
+      latency_ms: Date.now() - t0,
+      error: err instanceof Error ? err.message : "unknown",
+    });
     throw err;
   }
   const raw = result.response.text().trim().toLowerCase();
+  const catUsage = (result.response as unknown as { usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } }).usageMetadata;
+  await emitAiGeneration(distinctId, {
+    item_id: itemId,
+    category: null,
+    model: FLASH_MODEL,
+    span: "categorize",
+    latency_ms: Date.now() - t0,
+    input_tokens: catUsage?.promptTokenCount,
+    output_tokens: catUsage?.candidatesTokenCount,
+    total_tokens: catUsage?.totalTokenCount,
+  });
   console.log(`[gemini/categorize] Response in ${Date.now() - t0}ms — raw: "${raw}"`);
 
   const matched = validSlugs.find((c: string) => raw.includes(c));
@@ -739,12 +813,13 @@ async function extractStructuredData(
   scrape: ScrapeResult,
   category: CategoryType,
   itemId: string,
+  distinctId: string,
 ): Promise<ExtractionResult> {
   // Video analysis path: use Gemini Files API with actual video
   if (shouldUseVideoAnalysis(category, scrape.platform, scrape.videoUrl)) {
     console.log(`[gemini/extract] Using video analysis path — platform: ${scrape.platform}`);
     const prompt = category === "travel" ? TRAVEL_VIDEO_PROMPT : VIDEO_ANALYSIS_PROMPT;
-    const videoData = await extractWithVideo(scrape.videoUrl!, itemId, prompt);
+    const videoData = await extractWithVideo(scrape.videoUrl!, itemId, distinctId, category, prompt);
     if (videoData) {
       return {
         category,
@@ -786,9 +861,28 @@ async function extractStructuredData(
     result = await model.generateContent(prompt);
   } catch (err) {
     console.error(`[gemini/extract] API error after ${Date.now() - t0}ms — model: ${modelName}, category: ${category}`, err);
+    await emitAiGeneration(distinctId, {
+      item_id: itemId,
+      category,
+      model: modelName,
+      span: "extract",
+      latency_ms: Date.now() - t0,
+      error: err instanceof Error ? err.message : "unknown",
+    });
     throw err;
   }
   const raw = result.response.text().trim();
+  const extractUsage = (result.response as unknown as { usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } }).usageMetadata;
+  await emitAiGeneration(distinctId, {
+    item_id: itemId,
+    category,
+    model: modelName,
+    span: "extract",
+    latency_ms: Date.now() - t0,
+    input_tokens: extractUsage?.promptTokenCount,
+    output_tokens: extractUsage?.candidatesTokenCount,
+    total_tokens: extractUsage?.totalTokenCount,
+  });
   console.log(`[gemini/extract] Response in ${Date.now() - t0}ms — raw length: ${raw.length} chars`);
   console.log(`[gemini/extract] Raw response: ${raw.slice(0, 500)}${raw.length > 500 ? "…" : ""}`);
 
@@ -877,7 +971,7 @@ export const processItem = internalAction({
 
       console.log(`[processUrl] Categorizing content...`);
       const categorizeStart = Date.now();
-      const category = overrideCategory ?? (await categorizeContent(ctx, scrapeResult));
+      const category = overrideCategory ?? (await categorizeContent(ctx, scrapeResult, savedItemId, distinctId));
       await captureServer({
         distinctId,
         event: SERVER_EVENTS.ITEM_CATEGORIZED,
@@ -895,7 +989,7 @@ export const processItem = internalAction({
       const extractStart = Date.now();
       let extraction;
       try {
-        extraction = await extractStructuredData(ctx, scrapeResult, category, savedItemId);
+        extraction = await extractStructuredData(ctx, scrapeResult, category, savedItemId, distinctId);
       } catch (extractErr) {
         await captureServer({
           distinctId,
