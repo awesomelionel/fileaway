@@ -7,6 +7,15 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery, useMutation, usePreloadedQuery, Preloaded } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import dynamic from "next/dynamic";
+import { track, EVENTS, urlHost } from "@/lib/analytics";
+
+function detectPlatform(url: string): "tiktok" | "instagram" | "youtube" | "twitter" | "other" {
+  if (/tiktok\.com/i.test(url)) return "tiktok";
+  if (/instagram\.com/i.test(url)) return "instagram";
+  if (/youtube\.com|youtu\.be/i.test(url)) return "youtube";
+  if (/twitter\.com|x\.com/i.test(url)) return "twitter";
+  return "other";
+}
 
 const DetailModal = dynamic(
   () => import("@/components/feed/DetailModal").then((m) => ({ default: m.DetailModal })),
@@ -28,17 +37,32 @@ function UrlInput() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
+
+    const cleaned = url.trim();
+    const platform = detectPlatform(cleaned);
+    track(EVENTS.LINK_SAVE_SUBMITTED, { platform, url_host: urlHost(cleaned) });
+
     setStatus("loading");
     setErrorMsg("");
 
     try {
-      await saveItem({ url: url.trim() });
+      const id = await saveItem({ url: cleaned });
+      track(EVENTS.LINK_SAVE_SUCCEEDED, {
+        platform,
+        url_host: urlHost(cleaned),
+        item_id: String(id),
+      });
       setStatus("success");
       setUrl("");
       setTimeout(() => setStatus("idle"), 2500);
     } catch (err: unknown) {
-      setStatus("error");
       const msg = err instanceof Error ? err.message : "Failed to save";
+      track(EVENTS.LINK_SAVE_FAILED, {
+        platform,
+        url_host: urlHost(cleaned),
+        error_message: msg,
+      });
+      setStatus("error");
       setErrorMsg(msg);
       setTimeout(() => setStatus("idle"), 3000);
     }
