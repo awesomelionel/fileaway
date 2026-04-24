@@ -10,6 +10,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import * as fs from "fs/promises";
 import * as path from "path";
 import type { Id } from "./_generated/dataModel";
+import { captureServer, SERVER_EVENTS } from "./analytics";
 
 function getR2Client(): S3Client {
   const raw = process.env.R2_ENDPOINT_URL ?? "";
@@ -820,35 +821,110 @@ export const processItem = internalAction({
     distinctId: v.string(),
   },
   handler: async (ctx, { savedItemId, url, overrideCategory, distinctId }) => {
-    void distinctId;
-    console.log(
-      `[processUrl] Processing item ${savedItemId} — url: ${url}`,
-    );
-
-    // Mark as processing
-    await ctx.runMutation(internal.items.markProcessing, {
-      id: savedItemId,
-    });
+    console.log(`[processUrl] Processing item ${savedItemId} — url: ${url}`);
+    await ctx.runMutation(internal.items.markProcessing, { id: savedItemId });
 
     const pipelineStart = Date.now();
+    const platform = detectPlatform(url);
+    let urlHostname = "invalid";
     try {
-      const platform = detectPlatform(url);
-      console.log(`[processUrl] Detected platform: ${platform}`);
+      urlHostname = new URL(url).hostname;
+    } catch {
+      // leave as invalid
+    }
 
+    await captureServer({
+      distinctId,
+      event: SERVER_EVENTS.ITEM_PROCESSING_STARTED,
+      properties: { item_id: savedItemId, platform, url_host: urlHostname },
+    });
+
+    try {
       console.log(`[processUrl] Scraping url via Apify...`);
       const scrapeStart = Date.now();
-      const scrapeResult = await scrapeUrl(url, platform);
+      let scrapeResult;
+      try {
+        scrapeResult = await scrapeUrl(url, platform);
+      } catch (scrapeErr) {
+        await captureServer({
+          distinctId,
+          event: SERVER_EVENTS.ITEM_SCRAPE_FAILED,
+          properties: {
+            item_id: savedItemId,
+            platform,
+            duration_ms: Date.now() - scrapeStart,
+            error_message: scrapeErr instanceof Error ? scrapeErr.message : "unknown",
+          },
+        });
+        throw scrapeErr;
+      }
+      await captureServer({
+        distinctId,
+        event: SERVER_EVENTS.ITEM_SCRAPE_COMPLETED,
+        properties: {
+          item_id: savedItemId,
+          platform,
+          duration_ms: Date.now() - scrapeStart,
+          has_title: !!scrapeResult.title,
+          has_description: !!scrapeResult.description,
+          has_video: !!scrapeResult.videoUrl,
+          has_thumbnail: !!scrapeResult.thumbnailUrl,
+          description_chars: (scrapeResult.description ?? "").length,
+          hashtag_count: (scrapeResult.hashtags ?? []).length,
+        },
+      });
       console.log(`[processUrl] Scrape complete in ${Date.now() - scrapeStart}ms — platform: ${platform}, title: ${scrapeResult.title ?? "(none)"}, hasVideo: ${!!scrapeResult.videoUrl}, hashtags: ${(scrapeResult.hashtags ?? []).length}`);
 
       console.log(`[processUrl] Categorizing content...`);
-      const category = overrideCategory ?? await categorizeContent(ctx, scrapeResult);
+      const categorizeStart = Date.now();
+      const category = overrideCategory ?? (await categorizeContent(ctx, scrapeResult));
+      await captureServer({
+        distinctId,
+        event: SERVER_EVENTS.ITEM_CATEGORIZED,
+        properties: {
+          item_id: savedItemId,
+          platform,
+          category,
+          was_override: !!overrideCategory,
+          duration_ms: Date.now() - categorizeStart,
+        },
+      });
       console.log(`[processUrl] Category resolved: ${category}`);
 
       console.log(`[processUrl] Extracting structured data...`);
-      const extraction = await extractStructuredData(ctx, scrapeResult, category, savedItemId);
-      console.log(`[processUrl] Extraction complete — category: ${extraction.category}, action: ${extraction.actionTaken}, dataKeys: ${Object.keys(extraction.extractedData).join(", ")}`);
+      const extractStart = Date.now();
+      let extraction;
+      try {
+        extraction = await extractStructuredData(ctx, scrapeResult, category, savedItemId);
+      } catch (extractErr) {
+        await captureServer({
+          distinctId,
+          event: SERVER_EVENTS.ITEM_EXTRACTION_FAILED,
+          properties: {
+            item_id: savedItemId,
+            platform,
+            category,
+            duration_ms: Date.now() - extractStart,
+            error_message: extractErr instanceof Error ? extractErr.message : "unknown",
+          },
+        });
+        throw extractErr;
+      }
+      const extractedKeys = Object.keys(extraction.extractedData);
+      await captureServer({
+        distinctId,
+        event: SERVER_EVENTS.ITEM_EXTRACTION_COMPLETED,
+        properties: {
+          item_id: savedItemId,
+          platform,
+          category: extraction.category,
+          duration_ms: Date.now() - extractStart,
+          extracted_field_count: extractedKeys.length,
+          parse_error: extractedKeys.includes("parse_error"),
+        },
+      });
+      console.log(`[processUrl] Extraction complete — category: ${extraction.category}, action: ${extraction.actionTaken}, dataKeys: ${extractedKeys.join(", ")}`);
 
-      // Download thumbnail and upload to Cloudflare R2
       let thumbnailR2Key: string | undefined;
       if (scrapeResult.thumbnailUrl) {
         try {
@@ -889,6 +965,16 @@ export const processItem = internalAction({
     } catch (err) {
       const elapsed = Date.now() - pipelineStart;
       console.error(`[processUrl] Item ${savedItemId} failed after ${elapsed}ms:`, err);
+      await captureServer({
+        distinctId,
+        event: SERVER_EVENTS.ITEM_PROCESSING_FAILED,
+        properties: {
+          item_id: savedItemId,
+          platform,
+          duration_ms: elapsed,
+          error_message: err instanceof Error ? err.message : "unknown",
+        },
+      });
       await ctx.runMutation(internal.items.markFailed, { id: savedItemId });
     }
   },
