@@ -817,8 +817,10 @@ export const processItem = internalAction({
     savedItemId: v.id("savedItems"),
     url: v.string(),
     overrideCategory: v.optional(v.string()),
+    distinctId: v.string(),
   },
-  handler: async (ctx, { savedItemId, url, overrideCategory }) => {
+  handler: async (ctx, { savedItemId, url, overrideCategory, distinctId }) => {
+    void distinctId;
     console.log(
       `[processUrl] Processing item ${savedItemId} — url: ${url}`,
     );

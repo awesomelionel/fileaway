@@ -213,6 +213,7 @@ export const save = mutation({
     await ctx.scheduler.runAfter(0, internal.processUrl.processItem, {
       savedItemId: id,
       url,
+      distinctId: userId,
     });
 
     return id;
@@ -299,6 +300,7 @@ export const retryItem = mutation({
     await ctx.scheduler.runAfter(0, internal.processUrl.processItem, {
       savedItemId: id,
       url: item.sourceUrl,
+      distinctId: userId,
     });
     return true;
   },
@@ -324,6 +326,7 @@ export const reprocessWithCategory = mutation({
       savedItemId: id,
       url: item.sourceUrl,
       overrideCategory: category,
+      distinctId: userId,
     });
     return true;
   },
