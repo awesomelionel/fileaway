@@ -1103,6 +1103,53 @@ export const processItem = internalAction({
       }
       console.log(`[processUrl] Extraction complete — category: ${extraction.category}, action: ${extraction.actionTaken}, dataKeys: ${extractedKeys.join(", ")}`);
 
+      if (extraction.category === "food" || extraction.category === "travel") {
+        const geocodeStart = Date.now();
+        try {
+          const enriched = await enrichWithGeocoding(
+            extraction.extractedData as Record<string, unknown>,
+            extraction.category,
+          );
+          extraction.extractedData = enriched;
+
+          const stopsRequested =
+            extraction.category === "travel"
+              ? (enriched.itinerary as Array<Record<string, unknown>> | undefined)?.length ?? 0
+              : 1;
+          const stopsSucceeded =
+            extraction.category === "travel"
+              ? ((enriched.itinerary as Array<Record<string, unknown>> | undefined) ?? []).filter(
+                  (s) => (s.place as Record<string, unknown> | undefined)?.geocoder_status === "OK",
+                ).length
+              : (enriched.place as Record<string, unknown> | undefined)?.geocoder_status === "OK"
+                ? 1
+                : 0;
+
+          await captureServer({
+            distinctId,
+            event: SERVER_EVENTS.ITEM_GEOCODED,
+            properties: {
+              item_id: savedItemId,
+              category: extraction.category,
+              stops_requested: stopsRequested,
+              stops_succeeded: stopsSucceeded,
+              latency_ms: Date.now() - geocodeStart,
+            },
+          });
+        } catch (geoErr) {
+          await captureServer({
+            distinctId,
+            event: SERVER_EVENTS.ITEM_GEOCODE_FAILED,
+            properties: {
+              item_id: savedItemId,
+              category: extraction.category,
+              latency_ms: Date.now() - geocodeStart,
+              error: geoErr instanceof Error ? geoErr.message : "unknown",
+            },
+          });
+        }
+      }
+
       let thumbnailR2Key: string | undefined;
       if (scrapeResult.thumbnailUrl) {
         try {
