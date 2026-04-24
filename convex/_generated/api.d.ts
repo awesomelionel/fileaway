@@ -10,10 +10,12 @@
 
 import type * as admin from "../admin.js";
 import type * as adminCategories from "../adminCategories.js";
+import type * as analytics from "../analytics.js";
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as items from "../items.js";
 import type * as processUrl from "../processUrl.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -24,10 +26,12 @@ import type {
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   adminCategories: typeof adminCategories;
+  analytics: typeof analytics;
   auth: typeof auth;
   http: typeof http;
   items: typeof items;
   processUrl: typeof processUrl;
+  users: typeof users;
 }>;
 
 /**

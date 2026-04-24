@@ -22,18 +22,24 @@ type CaptureInput = {
   properties: Record<string, unknown>;
 };
 
-export async function captureServer({ distinctId, event, properties }: CaptureInput): Promise<void> {
-  const token = process.env.NEXT_PUBLIC_POSTHOG_TOKEN;
-  if (!token) return;
+let client: PostHog | null = null;
 
-  const client = new PostHog(token, {
-    host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com",
-    flushAt: 1,
-    flushInterval: 0,
-  });
-  try {
-    client.capture({ distinctId, event, properties });
-  } finally {
-    await client.shutdown();
+function getClient(): PostHog | null {
+  const token = process.env.NEXT_PUBLIC_POSTHOG_TOKEN;
+  if (!token) return null;
+  if (!client) {
+    client = new PostHog(token, {
+      host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com",
+      flushAt: 1,
+      flushInterval: 0,
+    });
   }
+  return client;
+}
+
+export async function captureServer({ distinctId, event, properties }: CaptureInput): Promise<void> {
+  const c = getClient();
+  if (!c) return;
+  c.capture({ distinctId, event, properties });
+  await c.flush();
 }

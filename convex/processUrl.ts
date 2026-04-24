@@ -32,6 +32,8 @@ async function emitAiGeneration(
     properties: {
       $ai_provider: "google",
       $ai_model: props.model,
+      $ai_trace_id: props.item_id,
+      $ai_span_name: props.span,
       $ai_latency: props.latency_ms / 1000,
       $ai_input_tokens: props.input_tokens ?? null,
       $ai_output_tokens: props.output_tokens ?? null,
