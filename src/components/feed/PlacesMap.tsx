@@ -182,17 +182,17 @@ export function PlacesMap({ category, onPinClick }: Props) {
 
 function renderInfoHTML(p: PointInfo): string {
   const thumb = p.thumbnail_url
-    ? `<img src="${p.thumbnail_url}" alt="" style="width:100%;height:96px;object-fit:cover;border-radius:4px;margin-bottom:8px" />`
+    ? `<img src="${p.thumbnail_url}" alt="" style="width:100%;height:96px;object-fit:cover;border-radius:4px;margin-bottom:8px;display:block" />`
     : "";
   const sub = p.sub_label
-    ? `<div style="font-size:12px;color:#666;margin-bottom:8px">${escapeHTML(p.sub_label)}</div>`
+    ? `<div style="font-size:12px;color:#4b5563;margin-bottom:10px;text-transform:none">${escapeHTML(p.sub_label)}</div>`
     : "";
   return `
-    <div style="width:200px;font-family:inherit">
+    <div style="width:220px;font-family:system-ui,-apple-system,sans-serif;color:#111;text-transform:none">
       ${thumb}
-      <div style="font-weight:600;font-size:13px;margin-bottom:4px">${escapeHTML(p.name)}</div>
+      <div style="font-weight:600;font-size:14px;line-height:1.3;margin-bottom:4px;color:#111;text-transform:none">${escapeHTML(p.name)}</div>
       ${sub}
-      <button id="open-item-${p.point_id}" style="width:100%;min-height:44px;background:#111;color:#fff;border:0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Open saved item</button>
+      <button id="open-item-${p.point_id}" style="width:100%;min-height:40px;background:#111;color:#fff;border:0;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-transform:none;font-family:inherit">Open saved item</button>
     </div>
   `;
 }
