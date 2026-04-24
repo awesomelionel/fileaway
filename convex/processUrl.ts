@@ -11,6 +11,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import type { Id } from "./_generated/dataModel";
 import { captureServer, SERVER_EVENTS } from "./analytics";
+import { geocodePlace, type GeocodeResult } from "./geocode";
 
 async function emitAiGeneration(
   distinctId: string,
@@ -59,6 +60,56 @@ function getR2Client(): S3Client {
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
     },
   });
+}
+
+export function toPlaceField(r: GeocodeResult): Record<string, unknown> {
+  if (r.status === "OK") {
+    return {
+      lat: r.lat,
+      lng: r.lng,
+      formatted_address: r.formatted_address,
+      place_id: r.place_id,
+      geocoder_status: "OK",
+      geocoded_at: new Date().toISOString(),
+    };
+  }
+  return {
+    geocoder_status: r.status,
+    geocoded_at: new Date().toISOString(),
+    ...(r.error ? { error: r.error } : {}),
+  };
+}
+
+export async function enrichWithGeocoding(
+  extraction: Record<string, unknown>,
+  category: "food" | "travel",
+): Promise<Record<string, unknown>> {
+  if (category === "food") {
+    const name = typeof extraction.name === "string" ? extraction.name : "";
+    const address = typeof extraction.address === "string" ? extraction.address : "";
+    const query = [name, address].filter((s) => s && s.trim()).join(", ");
+    if (!query) return extraction;
+    const result = await geocodePlace(query);
+    return { ...extraction, place: toPlaceField(result) };
+  }
+
+  const itinerary = Array.isArray(extraction.itinerary)
+    ? (extraction.itinerary as Array<Record<string, unknown>>)
+    : [];
+  if (!itinerary.length) return extraction;
+
+  const enriched = await Promise.all(
+    itinerary.map(async (stop) => {
+      const gmq = typeof stop.google_maps_query === "string" ? stop.google_maps_query : "";
+      const name = typeof stop.name === "string" ? stop.name : "";
+      const loc = typeof stop.location_text === "string" ? stop.location_text : "";
+      const query = gmq || [name, loc].filter((s) => s && s.trim()).join(", ");
+      if (!query) return stop;
+      const result = await geocodePlace(query);
+      return { ...stop, place: toPlaceField(result) };
+    }),
+  );
+  return { ...extraction, itinerary: enriched };
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
