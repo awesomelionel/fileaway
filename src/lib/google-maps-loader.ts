@@ -1,8 +1,13 @@
-import { Loader } from "@googlemaps/js-api-loader";
+import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 
-let loaderPromise: Promise<typeof google> | null = null;
+type MapsBundle = {
+  maps: google.maps.MapsLibrary;
+  marker: google.maps.MarkerLibrary;
+};
 
-export function loadGoogleMaps(): Promise<typeof google> {
+let loaderPromise: Promise<MapsBundle> | null = null;
+
+export function loadGoogleMaps(): Promise<MapsBundle> {
   if (loaderPromise) return loaderPromise;
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
   if (!apiKey) {
@@ -10,11 +15,9 @@ export function loadGoogleMaps(): Promise<typeof google> {
       new Error("NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY is not set"),
     );
   }
-  const loader = new Loader({
-    apiKey,
-    version: "weekly",
-    libraries: [],
-  });
-  loaderPromise = loader.load();
+  setOptions({ key: apiKey, v: "weekly" });
+  loaderPromise = Promise.all([importLibrary("maps"), importLibrary("marker")]).then(
+    ([maps, marker]) => ({ maps, marker }),
+  );
   return loaderPromise;
 }
