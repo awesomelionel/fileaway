@@ -907,6 +907,16 @@ async function extractStructuredData(
 
 // ─── Main action ──────────────────────────────────────────────────────────────
 
+const REQUIRED_FIELDS: Record<string, string[]> = {
+  food: ["name", "address"],
+  recipe: ["dish_name", "ingredients"],
+  fitness: ["workout_name", "exercises"],
+  "how-to": ["title", "shots"],
+  "video-analysis": ["title", "shots"],
+  travel: ["title", "itinerary"],
+  other: ["title", "summary"],
+};
+
 export const processItem = internalAction({
   args: {
     savedItemId: v.id("savedItems"),
@@ -1017,6 +1027,27 @@ export const processItem = internalAction({
           parse_error: extractedKeys.includes("parse_error"),
         },
       });
+
+      const required = REQUIRED_FIELDS[extraction.category] ?? [];
+      const missing = required.filter((f) => {
+        const val = (extraction.extractedData as Record<string, unknown>)[f];
+        if (val == null) return true;
+        if (Array.isArray(val) && val.length === 0) return true;
+        if (typeof val === "string" && val.trim() === "") return true;
+        return false;
+      });
+      if (missing.length) {
+        await captureServer({
+          distinctId,
+          event: SERVER_EVENTS.EXTRACTION_FIELD_MISSING,
+          properties: {
+            item_id: savedItemId,
+            category: extraction.category,
+            platform,
+            missing_fields: missing,
+          },
+        });
+      }
       console.log(`[processUrl] Extraction complete — category: ${extraction.category}, action: ${extraction.actionTaken}, dataKeys: ${extractedKeys.join(", ")}`);
 
       let thumbnailR2Key: string | undefined;
