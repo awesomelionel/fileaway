@@ -11,6 +11,8 @@ export const SERVER_EVENTS = {
   ITEM_EXTRACTION_FAILED: "item_extraction_failed",
   ITEM_PROCESSING_FAILED: "item_processing_failed",
   EXTRACTION_FIELD_MISSING: "extraction_field_missing",
+  ITEM_GEOCODED: "item_geocoded",
+  ITEM_GEOCODE_FAILED: "item_geocode_failed",
   LLM_GENERATION: "$ai_generation",
 } as const;
 

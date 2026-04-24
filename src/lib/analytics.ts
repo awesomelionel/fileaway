@@ -13,6 +13,8 @@ export const EVENTS = {
   CATEGORY_TAB_CHANGED: "category_tab_changed",
   SEARCH_PERFORMED: "search_performed",
   VIEW_TOGGLED: "view_toggled",
+  MAP_OPENED: "map_opened",
+  MAP_PIN_CLICKED: "map_pin_clicked",
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];
