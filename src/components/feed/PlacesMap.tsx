@@ -156,29 +156,28 @@ export function PlacesMap({ category, onPinClick }: Props) {
     trackedOpenRef.current = false;
   }, [category]);
 
-  if (loadState === "error") {
-    return (
-      <div className="flex items-center justify-center h-[60vh] text-fa-muted text-sm">
-        Map unavailable. Check your Google Maps API key.
-      </div>
-    );
-  }
+  const showError = loadState === "error";
+  const showLoading = points === undefined || loadState === "loading";
+  const showEmpty = !showLoading && !showError && points !== undefined && points.length === 0;
 
-  if (points === undefined || loadState === "loading") {
-    return (
-      <div className="h-[60vh] rounded-lg bg-fa-surface animate-pulse" aria-label="Loading map" />
-    );
-  }
-
-  if (points.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-[60vh] text-fa-muted text-sm text-center px-4">
-        No places with coordinates yet. New items will appear here once they&apos;re processed.
-      </div>
-    );
-  }
-
-  return <div ref={containerRef} className="h-[70vh] rounded-lg overflow-hidden" />;
+  return (
+    <div className="relative">
+      <div ref={containerRef} className="h-[70vh] rounded-lg overflow-hidden bg-fa-surface" />
+      {showError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-fa-canvas/90 text-fa-muted text-sm rounded-lg">
+          Map unavailable. Check your Google Maps API key.
+        </div>
+      )}
+      {showLoading && (
+        <div className="absolute inset-0 rounded-lg bg-fa-surface animate-pulse" aria-label="Loading map" />
+      )}
+      {showEmpty && (
+        <div className="absolute inset-0 flex items-center justify-center bg-fa-canvas/90 text-fa-muted text-sm text-center px-4 rounded-lg">
+          No places with coordinates yet. New items will appear here once they&apos;re processed.
+        </div>
+      )}
+    </div>
+  );
 }
 
 function renderInfoHTML(p: PointInfo): string {
