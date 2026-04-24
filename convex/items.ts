@@ -467,3 +467,53 @@ export const markFailed = internalMutation({
     await ctx.db.patch(id, { status: "failed" });
   },
 });
+
+function hasOkGeocoding(extractedData: unknown, category: string): boolean {
+  if (!extractedData || typeof extractedData !== "object") return false;
+  const d = extractedData as Record<string, unknown>;
+  if (category === "food") {
+    const p = d.place as Record<string, unknown> | undefined;
+    return !!p && p.geocoder_status === "OK";
+  }
+  if (category === "travel") {
+    const it = Array.isArray(d.itinerary) ? (d.itinerary as Array<Record<string, unknown>>) : [];
+    if (!it.length) return true;
+    return it.every((s) => {
+      const p = s.place as Record<string, unknown> | undefined;
+      return !!p && p.geocoder_status === "OK";
+    });
+  }
+  return true;
+}
+
+export const listMissingGeocoding = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db
+      .query("savedItems")
+      .withIndex("by_status", (q) => q.eq("status", "done"))
+      .collect();
+
+    return rows
+      .filter((r) => r.category === "food" || r.category === "travel")
+      .filter((r) => !hasOkGeocoding(r.extractedData, r.category))
+      .map((r) => ({
+        id: r._id,
+        userId: r.userId,
+        category: r.category as "food" | "travel",
+        extractedData: r.extractedData ?? null,
+      }));
+  },
+});
+
+export const updateExtractedData = internalMutation({
+  args: {
+    id: v.id("savedItems"),
+    extractedData: v.any(),
+  },
+  handler: async (ctx, { id, extractedData }) => {
+    const item = await ctx.db.get(id);
+    if (!item) return;
+    await ctx.db.patch(id, { extractedData });
+  },
+});

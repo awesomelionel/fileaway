@@ -1288,3 +1288,52 @@ export const migrateConvexThumbnailsToR2 = internalAction({
     console.log(`[r2-migrate] Done — ${success} migrated to R2, ${failed} failed`);
   },
 });
+
+type BackfillGeocodingResult = {
+  processed: number;
+  succeeded: number;
+  failed: number;
+  remaining: number;
+};
+
+type MissingGeocodingItem = {
+  id: Id<"savedItems">;
+  userId: Id<"users">;
+  category: "food" | "travel";
+  extractedData: unknown;
+};
+
+export const backfillGeocoding = internalAction({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args): Promise<BackfillGeocodingResult> => {
+    const limit = args.limit ?? 20;
+    const all: MissingGeocodingItem[] = await ctx.runQuery(internal.items.listMissingGeocoding);
+    const page = all.slice(0, limit);
+    let succeeded = 0;
+    let failed = 0;
+
+    for (const item of page) {
+      try {
+        const enriched = await enrichWithGeocoding(
+          (item.extractedData as Record<string, unknown> | null) ?? {},
+          item.category,
+        );
+        await ctx.runMutation(internal.items.updateExtractedData, {
+          id: item.id,
+          extractedData: enriched,
+        });
+        succeeded++;
+      } catch (err) {
+        failed++;
+        console.error(`[backfillGeocoding] ${item.id} failed:`, err);
+      }
+    }
+
+    return {
+      processed: page.length,
+      succeeded,
+      failed,
+      remaining: Math.max(0, all.length - page.length),
+    };
+  },
+});
