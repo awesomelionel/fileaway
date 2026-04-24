@@ -267,8 +267,14 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
     (id: string) => {
       const item = allItems.find((i) => i.id === id);
       if (item) {
+        const ed = (item.extracted_data ?? {}) as Record<string, unknown>;
+        const itemName =
+          (ed.title as string | undefined) ??
+          (ed.name as string | undefined) ??
+          urlHost(item.source_url);
         track(EVENTS.ITEM_VIEWED, {
           item_id: id,
+          item_name: itemName,
           category: item.category,
           platform: item.platform,
         });
