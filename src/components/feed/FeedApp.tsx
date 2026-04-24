@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useTransition } from "react";
+import { useState, useCallback, useEffect, useTransition } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { ItemCard, getCategoryMeta } from "@/components/feed/ItemCard";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -19,6 +19,11 @@ function detectPlatform(url: string): "tiktok" | "instagram" | "youtube" | "twit
 
 const DetailModal = dynamic(
   () => import("@/components/feed/DetailModal").then((m) => ({ default: m.DetailModal })),
+  { ssr: false },
+);
+
+const PlacesMap = dynamic(
+  () => import("@/components/feed/PlacesMap").then((m) => ({ default: m.PlacesMap })),
   { ssr: false },
 );
 
@@ -247,6 +252,8 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
   const activeCategory = (searchParams.get("category") as TabValue | null) ?? "all";
   const searchQuery = searchParams.get("q") ?? "";
   const archiveView = searchParams.get("view") === "archive";
+  const mapView = searchParams.get("view") === "map";
+  const showMapToggle = activeCategory === "food" || activeCategory === "travel";
 
   // Feed view: SSR-preloaded, stays reactive. Archive view: lazy client query.
   const feedItems = usePreloadedQuery(preloadedItems);
@@ -303,6 +310,12 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
     },
     [searchParams, router, pathname],
   );
+
+  useEffect(() => {
+    if (mapView && !showMapToggle) {
+      updateParam({ view: null });
+    }
+  }, [mapView, showMapToggle, updateParam]);
 
   // Client-side filter (instant response)
   const filteredItems = allItems.filter((item) => {
@@ -454,6 +467,23 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
             >
               Archive
             </button>
+            {showMapToggle && (
+              <button
+                type="button"
+                onClick={() => {
+                  track(EVENTS.VIEW_TOGGLED, {
+                    to: mapView ? "feed" : "map",
+                    from: mapView ? "map" : archiveView ? "archive" : "feed",
+                  });
+                  updateParam({ view: mapView ? null : "map" });
+                }}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                  mapView ? "bg-fa-pill-active text-fa-primary" : "text-fa-subtle hover:text-fa-muted"
+                }`}
+              >
+                Map
+              </button>
+            )}
             {!loading && (
               <span
                 className="flex items-center min-w-[1.75rem] justify-center pl-2 pr-1.5 ml-0.5 border-l border-fa-line text-[11px] text-fa-faint font-mono tabular-nums"
@@ -469,22 +499,29 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
 
       {/* Feed */}
       <main className="max-w-5xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {loading ? (
-            Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-          ) : filteredItems.length === 0 ? (
-            <EmptyState category={activeCategory} archiveView={archiveView} />
-          ) : (
-            filteredItems.map((item) => (
-              <ItemCard
-                key={item.id}
-                item={item}
-                categories={categories.map((c) => ({ slug: c.slug, label: c.label }))}
-                onCardClick={openItem}
-              />
-            ))
-          )}
-        </div>
+        {mapView && showMapToggle ? (
+          <PlacesMap
+            category={activeCategory as "food" | "travel"}
+            onPinClick={(id) => openItem(id)}
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
+            ) : filteredItems.length === 0 ? (
+              <EmptyState category={activeCategory} archiveView={archiveView} />
+            ) : (
+              filteredItems.map((item) => (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  categories={categories.map((c) => ({ slug: c.slug, label: c.label }))}
+                  onCardClick={openItem}
+                />
+              ))
+            )}
+          </div>
+        )}
       </main>
       {activeItem && (
         <DetailModal
