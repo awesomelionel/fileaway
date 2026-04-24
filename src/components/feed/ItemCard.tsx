@@ -7,6 +7,17 @@ import { FoodExtractCard } from "@/components/feed/foodExtract";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { track, EVENTS } from "@/lib/analytics";
+
+function trackAction(item: SavedItemResponse, action: string, extra?: Record<string, unknown>) {
+  track(EVENTS.ITEM_ACTION_TAKEN, {
+    item_id: item.id,
+    category: item.category,
+    platform: item.platform,
+    action,
+    ...extra,
+  });
+}
 
 // ─── Category metadata ───────────────────────────────────────────────────────
 
@@ -490,6 +501,7 @@ function ActionButton({
         href={`https://maps.google.com/?q=${query}`}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => trackAction(item, "open_in_maps")}
         className="inline-flex text-xs px-3 py-1.5 rounded bg-[#f9731615] text-[#f97316] border border-[#f9731630] font-medium hover:bg-[#f9731625] transition-colors min-h-[44px] sm:min-h-0"
       >
         Open in Maps ↗
@@ -504,7 +516,10 @@ function ActionButton({
       : "";
     return (
       <button
-        onClick={() => fire(() => copyText(text), "Copied!")}
+        onClick={() => {
+          trackAction(item, "copy_ingredients", { ingredient_count: ingredients?.length ?? 0 });
+          fire(() => copyText(text), "Copied!");
+        }}
         className="text-xs px-3 py-1.5 rounded bg-[#22c55e15] text-[#22c55e] border border-[#22c55e30] font-medium hover:bg-[#22c55e25] transition-colors min-h-[44px] sm:min-h-0"
       >
         Copy ingredients
@@ -520,7 +535,8 @@ function ActionButton({
     }> | undefined;
     return (
       <button
-        onClick={() =>
+        onClick={() => {
+          trackAction(item, "save_to_routine", { exercise_count: exercises?.length ?? 0 });
           fire(() => {
             if (!exercises) return;
             const existing = JSON.parse(
@@ -530,8 +546,8 @@ function ActionButton({
               "fileaway-routine",
               JSON.stringify([...existing, ...exercises]),
             );
-          }, "Saved to routine!")
-        }
+          }, "Saved to routine!");
+        }}
         className="text-xs px-3 py-1.5 rounded bg-[#3b82f615] text-[#3b82f6] border border-[#3b82f630] font-medium hover:bg-[#3b82f625] transition-colors min-h-[44px] sm:min-h-0"
       >
         Save to routine
@@ -542,7 +558,11 @@ function ActionButton({
   if (category === "how-to") {
     return (
       <button
-        onClick={(e) => { e.stopPropagation(); onCardClick?.(item.id); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          trackAction(item, "view_guide");
+          onCardClick?.(item.id);
+        }}
         className="text-xs px-3 py-1.5 rounded bg-[#a855f715] text-[#a855f7] border border-[#a855f730] font-medium hover:bg-[#a855f725] transition-colors min-h-[44px] sm:min-h-0"
       >
         View guide ↗
@@ -556,7 +576,10 @@ function ActionButton({
     const text = [title, summary].filter(Boolean).join("\n\n");
     return (
       <button
-        onClick={() => fire(() => copyText(text), "Copied!")}
+        onClick={() => {
+          trackAction(item, "copy_summary");
+          fire(() => copyText(text), "Copied!");
+        }}
         className="text-xs px-3 py-1.5 rounded bg-[#14b8a615] text-[#14b8a6] border border-[#14b8a630] font-medium hover:bg-[#14b8a625] transition-colors min-h-[44px] sm:min-h-0"
       >
         Copy summary
@@ -583,6 +606,7 @@ function ActionButton({
           href={firstUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackAction(item, "open_in_maps")}
           className="inline-flex text-xs px-3 py-1.5 rounded bg-[#f59e0b15] text-[#f59e0b] border border-[#f59e0b30] font-medium hover:bg-[#f59e0b25] transition-colors min-h-[44px] sm:min-h-0"
         >
           Open in Maps ↗
@@ -595,7 +619,10 @@ function ActionButton({
     const text = [title, summary].filter(Boolean).join("\n\n");
     return (
       <button
-        onClick={() => fire(() => copyText(text), "Copied!")}
+        onClick={() => {
+          trackAction(item, "copy_summary");
+          fire(() => copyText(text), "Copied!");
+        }}
         className="text-xs px-3 py-1.5 rounded bg-[#f59e0b15] text-[#f59e0b] border border-[#f59e0b30] font-medium hover:bg-[#f59e0b25] transition-colors min-h-[44px] sm:min-h-0"
       >
         Copy summary
@@ -609,7 +636,10 @@ function ActionButton({
   const text = [title, summary].filter(Boolean).join("\n\n");
   return (
     <button
-      onClick={() => fire(() => copyText(text), "Copied!")}
+      onClick={() => {
+        trackAction(item, "copy_summary");
+        fire(() => copyText(text), "Copied!");
+      }}
       className="text-xs px-3 py-1.5 rounded bg-[#6b728015] text-[#9ca3af] border border-[#6b728030] font-medium hover:bg-[#6b728025] transition-colors min-h-[44px] sm:min-h-0"
     >
       Copy summary
@@ -646,6 +676,13 @@ function CorrectionModal({
         note: note.trim(),
         correctedCategory:
           selectedCategory !== item.category ? selectedCategory : undefined,
+      });
+      track(EVENTS.ITEM_CORRECTION_SUBMITTED, {
+        item_id: item.id,
+        original_category: item.category,
+        corrected_category: selectedCategory,
+        category_changed: selectedCategory !== item.category,
+        note_length: note.trim().length,
       });
       setStatus("done");
       setTimeout(onClose, 1200);
@@ -761,6 +798,11 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
   const meta = getCategoryMeta(item.category);
 
   const handleRetry = async () => {
+    track(EVENTS.ITEM_RETRY_CLICKED, {
+      item_id: item.id,
+      platform: item.platform,
+      category: item.category,
+    });
     try {
       await retryItem({ id: item.id as Id<"savedItems"> });
     } catch (err: unknown) {
@@ -769,11 +811,17 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
   };
 
   const handleArchiveToggle = async () => {
+    const nextArchived = !item.archived;
     setArchiving(true);
     try {
       await setArchived({
         id: item.id as Id<"savedItems">,
-        archived: !item.archived,
+        archived: nextArchived,
+      });
+      track(nextArchived ? EVENTS.ITEM_ARCHIVED : EVENTS.ITEM_RESTORED, {
+        item_id: item.id,
+        category: item.category,
+        platform: item.platform,
       });
     } catch (err: unknown) {
       console.error("[ItemCard] setArchived failed:", err);

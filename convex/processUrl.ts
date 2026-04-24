@@ -10,6 +10,42 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import * as fs from "fs/promises";
 import * as path from "path";
 import type { Id } from "./_generated/dataModel";
+import { captureServer, SERVER_EVENTS } from "./analytics";
+
+async function emitAiGeneration(
+  distinctId: string,
+  props: {
+    item_id: string;
+    category: string | null;
+    model: string;
+    span: "categorize" | "extract" | "extract_video";
+    latency_ms: number;
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+    error?: string;
+  },
+) {
+  await captureServer({
+    distinctId,
+    event: SERVER_EVENTS.LLM_GENERATION,
+    properties: {
+      $ai_provider: "google",
+      $ai_model: props.model,
+      $ai_trace_id: props.item_id,
+      $ai_span_name: props.span,
+      $ai_latency: props.latency_ms / 1000,
+      $ai_input_tokens: props.input_tokens ?? null,
+      $ai_output_tokens: props.output_tokens ?? null,
+      $ai_total_tokens: props.total_tokens ?? null,
+      $ai_is_error: !!props.error,
+      $ai_error: props.error ?? null,
+      item_id: props.item_id,
+      category: props.category,
+      span: props.span,
+    },
+  });
+}
 
 function getR2Client(): S3Client {
   const raw = process.env.R2_ENDPOINT_URL ?? "";
@@ -398,12 +434,15 @@ Guidelines:
 async function extractWithVideo(
   videoUrl: string,
   itemId: string,
+  distinctId: string,
+  category: string,
   prompt: string = VIDEO_ANALYSIS_PROMPT,
 ): Promise<Record<string, unknown> | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
 
   const tmpPath = path.join("/tmp", `fileaway-video-${itemId}.mp4`);
+  const t0 = Date.now();
 
   try {
     console.log(`[gemini/video] Downloading video for item ${itemId}...`);
@@ -444,7 +483,6 @@ async function extractWithVideo(
       generationConfig: { temperature: 0 },
     });
 
-    const t0 = Date.now();
     const result = await model.generateContent([
       {
         fileData: {
@@ -454,6 +492,17 @@ async function extractWithVideo(
       },
       prompt,
     ]);
+    const videoUsage = (result.response as unknown as { usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } }).usageMetadata;
+    await emitAiGeneration(distinctId, {
+      item_id: itemId,
+      category,
+      model: PRO_MODEL,
+      span: "extract_video",
+      latency_ms: Date.now() - t0,
+      input_tokens: videoUsage?.promptTokenCount,
+      output_tokens: videoUsage?.candidatesTokenCount,
+      total_tokens: videoUsage?.totalTokenCount,
+    });
     console.log(`[gemini/video] Extraction complete in ${Date.now() - t0}ms`);
 
     // Cleanup uploaded file from Gemini
@@ -478,9 +527,16 @@ async function extractWithVideo(
     }
   } catch (err) {
     console.warn(`[gemini/video] extractWithVideo failed:`, err);
+    await emitAiGeneration(distinctId, {
+      item_id: itemId,
+      category,
+      model: PRO_MODEL,
+      span: "extract_video",
+      latency_ms: Date.now() - t0,
+      error: err instanceof Error ? err.message : "unknown",
+    });
     return null;
   } finally {
-    // Always clean up tmp file
     await fs.unlink(tmpPath).catch(() => {});
   }
 }
@@ -488,6 +544,8 @@ async function extractWithVideo(
 async function categorizeContent(
   ctx: { runQuery: (ref: any, args: any) => Promise<any> },
   scrape: ScrapeResult,
+  itemId: string,
+  distinctId: string,
 ): Promise<CategoryType> {
   console.log(`[gemini/categorize] Starting — model: ${FLASH_MODEL}, platform: ${scrape.platform}`);
   console.log(`[gemini/categorize] Input — title: ${scrape.title ?? "(none)"}, description: ${(scrape.description ?? "").slice(0, 200)}, hashtags: ${(scrape.hashtags ?? []).join(", ") || "(none)"}`);
@@ -534,9 +592,28 @@ async function categorizeContent(
     result = await model.generateContent(parts.join("\n"));
   } catch (err) {
     console.error(`[gemini/categorize] API error after ${Date.now() - t0}ms — model: ${FLASH_MODEL}`, err);
+    await emitAiGeneration(distinctId, {
+      item_id: itemId,
+      category: null,
+      model: FLASH_MODEL,
+      span: "categorize",
+      latency_ms: Date.now() - t0,
+      error: err instanceof Error ? err.message : "unknown",
+    });
     throw err;
   }
   const raw = result.response.text().trim().toLowerCase();
+  const catUsage = (result.response as unknown as { usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } }).usageMetadata;
+  await emitAiGeneration(distinctId, {
+    item_id: itemId,
+    category: null,
+    model: FLASH_MODEL,
+    span: "categorize",
+    latency_ms: Date.now() - t0,
+    input_tokens: catUsage?.promptTokenCount,
+    output_tokens: catUsage?.candidatesTokenCount,
+    total_tokens: catUsage?.totalTokenCount,
+  });
   console.log(`[gemini/categorize] Response in ${Date.now() - t0}ms — raw: "${raw}"`);
 
   const matched = validSlugs.find((c: string) => raw.includes(c));
@@ -738,12 +815,13 @@ async function extractStructuredData(
   scrape: ScrapeResult,
   category: CategoryType,
   itemId: string,
+  distinctId: string,
 ): Promise<ExtractionResult> {
   // Video analysis path: use Gemini Files API with actual video
   if (shouldUseVideoAnalysis(category, scrape.platform, scrape.videoUrl)) {
     console.log(`[gemini/extract] Using video analysis path — platform: ${scrape.platform}`);
     const prompt = category === "travel" ? TRAVEL_VIDEO_PROMPT : VIDEO_ANALYSIS_PROMPT;
-    const videoData = await extractWithVideo(scrape.videoUrl!, itemId, prompt);
+    const videoData = await extractWithVideo(scrape.videoUrl!, itemId, distinctId, category, prompt);
     if (videoData) {
       return {
         category,
@@ -785,9 +863,28 @@ async function extractStructuredData(
     result = await model.generateContent(prompt);
   } catch (err) {
     console.error(`[gemini/extract] API error after ${Date.now() - t0}ms — model: ${modelName}, category: ${category}`, err);
+    await emitAiGeneration(distinctId, {
+      item_id: itemId,
+      category,
+      model: modelName,
+      span: "extract",
+      latency_ms: Date.now() - t0,
+      error: err instanceof Error ? err.message : "unknown",
+    });
     throw err;
   }
   const raw = result.response.text().trim();
+  const extractUsage = (result.response as unknown as { usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } }).usageMetadata;
+  await emitAiGeneration(distinctId, {
+    item_id: itemId,
+    category,
+    model: modelName,
+    span: "extract",
+    latency_ms: Date.now() - t0,
+    input_tokens: extractUsage?.promptTokenCount,
+    output_tokens: extractUsage?.candidatesTokenCount,
+    total_tokens: extractUsage?.totalTokenCount,
+  });
   console.log(`[gemini/extract] Response in ${Date.now() - t0}ms — raw length: ${raw.length} chars`);
   console.log(`[gemini/extract] Raw response: ${raw.slice(0, 500)}${raw.length > 500 ? "…" : ""}`);
 
@@ -812,41 +909,149 @@ async function extractStructuredData(
 
 // ─── Main action ──────────────────────────────────────────────────────────────
 
+const REQUIRED_FIELDS: Record<string, string[]> = {
+  food: ["name", "address"],
+  recipe: ["dish_name", "ingredients"],
+  fitness: ["workout_name", "exercises"],
+  "how-to": ["title", "shots"],
+  "video-analysis": ["title", "shots"],
+  travel: ["title", "itinerary"],
+  other: ["title", "summary"],
+};
+
 export const processItem = internalAction({
   args: {
     savedItemId: v.id("savedItems"),
     url: v.string(),
     overrideCategory: v.optional(v.string()),
+    distinctId: v.string(),
   },
-  handler: async (ctx, { savedItemId, url, overrideCategory }) => {
-    console.log(
-      `[processUrl] Processing item ${savedItemId} — url: ${url}`,
-    );
-
-    // Mark as processing
-    await ctx.runMutation(internal.items.markProcessing, {
-      id: savedItemId,
-    });
+  handler: async (ctx, { savedItemId, url, overrideCategory, distinctId }) => {
+    console.log(`[processUrl] Processing item ${savedItemId} — url: ${url}`);
+    await ctx.runMutation(internal.items.markProcessing, { id: savedItemId });
 
     const pipelineStart = Date.now();
+    const platform = detectPlatform(url);
+    let urlHostname = "invalid";
     try {
-      const platform = detectPlatform(url);
-      console.log(`[processUrl] Detected platform: ${platform}`);
+      urlHostname = new URL(url).hostname;
+    } catch {
+      // leave as invalid
+    }
 
+    await captureServer({
+      distinctId,
+      event: SERVER_EVENTS.ITEM_PROCESSING_STARTED,
+      properties: { item_id: savedItemId, platform, url_host: urlHostname },
+    });
+
+    try {
       console.log(`[processUrl] Scraping url via Apify...`);
       const scrapeStart = Date.now();
-      const scrapeResult = await scrapeUrl(url, platform);
+      let scrapeResult;
+      try {
+        scrapeResult = await scrapeUrl(url, platform);
+      } catch (scrapeErr) {
+        await captureServer({
+          distinctId,
+          event: SERVER_EVENTS.ITEM_SCRAPE_FAILED,
+          properties: {
+            item_id: savedItemId,
+            platform,
+            duration_ms: Date.now() - scrapeStart,
+            error_message: scrapeErr instanceof Error ? scrapeErr.message : "unknown",
+          },
+        });
+        throw scrapeErr;
+      }
+      await captureServer({
+        distinctId,
+        event: SERVER_EVENTS.ITEM_SCRAPE_COMPLETED,
+        properties: {
+          item_id: savedItemId,
+          platform,
+          duration_ms: Date.now() - scrapeStart,
+          has_title: !!scrapeResult.title,
+          has_description: !!scrapeResult.description,
+          has_video: !!scrapeResult.videoUrl,
+          has_thumbnail: !!scrapeResult.thumbnailUrl,
+          description_chars: (scrapeResult.description ?? "").length,
+          hashtag_count: (scrapeResult.hashtags ?? []).length,
+        },
+      });
       console.log(`[processUrl] Scrape complete in ${Date.now() - scrapeStart}ms — platform: ${platform}, title: ${scrapeResult.title ?? "(none)"}, hasVideo: ${!!scrapeResult.videoUrl}, hashtags: ${(scrapeResult.hashtags ?? []).length}`);
 
       console.log(`[processUrl] Categorizing content...`);
-      const category = overrideCategory ?? await categorizeContent(ctx, scrapeResult);
+      const categorizeStart = Date.now();
+      const category = overrideCategory ?? (await categorizeContent(ctx, scrapeResult, savedItemId, distinctId));
+      await captureServer({
+        distinctId,
+        event: SERVER_EVENTS.ITEM_CATEGORIZED,
+        properties: {
+          item_id: savedItemId,
+          platform,
+          category,
+          was_override: !!overrideCategory,
+          duration_ms: Date.now() - categorizeStart,
+        },
+      });
       console.log(`[processUrl] Category resolved: ${category}`);
 
       console.log(`[processUrl] Extracting structured data...`);
-      const extraction = await extractStructuredData(ctx, scrapeResult, category, savedItemId);
-      console.log(`[processUrl] Extraction complete — category: ${extraction.category}, action: ${extraction.actionTaken}, dataKeys: ${Object.keys(extraction.extractedData).join(", ")}`);
+      const extractStart = Date.now();
+      let extraction;
+      try {
+        extraction = await extractStructuredData(ctx, scrapeResult, category, savedItemId, distinctId);
+      } catch (extractErr) {
+        await captureServer({
+          distinctId,
+          event: SERVER_EVENTS.ITEM_EXTRACTION_FAILED,
+          properties: {
+            item_id: savedItemId,
+            platform,
+            category,
+            duration_ms: Date.now() - extractStart,
+            error_message: extractErr instanceof Error ? extractErr.message : "unknown",
+          },
+        });
+        throw extractErr;
+      }
+      const extractedKeys = Object.keys(extraction.extractedData);
+      await captureServer({
+        distinctId,
+        event: SERVER_EVENTS.ITEM_EXTRACTION_COMPLETED,
+        properties: {
+          item_id: savedItemId,
+          platform,
+          category: extraction.category,
+          duration_ms: Date.now() - extractStart,
+          extracted_field_count: extractedKeys.length,
+          parse_error: extractedKeys.includes("parse_error"),
+        },
+      });
 
-      // Download thumbnail and upload to Cloudflare R2
+      const required = REQUIRED_FIELDS[extraction.category] ?? [];
+      const missing = required.filter((f) => {
+        const val = (extraction.extractedData as Record<string, unknown>)[f];
+        if (val == null) return true;
+        if (Array.isArray(val) && val.length === 0) return true;
+        if (typeof val === "string" && val.trim() === "") return true;
+        return false;
+      });
+      if (missing.length) {
+        await captureServer({
+          distinctId,
+          event: SERVER_EVENTS.EXTRACTION_FIELD_MISSING,
+          properties: {
+            item_id: savedItemId,
+            category: extraction.category,
+            platform,
+            missing_fields: missing,
+          },
+        });
+      }
+      console.log(`[processUrl] Extraction complete — category: ${extraction.category}, action: ${extraction.actionTaken}, dataKeys: ${extractedKeys.join(", ")}`);
+
       let thumbnailR2Key: string | undefined;
       if (scrapeResult.thumbnailUrl) {
         try {
@@ -887,6 +1092,16 @@ export const processItem = internalAction({
     } catch (err) {
       const elapsed = Date.now() - pipelineStart;
       console.error(`[processUrl] Item ${savedItemId} failed after ${elapsed}ms:`, err);
+      await captureServer({
+        distinctId,
+        event: SERVER_EVENTS.ITEM_PROCESSING_FAILED,
+        properties: {
+          item_id: savedItemId,
+          platform,
+          duration_ms: elapsed,
+          error_message: err instanceof Error ? err.message : "unknown",
+        },
+      });
       await ctx.runMutation(internal.items.markFailed, { id: savedItemId });
     }
   },

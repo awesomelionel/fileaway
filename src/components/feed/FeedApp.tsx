@@ -7,6 +7,15 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery, useMutation, usePreloadedQuery, Preloaded } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import dynamic from "next/dynamic";
+import { track, EVENTS, urlHost } from "@/lib/analytics";
+
+function detectPlatform(url: string): "tiktok" | "instagram" | "youtube" | "twitter" | "other" {
+  if (/tiktok\.com/i.test(url)) return "tiktok";
+  if (/instagram\.com/i.test(url)) return "instagram";
+  if (/youtube\.com|youtu\.be/i.test(url)) return "youtube";
+  if (/twitter\.com|x\.com/i.test(url)) return "twitter";
+  return "other";
+}
 
 const DetailModal = dynamic(
   () => import("@/components/feed/DetailModal").then((m) => ({ default: m.DetailModal })),
@@ -28,17 +37,32 @@ function UrlInput() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
+
+    const cleaned = url.trim();
+    const platform = detectPlatform(cleaned);
+    track(EVENTS.LINK_SAVE_SUBMITTED, { platform, url_host: urlHost(cleaned) });
+
     setStatus("loading");
     setErrorMsg("");
 
     try {
-      await saveItem({ url: url.trim() });
+      const id = await saveItem({ url: cleaned });
+      track(EVENTS.LINK_SAVE_SUCCEEDED, {
+        platform,
+        url_host: urlHost(cleaned),
+        item_id: String(id),
+      });
       setStatus("success");
       setUrl("");
       setTimeout(() => setStatus("idle"), 2500);
     } catch (err: unknown) {
-      setStatus("error");
       const msg = err instanceof Error ? err.message : "Failed to save";
+      track(EVENTS.LINK_SAVE_FAILED, {
+        platform,
+        url_host: urlHost(cleaned),
+        error_message: msg,
+      });
+      setStatus("error");
       setErrorMsg(msg);
       setTimeout(() => setStatus("idle"), 3000);
     }
@@ -241,11 +265,19 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
 
   const openItem = useCallback(
     (id: string) => {
+      const item = allItems.find((i) => i.id === id);
+      if (item) {
+        track(EVENTS.ITEM_VIEWED, {
+          item_id: id,
+          category: item.category,
+          platform: item.platform,
+        });
+      }
       const params = new URLSearchParams(searchParams.toString());
       params.set("item", id);
       router.push(`${pathname}?${params.toString()}`);
     },
-    [searchParams, router, pathname],
+    [searchParams, router, pathname, allItems],
   );
 
   const updateParam = useCallback(
@@ -302,6 +334,12 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
     setSearchInput(value);
     const timer = setTimeout(() => {
       updateParam({ q: value || null });
+      if (value.trim().length > 0) {
+        track(EVENTS.SEARCH_PERFORMED, {
+          query_length: value.trim().length,
+          result_count: filteredItems.length,
+        });
+      }
     }, 350);
     return () => clearTimeout(timer);
   };
@@ -377,7 +415,10 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
               active={activeCategory}
               counts={counts}
               tabs={tabs}
-              onChange={(v) => updateParam({ category: v === "all" ? null : v })}
+              onChange={(v) => {
+                track(EVENTS.CATEGORY_TAB_CHANGED, { from: activeCategory, to: v });
+                updateParam({ category: v === "all" ? null : v });
+              }}
             />
           </div>
 
@@ -385,7 +426,10 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
           <div className="flex items-center rounded-lg border border-fa-line bg-fa-surface p-0.5 flex-shrink-0 gap-0.5">
             <button
               type="button"
-              onClick={() => updateParam({ view: null })}
+              onClick={() => {
+                track(EVENTS.VIEW_TOGGLED, { to: "feed", from: archiveView ? "archive" : "feed" });
+                updateParam({ view: null });
+              }}
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
                 !archiveView ? "bg-fa-pill-active text-fa-primary" : "text-fa-subtle hover:text-fa-muted"
               }`}
@@ -394,7 +438,10 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
             </button>
             <button
               type="button"
-              onClick={() => updateParam({ view: "archive" })}
+              onClick={() => {
+                track(EVENTS.VIEW_TOGGLED, { to: "archive", from: archiveView ? "archive" : "feed" });
+                updateParam({ view: "archive" });
+              }}
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
                 archiveView ? "bg-fa-pill-active text-fa-primary" : "text-fa-subtle hover:text-fa-muted"
               }`}

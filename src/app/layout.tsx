@@ -4,6 +4,8 @@ import { Syne } from "next/font/google";
 import "./globals.css";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { PostHogProvider } from "@/components/PostHogProvider";
+import { PostHogIdentify } from "@/components/PostHogIdentify";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
@@ -39,7 +41,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${syne.variable} antialiased`}
       >
         <ConvexAuthNextjsServerProvider>
-          <ConvexClientProvider>{children}</ConvexClientProvider>
+          <PostHogProvider>
+            <ConvexClientProvider>
+              <PostHogIdentify />
+              {children}
+            </ConvexClientProvider>
+          </PostHogProvider>
         </ConvexAuthNextjsServerProvider>
         <Analytics />
         <SpeedInsights />
