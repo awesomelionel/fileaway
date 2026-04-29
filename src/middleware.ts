@@ -20,6 +20,9 @@ export default convexAuthNextjsMiddleware(
 );
 
 export const config = {
-  // Run middleware on all routes except static files and Next.js internals
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // Run middleware on app routes only. `/ingest` is the same-origin PostHog
+  // proxy and must reach Next rewrites without auth redirects.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|ingest(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };
