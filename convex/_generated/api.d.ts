@@ -12,8 +12,10 @@ import type * as admin from "../admin.js";
 import type * as adminCategories from "../adminCategories.js";
 import type * as analytics from "../analytics.js";
 import type * as auth from "../auth.js";
+import type * as geocode from "../geocode.js";
 import type * as http from "../http.js";
 import type * as items from "../items.js";
+import type * as places from "../places.js";
 import type * as processUrl from "../processUrl.js";
 import type * as users from "../users.js";
 
@@ -28,8 +30,10 @@ declare const fullApi: ApiFromModules<{
   adminCategories: typeof adminCategories;
   analytics: typeof analytics;
   auth: typeof auth;
+  geocode: typeof geocode;
   http: typeof http;
   items: typeof items;
+  places: typeof places;
   processUrl: typeof processUrl;
   users: typeof users;
 }>;

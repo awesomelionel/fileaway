@@ -32,7 +32,16 @@
       "Bash(git -C /Users/lioneltan/.paperclip/instances/default/workspaces/12251c6d-5e5c-41f6-8962-6da2b528691d/fileaway/.worktrees/recategorize-and-reprocess add convex/items.ts)",
       "Bash(git -C /Users/lioneltan/.paperclip/instances/default/workspaces/12251c6d-5e5c-41f6-8962-6da2b528691d/fileaway/.worktrees/recategorize-and-reprocess commit -m \"chore: remove dead updateCategory mutation, document canReprocess scope\")",
       "Bash(bash /Users/lioneltan/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.6/skills/brainstorming/scripts/start-server.sh --project-dir /Users/lioneltan/.paperclip/instances/default/workspaces/12251c6d-5e5c-41f6-8962-6da2b528691d/fileaway)",
-      "Bash(git cherry-pick:*)"
+      "Bash(git cherry-pick:*)",
+      "Bash(npx convex *)",
+      "Bash(curl *)",
+      "Bash(grep -oE 'og:description[^>]*content=\"[^\"]{0,200}\"|Page not found|<title>[^<]*')",
+      "Bash(git log *)",
+      "Bash(git reset *)",
+      "Bash(git push *)",
+      "Bash(npx *)",
+      "Bash(bash *)",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }
