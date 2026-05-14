@@ -27,7 +27,7 @@ npm run lint
 
 ### Stack
 
-- **Frontend**: Next.js 14 App Router + React 18 + TypeScript, styled with Tailwind CSS + shadcn/ui
+- **Frontend**: Next.js 16 App Router + React 18 + TypeScript, styled with Tailwind CSS + shadcn/ui
 - **Backend**: Convex (real-time DB + serverless functions + auth)
 - **Scraping**: Apify (TikTok/Instagram actors)
 - **AI**: Google Gemini (1.5 Flash for categorization, 1.5 Pro for rich extraction)
@@ -49,7 +49,7 @@ All backend logic lives in Convex — no separate API server.
 
 ### Frontend (`src/`)
 
-- `middleware.ts` — Protects all routes except `/login` and `/signup` via `isAuthenticatedNextjs()`
+- `proxy.ts` — Protects all routes except `/login` and `/signup` via `isAuthenticatedNextjs()` (Next.js 16 renamed the `middleware` file convention to `proxy`)
 - `app/layout.tsx` — Wraps app in `ConvexAuthNextjsServerProvider` + `ConvexClientProvider`
 - `components/ConvexClientProvider.tsx` — Client-side Convex + auth context
 - `components/feed/FeedApp.tsx` — Main feed: URL input, category tabs (with counts), search (350ms debounce), reactive `useQuery(api.items.list)`

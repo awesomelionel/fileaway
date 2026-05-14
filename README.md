@@ -4,13 +4,13 @@ A web app that lets users save social media links and have AI automatically extr
 
 ## Architecture
 
-- **Next.js 14** (App Router) calls **Convex** queries and mutations from the browser for data and writes.
+- **Next.js 16** (App Router) calls **Convex** queries and mutations from the browser for data and writes.
 - **Convex** holds the document database (`savedItems` + auth tables), runs **Convex Auth** (password sign-in), and runs **internal actions** for scraping and AI (scheduled right after each save — no separate job queue).
 - **Apify** and **Gemini** run inside Convex `"use node"` actions; their API keys are configured as [Convex environment variables](https://docs.convex.dev/production/environment-variables) for deployments and local dev.
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14 (App Router) + TypeScript
+- **Frontend**: Next.js 16 (App Router) + TypeScript
 - **Backend**: [Convex](https://www.convex.dev/) (database, server functions, scheduler)
 - **Auth**: [@convex-dev/auth](https://labs.convex.dev/auth) (Password provider)
 - **Styling**: Tailwind CSS + shadcn/ui
