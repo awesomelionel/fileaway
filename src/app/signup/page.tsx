@@ -102,7 +102,7 @@ export default function SignupPage() {
         <div className="space-y-2 mb-6">
           <button
             type="button"
-            onClick={() => void signIn("google")}
+            onClick={() => void signIn("google", { redirectTo: window.location.origin })}
             className="w-full flex items-center justify-center gap-2.5 bg-fa-input border border-fa-line rounded-lg px-4 py-2.5 text-sm text-fa-primary hover:border-fa-ring transition-colors"
           >
             <GoogleIcon />
@@ -110,7 +110,7 @@ export default function SignupPage() {
           </button>
           <button
             type="button"
-            onClick={() => void signIn("github")}
+            onClick={() => void signIn("github", { redirectTo: window.location.origin })}
             className="w-full flex items-center justify-center gap-2.5 bg-fa-input border border-fa-line rounded-lg px-4 py-2.5 text-sm text-fa-primary hover:border-fa-ring transition-colors"
           >
             <GitHubIcon />
