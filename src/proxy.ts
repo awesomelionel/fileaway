@@ -6,7 +6,7 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 
 // Routes that don't require authentication
-const isPublicRoute = createRouteMatcher(["/", "/login", "/signup", "/auth/verify"]);
+const isPublicRoute = createRouteMatcher(["/", "/login", "/signup", "/auth/verify", "/terms", "/privacy"]);
 
 export default convexAuthNextjsMiddleware(
   async (request: NextRequest) => {
