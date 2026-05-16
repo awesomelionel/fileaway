@@ -6,7 +6,7 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 
 // Routes that don't require authentication
-const isPublicRoute = createRouteMatcher(["/", "/login", "/signup"]);
+const isPublicRoute = createRouteMatcher(["/", "/login", "/signup", "/auth/verify"]);
 
 export default convexAuthNextjsMiddleware(
   async (request: NextRequest) => {
@@ -21,5 +21,5 @@ export default convexAuthNextjsMiddleware(
 
 export const config = {
   // Run middleware on all routes except static files and Next.js internals
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|ingest|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };
