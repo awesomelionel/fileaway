@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
 function GoogleIcon() {
   return (
@@ -32,6 +33,15 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const [resendToken, setResendToken] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState<"idle" | "sent" | "error">("idle");
+  const [resendError, setResendError] = useState("");
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
+  const resendTurnstileRef = useRef<TurnstileInstance | null>(null);
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,22 +67,138 @@ export default function SignupPage() {
       setError("Passwords do not match");
       return;
     }
+    if (turnstileSiteKey && !turnstileToken) {
+      setError("Please complete the captcha");
+      return;
+    }
 
     setLoading(true);
     try {
-      await signIn("password", { email: email.trim(), password, flow: "signUp" });
-      router.push("/");
+      const result = await signIn("password", {
+        email: email.trim(),
+        password,
+        flow: "signUp",
+        turnstileToken: turnstileToken ?? "",
+      });
+      if (result.signingIn) {
+        router.push("/");
+      } else {
+        setSent(true);
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      if (message.toLowerCase().includes("already") || message.toLowerCase().includes("exists")) {
+      const lower = message.toLowerCase();
+      if (lower.includes("already") || lower.includes("exists")) {
         setError("An account with this email already exists");
+      } else if (lower.includes("captcha")) {
+        setError("Captcha verification failed. Please refresh and try again.");
+      } else if (lower.includes("rate limit")) {
+        setError("Too many signup attempts. Please try again later.");
       } else {
         setError("Something went wrong. Please try again.");
       }
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleResend = async () => {
+    setResendStatus("idle");
+    setResendError("");
+    if (turnstileSiteKey && !resendToken) {
+      setResendError("Please complete the captcha");
+      setResendStatus("error");
+      return;
+    }
+    setResending(true);
+    try {
+      await signIn("password", {
+        email: email.trim(),
+        password,
+        flow: "signUp",
+        turnstileToken: resendToken ?? "",
+      });
+      setResendStatus("sent");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      const lower = message.toLowerCase();
+      if (lower.includes("rate limit")) {
+        setResendError("Too many attempts. Please try again later.");
+      } else if (lower.includes("captcha")) {
+        setResendError("Captcha verification failed. Please try again.");
+      } else {
+        setResendError("Couldn't resend. Please try again.");
+      }
+      setResendStatus("error");
+    } finally {
+      resendTurnstileRef.current?.reset();
+      setResendToken(null);
+      setResending(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <div className="min-h-screen bg-fa-canvas flex items-center justify-center px-4">
+        <div className="w-full max-w-sm text-center">
+          <h1 className="text-xl font-semibold text-fa-primary mb-2">Check your email</h1>
+          <p className="text-sm text-fa-subtle mb-6">
+            We sent a verification link to <span className="text-fa-primary">{email.trim()}</span>. Click it to finish signing up. The link expires in 15 minutes.
+          </p>
+
+          {turnstileSiteKey && (
+            <div className="flex justify-center mb-3">
+              <Turnstile
+                ref={resendTurnstileRef}
+                siteKey={turnstileSiteKey}
+                onSuccess={(token) => setResendToken(token)}
+                onError={() => setResendToken(null)}
+                onExpire={() => setResendToken(null)}
+                options={{ theme: "auto" }}
+              />
+            </div>
+          )}
+
+          {resendStatus === "sent" && (
+            <p className="text-xs text-[#22c55e] bg-[#22c55e10] border border-[#22c55e20] rounded-lg px-3 py-2 mb-3">
+              New magic link sent.
+            </p>
+          )}
+          {resendStatus === "error" && resendError && (
+            <p className="text-xs text-[#ef4444] bg-[#ef444410] border border-[#ef444420] rounded-lg px-3 py-2 mb-3">
+              {resendError}
+            </p>
+          )}
+
+          <button
+            type="button"
+            disabled={resending || (!!turnstileSiteKey && !resendToken)}
+            onClick={handleResend}
+            className="w-full bg-fa-btn-bg text-fa-btn-fg rounded-lg py-2.5 text-sm font-medium hover:bg-fa-btn-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-4"
+          >
+            {resending ? "Resending…" : "Resend email"}
+          </button>
+
+          <p className="text-xs text-fa-icon-muted">
+            Wrong email?{" "}
+            <button
+              type="button"
+              onClick={() => {
+                setSent(false);
+                setResendStatus("idle");
+                setResendError("");
+              }}
+              className="text-fa-muted hover:text-fa-secondary transition-colors underline underline-offset-2"
+            >
+              Go back
+            </button>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-fa-canvas flex items-center justify-center px-4">
@@ -177,6 +303,19 @@ export default function SignupPage() {
             />
           </div>
 
+          {turnstileSiteKey && (
+            <div className="pt-1">
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={turnstileSiteKey}
+                onSuccess={(token) => setTurnstileToken(token)}
+                onError={() => setTurnstileToken(null)}
+                onExpire={() => setTurnstileToken(null)}
+                options={{ theme: "auto" }}
+              />
+            </div>
+          )}
+
           {error && (
             <p className="text-xs text-[#ef4444] bg-[#ef444410] border border-[#ef444420] rounded-lg px-3 py-2">
               {error}
@@ -185,7 +324,7 @@ export default function SignupPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || (!!turnstileSiteKey && !turnstileToken)}
             className="w-full bg-fa-btn-bg text-fa-btn-fg rounded-lg py-2.5 text-sm font-medium hover:bg-fa-btn-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-1"
           >
             {loading ? "Creating account…" : "Create account"}
