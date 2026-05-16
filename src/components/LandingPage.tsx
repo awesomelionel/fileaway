@@ -364,6 +364,8 @@ export function LandingPage() {
         <div className="footer-links">
           <Link href="/login" className="footer-link">Sign in</Link>
           <Link href="/signup" className="footer-link">Sign up</Link>
+          <Link href="/terms" className="footer-link">Terms</Link>
+          <Link href="/privacy" className="footer-link">Privacy</Link>
         </div>
       </footer>
 
