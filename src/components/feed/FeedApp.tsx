@@ -8,6 +8,7 @@ import { useQuery, useMutation, usePreloadedQuery, Preloaded } from "convex/reac
 import { api } from "../../../convex/_generated/api";
 import dynamic from "next/dynamic";
 import { track, EVENTS, urlHost } from "@/lib/analytics";
+import { SiteFooter } from "@/components/SiteFooter";
 
 function detectPlatform(url: string): "tiktok" | "instagram" | "youtube" | "twitter" | "other" {
   if (/tiktok\.com/i.test(url)) return "tiktok";
@@ -486,6 +487,7 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
           )}
         </div>
       </main>
+      <SiteFooter showAuthLinks={false} />
       {activeItem && (
         <DetailModal
           key={activeItem.id}
