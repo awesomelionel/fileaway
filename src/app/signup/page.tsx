@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { SiteFooter } from "@/components/SiteFooter";
+import { Logo } from "@/components/Logo";
 
 function GoogleIcon() {
   return (
@@ -142,7 +143,7 @@ export default function SignupPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-fa-canvas flex flex-col">
+      <div className="min-h-dvh bg-fa-canvas flex flex-col">
         <div className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-sm text-center">
           <h1 className="text-xl font-semibold text-fa-primary mb-2">Check your email</h1>
@@ -205,21 +206,10 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-fa-canvas flex flex-col">
+    <div className="min-h-dvh bg-fa-canvas flex flex-col">
       <div className="flex-1 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        {/* Logo */}
-        <a href="/" className="flex items-center gap-2 mb-10 group w-fit">
-          <div className="w-7 h-7 rounded grid grid-cols-2 gap-0.5 p-1.5 bg-fa-input border border-fa-line group-hover:border-fa-ring transition-colors">
-            <div className="bg-[#f97316] rounded-[1px]" />
-            <div className="bg-[#22c55e] rounded-[1px]" />
-            <div className="bg-[#3b82f6] rounded-[1px]" />
-            <div className="bg-[#a855f7] rounded-[1px]" />
-          </div>
-          <span className="font-bold text-sm tracking-tight text-fa-primary">
-            file<span className="text-fa-subtle">away</span>
-          </span>
-        </a>
+        <Logo size="md" className="mb-10 w-fit" />
 
         <h1 className="text-xl font-semibold text-fa-primary mb-1">Create account</h1>
         <p className="text-sm text-fa-subtle mb-7">

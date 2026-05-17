@@ -61,9 +61,40 @@
     --fa-btn-fg: #fdfcfa;
     --fa-btn-hover: #2a241c;
     --fa-count-active-bg: rgba(0, 0, 0, 0.06);
-    --fa-shadow-card: 0 12px 40px rgba(28, 22, 14, 0.1);
+    --fa-shadow-card: 0 12px 40px rgba(60, 35, 15, 0.08);
+    --fa-shadow-soft: 0 2px 12px rgba(60, 35, 15, 0.06), 0 1px 3px rgba(60, 35, 15, 0.04);
     --fa-secondary-alt: #5c574e;
     --fa-icon-muted: #6b655b;
+
+    /* Brand accent — ink amber. One color, used everywhere a CTA needs presence. */
+    --fa-accent: #c2410c;
+    --fa-accent-hover: #9a3208;
+    --fa-accent-soft: #fbeee4;
+    --fa-accent-mid: #e6b896;
+    --fa-accent-ring: rgba(194, 65, 12, 0.28);
+
+    /* Category palette — desaturated, library-card-catalog feel. Each has -ink (stripe / text)
+       and -soft (chip bg). Works on cream paper. */
+    --fa-cat-food: #b85c3a;
+    --fa-cat-food-soft: #f8ece4;
+    --fa-cat-recipe: #556e1c;
+    --fa-cat-recipe-soft: #eef2dc;
+    --fa-cat-fitness: #3949ab;
+    --fa-cat-fitness-soft: #e6e8f3;
+    --fa-cat-howto: #7e3f6b;
+    --fa-cat-howto-soft: #f1e6ee;
+    --fa-cat-video: #3d6b5c;
+    --fa-cat-video-soft: #e3ede9;
+    --fa-cat-travel: #c08442;
+    --fa-cat-travel-soft: #faece0;
+    --fa-cat-other: #6b655b;
+    --fa-cat-other-soft: #ebe6db;
+
+    /* State colors — separate from category colors so they don't conflict. */
+    --fa-success: #3d6b3d;
+    --fa-success-soft: #e6efde;
+    --fa-danger: #a83232;
+    --fa-danger-soft: #f3e1e0;
 
     /* shadcn-style HSL tokens — align with fa for components using bg-background */
     --background: 40 20% 95%;
@@ -121,8 +152,37 @@
       --fa-btn-hover: #ffffff;
       --fa-count-active-bg: rgba(255, 255, 255, 0.06);
       --fa-shadow-card: 0 12px 40px rgba(0, 0, 0, 0.45);
+      --fa-shadow-soft: 0 2px 12px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.2);
       --fa-secondary-alt: #777777;
       --fa-icon-muted: #666666;
+
+      /* Accent stays the same hue but brighter for dark surfaces. */
+      --fa-accent: #e87141;
+      --fa-accent-hover: #f08458;
+      --fa-accent-soft: #2a1810;
+      --fa-accent-mid: #5c331f;
+      --fa-accent-ring: rgba(232, 113, 65, 0.32);
+
+      /* Category palette — same hues, shifted brighter for near-black surfaces. */
+      --fa-cat-food: #d97a52;
+      --fa-cat-food-soft: #2a1a12;
+      --fa-cat-recipe: #9bbf4a;
+      --fa-cat-recipe-soft: #1a2210;
+      --fa-cat-fitness: #6b7bd6;
+      --fa-cat-fitness-soft: #161a2a;
+      --fa-cat-howto: #b06794;
+      --fa-cat-howto-soft: #221520;
+      --fa-cat-video: #6fa090;
+      --fa-cat-video-soft: #14201c;
+      --fa-cat-travel: #d9a062;
+      --fa-cat-travel-soft: #261a10;
+      --fa-cat-other: #9c958a;
+      --fa-cat-other-soft: #1f1d1a;
+
+      --fa-success: #6aa86a;
+      --fa-success-soft: #14201a;
+      --fa-danger: #d46a6a;
+      --fa-danger-soft: #261414;
 
       --background: 240 6% 6%;
       --foreground: 0 0% 93%;
@@ -175,5 +235,10 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-geist-sans), system-ui, sans-serif;
+  }
+
+  /* Soft spring-feel ease for interactive transforms — set as default for the brand. */
+  a, button, [role="button"] {
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
 }

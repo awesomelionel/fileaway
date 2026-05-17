@@ -9,6 +9,7 @@ import { api } from "../../../convex/_generated/api";
 import dynamic from "next/dynamic";
 import { track, EVENTS, urlHost } from "@/lib/analytics";
 import { SiteFooter } from "@/components/SiteFooter";
+import { Logo } from "@/components/Logo";
 
 function detectPlatform(url: string): "tiktok" | "instagram" | "youtube" | "twitter" | "other" {
   if (/tiktok\.com/i.test(url)) return "tiktok";
@@ -86,9 +87,9 @@ function UrlInput() {
         disabled={status === "loading" || !url.trim()}
         className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
           status === "success"
-            ? "bg-[#22c55e20] text-[#22c55e] border border-[#22c55e30]"
+            ? "bg-fa-success-soft text-fa-success border border-fa-success"
             : status === "error"
-            ? "bg-[#ef444420] text-[#ef4444] border border-[#ef444430]"
+            ? "bg-fa-danger-soft text-fa-danger border border-fa-danger"
             : "bg-fa-btn-bg text-fa-btn-fg hover:bg-fa-btn-hover"
         }`}
       >
@@ -96,7 +97,7 @@ function UrlInput() {
       </button>
 
       {status === "error" && errorMsg && (
-        <p className="absolute top-full left-0 mt-1 text-xs text-[#ef4444]">{errorMsg}</p>
+        <p className="absolute top-full left-0 mt-1 text-xs text-fa-danger">{errorMsg}</p>
       )}
     </form>
   );
@@ -352,24 +353,13 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
   };
 
   return (
-    <div className="min-h-screen bg-fa-canvas text-fa-primary">
+    <div className="min-h-dvh bg-fa-canvas text-fa-primary">
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-fa-border bg-fa-canvas/95 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-4 py-3">
           {/* Top row: logo + nav + sign out */}
           <div className="flex items-center gap-3">
-            {/* Logo */}
-            <a href="/" className="flex-shrink-0 flex items-center gap-2 group">
-              <div className="w-6 h-6 rounded grid grid-cols-2 gap-0.5 p-1 bg-fa-input border border-fa-line group-hover:border-fa-ring transition-colors">
-                <div className="bg-[#f97316] rounded-[1px]" />
-                <div className="bg-[#22c55e] rounded-[1px]" />
-                <div className="bg-[#3b82f6] rounded-[1px]" />
-                <div className="bg-[#a855f7] rounded-[1px]" />
-              </div>
-              <span className="font-bold text-sm tracking-tight text-fa-primary">
-                file<span className="text-fa-logo-dim">away</span>
-              </span>
-            </a>
+            <Logo size="md" className="flex-shrink-0" />
 
             {/* Desktop URL input — hidden on mobile */}
             <div className="hidden sm:block flex-1 relative">

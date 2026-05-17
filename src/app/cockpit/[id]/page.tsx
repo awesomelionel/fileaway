@@ -22,7 +22,7 @@ export default function EditCategoryPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-fa-canvas flex items-center justify-center">
+      <div className="min-h-dvh bg-fa-canvas flex items-center justify-center">
         <p className="text-fa-subtle text-sm">Not authenticated</p>
       </div>
     );
@@ -30,7 +30,7 @@ export default function EditCategoryPage() {
 
   if (category === undefined) {
     return (
-      <div className="min-h-screen bg-fa-canvas flex items-center justify-center">
+      <div className="min-h-dvh bg-fa-canvas flex items-center justify-center">
         <p className="text-fa-subtle text-sm">Loading…</p>
       </div>
     );
@@ -38,14 +38,14 @@ export default function EditCategoryPage() {
 
   if (category === null) {
     return (
-      <div className="min-h-screen bg-fa-canvas flex items-center justify-center">
+      <div className="min-h-dvh bg-fa-canvas flex items-center justify-center">
         <p className="text-fa-subtle text-sm">Category not found</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-fa-canvas text-fa-primary">
+    <div className="min-h-dvh bg-fa-canvas text-fa-primary">
       <header className="border-b border-fa-border bg-fa-canvas/95 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
           <a href="/cockpit" className="text-fa-subtle hover:text-fa-muted text-xs">← Cockpit</a>
