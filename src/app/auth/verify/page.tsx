@@ -42,7 +42,7 @@ function VerifyInner() {
   }, [hasParams, email, token, signIn, router]);
 
   return (
-    <div className="min-h-screen bg-fa-canvas flex items-center justify-center px-4">
+    <div className="min-h-dvh bg-fa-canvas flex items-center justify-center px-4">
       <div className="w-full max-w-sm text-center">
         {status === "verifying" ? (
           <>

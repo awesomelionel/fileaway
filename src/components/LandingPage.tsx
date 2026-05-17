@@ -2,30 +2,8 @@
 
 import Link from "next/link";
 import { SiteFooter } from "./SiteFooter";
+import { Logo } from "./Logo";
 import "./LandingPage.css";
-
-// ─── Logo ─────────────────────────────────────────────────────────────────────
-
-function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  const grid =
-    size === "lg" ? "w-9 h-9 p-2 gap-0.5" :
-    size === "sm" ? "w-5 h-5 p-1 gap-[2px]" :
-    "w-7 h-7 p-1.5 gap-0.5";
-  const text = size === "lg" ? "text-base" : size === "sm" ? "text-xs" : "text-sm";
-  return (
-    <div className="flex items-center gap-2">
-      <div className={`rounded grid grid-cols-2 border border-[#cfc8ba] ${grid}`} style={{ background: "#fffcf7" }}>
-        <div className="bg-[#f97316] rounded-[1px]" />
-        <div className="bg-[#22c55e] rounded-[1px]" />
-        <div className="bg-[#3b82f6] rounded-[1px]" />
-        <div className="bg-[#a855f7] rounded-[1px]" />
-      </div>
-      <span className={`font-bold tracking-tight ${text}`} style={{ fontFamily: "var(--font-syne)", color: "#14110c" }}>
-        file<span style={{ color: "#7a7468" }}>away</span>
-      </span>
-    </div>
-  );
-}
 
 // ─── Real data cards (sourced from actual DB items) ────────────────────────────
 
@@ -33,26 +11,26 @@ function FoodCard() {
   // Real item: Next Door Spanish Cafe · tiktok.com/ZSH26xWpW
   const dishes = ["Burnt cheesecake", "Paella", "Fideuà"];
   return (
-    <div className="landing-card" style={{ borderTopColor: "#ffc5b2", borderTopWidth: "3px", background: "#fffbf9" }}>
+    <div className="landing-card" style={{ borderLeftColor: "var(--fa-cat-food)", borderLeftWidth: "3px" }}>
       <div className="flex items-center gap-2 mb-3">
-        <span className="category-pill" style={{ background: "#fff0ec", color: "#f4623a", borderColor: "#ffc5b2" }}>food</span>
-        <span className="text-[11px] font-mono" style={{ color: "#a8a29e" }}>tiktok.com/ZSH26xWpW</span>
+        <span className="category-pill" style={{ background: "var(--fa-cat-food-soft)", color: "var(--fa-cat-food)", borderColor: "var(--fa-cat-food)" }}>food</span>
+        <span className="text-[11px] font-mono" style={{ color: "var(--fa-faint)" }}>tiktok.com/ZSH26xWpW</span>
       </div>
-      <div className="font-semibold text-sm mb-1" style={{ fontFamily: "var(--font-syne)", color: "#1c1917" }}>
+      <div className="font-semibold text-sm mb-1" style={{ fontFamily: "var(--font-syne)", color: "var(--fa-primary)" }}>
         Next Door Spanish Cafe
       </div>
-      <div className="text-xs mb-3" style={{ color: "#78716c" }}>East Singapore · Spanish · $$</div>
-      <div className="text-xs mb-1" style={{ color: "#a8a29e" }}>Why visit</div>
-      <div className="text-xs mb-3 leading-relaxed" style={{ color: "#78716c" }}>
+      <div className="text-xs mb-3" style={{ color: "var(--fa-soft)" }}>East Singapore · Spanish · $$</div>
+      <div className="text-xs mb-1" style={{ color: "var(--fa-faint)" }}>Why visit</div>
+      <div className="text-xs mb-3 leading-relaxed" style={{ color: "var(--fa-soft)" }}>
         Full Spanish lunch spread for $29++ — and you have to try the burnt cheesecake.
       </div>
       <div className="flex flex-wrap gap-1.5 mb-4">
         {dishes.map((d) => (
-          <span key={d} className="text-[10px] px-2.5 py-0.5 rounded-full border" style={{ background: "#fff0ec", color: "#c4502a", borderColor: "#ffd4c4" }}>{d}</span>
+          <span key={d} className="text-[10px] px-2.5 py-0.5 rounded-full border" style={{ background: "var(--fa-cat-food-soft)", color: "var(--fa-cat-food)", borderColor: "var(--fa-cat-food)" }}>{d}</span>
         ))}
       </div>
-      <button className="cta-pill" style={{ background: "#fff0ec", color: "#f4623a", borderColor: "#ffc5b2" }}>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      <button className="cta-pill" style={{ background: "var(--fa-cat-food-soft)", color: "var(--fa-cat-food)", borderColor: "var(--fa-cat-food)" }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
         Open in Maps
       </button>
     </div>
@@ -69,24 +47,24 @@ function RecipeCard() {
     "+ 5 more ingredients",
   ];
   return (
-    <div className="landing-card" style={{ borderTopColor: "#c9b8f0", borderTopWidth: "3px", background: "#faf8ff" }}>
+    <div className="landing-card" style={{ borderLeftColor: "var(--fa-cat-recipe)", borderLeftWidth: "3px" }}>
       <div className="flex items-center gap-2 mb-3">
-        <span className="category-pill" style={{ background: "#f0ebff", color: "#7c5cbf", borderColor: "#c9b8f0" }}>recipe</span>
-        <span className="text-[11px] font-mono" style={{ color: "#a8a29e" }}>tiktok.com/@cookingforgains</span>
+        <span className="category-pill" style={{ background: "var(--fa-cat-recipe-soft)", color: "var(--fa-cat-recipe)", borderColor: "var(--fa-cat-recipe)" }}>recipe</span>
+        <span className="text-[11px] font-mono" style={{ color: "var(--fa-faint)" }}>tiktok.com/@cookingforgains</span>
       </div>
-      <div className="font-semibold text-sm mb-1" style={{ fontFamily: "var(--font-syne)", color: "#1c1917" }}>
+      <div className="font-semibold text-sm mb-1" style={{ fontFamily: "var(--font-syne)", color: "var(--fa-primary)" }}>
         High Protein Chicken Pasta Meal Prep · 4h · Serves 14
       </div>
       <ul className="space-y-1 mb-4">
         {ingredients.map((i) => (
-          <li key={i} className="text-xs flex items-center gap-1.5" style={{ color: "#78716c" }}>
-            <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: "#7c5cbf" }} />
+          <li key={i} className="text-xs flex items-center gap-1.5" style={{ color: "var(--fa-soft)" }}>
+            <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: "var(--fa-cat-recipe)" }} />
             {i}
           </li>
         ))}
       </ul>
-      <button className="cta-pill" style={{ background: "#f0ebff", color: "#7c5cbf", borderColor: "#c9b8f0" }}>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      <button className="cta-pill" style={{ background: "var(--fa-cat-recipe-soft)", color: "var(--fa-cat-recipe)", borderColor: "var(--fa-cat-recipe)" }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         Copy ingredients
       </button>
     </div>
@@ -102,24 +80,24 @@ function FitnessCard() {
     "Medicine Ball V-Ups — 12 × 3",
   ];
   return (
-    <div className="landing-card" style={{ borderTopColor: "#9ee0c2", borderTopWidth: "3px", background: "#f7fef9" }}>
+    <div className="landing-card" style={{ borderLeftColor: "var(--fa-cat-fitness)", borderLeftWidth: "3px" }}>
       <div className="flex items-center gap-2 mb-3">
-        <span className="category-pill" style={{ background: "#eafaf3", color: "#28a46a", borderColor: "#9ee0c2" }}>fitness</span>
-        <span className="text-[11px] font-mono" style={{ color: "#a8a29e" }}>instagram.com/reel/DU9Oz3qER4K</span>
+        <span className="category-pill" style={{ background: "var(--fa-cat-fitness-soft)", color: "var(--fa-cat-fitness)", borderColor: "var(--fa-cat-fitness)" }}>fitness</span>
+        <span className="text-[11px] font-mono" style={{ color: "var(--fa-faint)" }}>instagram.com/reel/DU9Oz3qER4K</span>
       </div>
-      <div className="font-semibold text-sm mb-1" style={{ fontFamily: "var(--font-syne)", color: "#1c1917" }}>
+      <div className="font-semibold text-sm mb-1" style={{ fontFamily: "var(--font-syne)", color: "var(--fa-primary)" }}>
         Medicine Ball Ab Workout · 15 min · Intermediate
       </div>
       <ul className="space-y-1 mb-4">
         {exercises.map((e) => (
-          <li key={e} className="text-xs flex items-center gap-1.5" style={{ color: "#78716c" }}>
-            <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: "#28a46a" }} />
+          <li key={e} className="text-xs flex items-center gap-1.5" style={{ color: "var(--fa-soft)" }}>
+            <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: "var(--fa-cat-fitness)" }} />
             {e}
           </li>
         ))}
       </ul>
-      <button className="cta-pill" style={{ background: "#eafaf3", color: "#28a46a", borderColor: "#9ee0c2" }}>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      <button className="cta-pill" style={{ background: "var(--fa-cat-fitness-soft)", color: "var(--fa-cat-fitness)", borderColor: "var(--fa-cat-fitness)" }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Save to routine
       </button>
     </div>
@@ -130,24 +108,24 @@ function TravelCard() {
   // Real item: Solo Trip to SAVAYA Club · instagram.com/reel/DUUPHw5jU83
   const topics = ["Solo Travel", "Bali Nightlife", "Uluwatu", "Travel Inspiration"];
   return (
-    <div className="landing-card" style={{ borderTopColor: "#a8d4f8", borderTopWidth: "3px", background: "#f7fbff" }}>
+    <div className="landing-card" style={{ borderLeftColor: "var(--fa-cat-travel)", borderLeftWidth: "3px" }}>
       <div className="flex items-center gap-2 mb-3">
-        <span className="category-pill" style={{ background: "#eaf4ff", color: "#2e7fd4", borderColor: "#a8d4f8" }}>travel</span>
-        <span className="text-[11px] font-mono" style={{ color: "#a8a29e" }}>instagram.com/reel/DUUPHw5jU83</span>
+        <span className="category-pill" style={{ background: "var(--fa-cat-travel-soft)", color: "var(--fa-cat-travel)", borderColor: "var(--fa-cat-travel)" }}>travel</span>
+        <span className="text-[11px] font-mono" style={{ color: "var(--fa-faint)" }}>instagram.com/reel/DUUPHw5jU83</span>
       </div>
-      <div className="font-semibold text-sm mb-1" style={{ fontFamily: "var(--font-syne)", color: "#1c1917" }}>
+      <div className="font-semibold text-sm mb-1" style={{ fontFamily: "var(--font-syne)", color: "var(--fa-primary)" }}>
         Solo Trip to SAVAYA — #1 Club in Asia
       </div>
-      <div className="text-xs mb-3 leading-relaxed" style={{ color: "#78716c" }}>
+      <div className="text-xs mb-3 leading-relaxed" style={{ color: "var(--fa-soft)" }}>
         Solo travel adventure to SAVAYA in Uluwatu, Bali — a highly-rated nightlife destination. Inspiration for exploring popular spots independently.
       </div>
       <div className="flex flex-wrap gap-1.5 mb-4">
         {topics.map((t) => (
-          <span key={t} className="text-[10px] px-2.5 py-0.5 rounded-full border" style={{ background: "#eaf4ff", color: "#2563a8", borderColor: "#bcd9f5" }}>{t}</span>
+          <span key={t} className="text-[10px] px-2.5 py-0.5 rounded-full border" style={{ background: "var(--fa-cat-travel-soft)", color: "var(--fa-cat-travel)", borderColor: "var(--fa-cat-travel)" }}>{t}</span>
         ))}
       </div>
-      <button className="cta-pill" style={{ background: "#eaf4ff", color: "#2e7fd4", borderColor: "#a8d4f8" }}>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      <button className="cta-pill" style={{ background: "var(--fa-cat-travel-soft)", color: "var(--fa-cat-travel)", borderColor: "var(--fa-cat-travel)" }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
         Copy summary
       </button>
     </div>
@@ -199,7 +177,7 @@ export function LandingPage() {
 
       {/* ── Nav ─────────────────────────────────────────────────────────── */}
       <nav className="landing-nav">
-        <Logo />
+        <Logo href={null} />
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <Link href="/signup" className="btn-ghost" style={{ padding: "0.5rem 1.1rem", fontSize: "0.8rem" }}>
             Sign up
@@ -290,12 +268,12 @@ export function LandingPage() {
             <div className="step-title">AI reads & categorizes</div>
             <p className="step-desc">Gemini scrapes the content and categorizes it — food spots, recipes, workouts, tutorials, travel, and more. Automatically.</p>
             <div className="platform-tags">
-              <span className="platform-tag" style={{ color: "#f4623a", borderColor: "#ffc5b2", background: "#fff0ec" }}>food</span>
-              <span className="platform-tag" style={{ color: "#7c5cbf", borderColor: "#c9b8f0", background: "#f0ebff" }}>recipe</span>
-              <span className="platform-tag" style={{ color: "#28a46a", borderColor: "#9ee0c2", background: "#eafaf3" }}>fitness</span>
-              <span className="platform-tag" style={{ color: "#2e7fd4", borderColor: "#a8d4f8", background: "#eaf4ff" }}>travel</span>
-              <span className="platform-tag">how-to</span>
-              <span className="platform-tag">video</span>
+              <span className="platform-tag" style={{ color: "var(--fa-cat-food)", borderColor: "var(--fa-cat-food)", background: "var(--fa-cat-food-soft)" }}>food</span>
+              <span className="platform-tag" style={{ color: "var(--fa-cat-recipe)", borderColor: "var(--fa-cat-recipe)", background: "var(--fa-cat-recipe-soft)" }}>recipe</span>
+              <span className="platform-tag" style={{ color: "var(--fa-cat-fitness)", borderColor: "var(--fa-cat-fitness)", background: "var(--fa-cat-fitness-soft)" }}>fitness</span>
+              <span className="platform-tag" style={{ color: "var(--fa-cat-travel)", borderColor: "var(--fa-cat-travel)", background: "var(--fa-cat-travel-soft)" }}>travel</span>
+              <span className="platform-tag" style={{ color: "var(--fa-cat-howto)", borderColor: "var(--fa-cat-howto)", background: "var(--fa-cat-howto-soft)" }}>how-to</span>
+              <span className="platform-tag" style={{ color: "var(--fa-cat-video)", borderColor: "var(--fa-cat-video)", background: "var(--fa-cat-video-soft)" }}>video</span>
             </div>
           </div>
 
@@ -310,10 +288,10 @@ export function LandingPage() {
             <div className="step-title">Take action instantly</div>
             <p className="step-desc">Each card gives you the right action for its category — open in Maps, copy a shopping list, save a workout, follow step-by-step.</p>
             <div className="platform-tags">
-              <span className="platform-tag" style={{ color: "#f4623a", borderColor: "#ffc5b2", background: "#fff0ec" }}>→ Maps</span>
-              <span className="platform-tag" style={{ color: "#7c5cbf", borderColor: "#c9b8f0", background: "#f0ebff" }}>→ Clipboard</span>
-              <span className="platform-tag" style={{ color: "#28a46a", borderColor: "#9ee0c2", background: "#eafaf3" }}>→ Routine</span>
-              <span className="platform-tag" style={{ color: "#2e7fd4", borderColor: "#a8d4f8", background: "#eaf4ff" }}>→ Guide</span>
+              <span className="platform-tag" style={{ color: "var(--fa-cat-food)", borderColor: "var(--fa-cat-food)", background: "var(--fa-cat-food-soft)" }}>→ Maps</span>
+              <span className="platform-tag" style={{ color: "var(--fa-cat-recipe)", borderColor: "var(--fa-cat-recipe)", background: "var(--fa-cat-recipe-soft)" }}>→ Clipboard</span>
+              <span className="platform-tag" style={{ color: "var(--fa-cat-fitness)", borderColor: "var(--fa-cat-fitness)", background: "var(--fa-cat-fitness-soft)" }}>→ Routine</span>
+              <span className="platform-tag" style={{ color: "var(--fa-cat-travel)", borderColor: "var(--fa-cat-travel)", background: "var(--fa-cat-travel-soft)" }}>→ Guide</span>
             </div>
           </div>
         </div>
@@ -346,7 +324,7 @@ export function LandingPage() {
           </div>
           <h2 className="cta-title">
             Stop bookmarking.<br/>
-            Start <span style={{ color: "#f4623a" }}>filing away.</span>
+            Start <span style={{ color: "var(--fa-accent)" }}>filing away.</span>
           </h2>
           <p className="cta-sub">Your personal AI feed for the links that actually matter.</p>
           <div style={{ display: "flex", justifyContent: "center", gap: "0.75rem", flexWrap: "wrap" }}>

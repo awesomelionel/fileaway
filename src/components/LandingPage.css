@@ -1,47 +1,51 @@
 /* ── Design tokens ─────────────────────────────────────────────────────────── */
+/* Landing inherits from the canonical fa-* tokens in globals.css. Only landing-specific
+   spacing primitives live here. */
 :root {
-  --lp-bg:          #faf9f6;
-  --lp-surface:     #ffffff;
-  --lp-surface-alt: #f4f2ee;
-  --lp-border:      #e8e3db;
-  --lp-border-soft: #f0ece6;
+  --lp-bg:          var(--fa-canvas);
+  --lp-surface:     var(--fa-surface);
+  --lp-surface-alt: var(--fa-elevated);
+  --lp-border:      var(--fa-border);
+  --lp-border-soft: var(--fa-border-soft);
 
-  --lp-ink:         #1c1917;
-  --lp-ink-2:       #44403c;
-  --lp-ink-3:       #78716c;
-  --lp-ink-4:       #a8a29e;
+  --lp-ink:         var(--fa-primary);
+  --lp-ink-2:       var(--fa-secondary);
+  --lp-ink-3:       var(--fa-soft);
+  --lp-ink-4:       var(--fa-faint);
 
-  --lp-coral:       #f4623a;
-  --lp-coral-soft:  #fff0ec;
-  --lp-coral-mid:   #ffc5b2;
-  --lp-coral-hover: #e5522a;
+  /* The single brand accent. */
+  --lp-coral:       var(--fa-accent);
+  --lp-coral-soft:  var(--fa-accent-soft);
+  --lp-coral-mid:   var(--fa-accent-mid);
+  --lp-coral-hover: var(--fa-accent-hover);
 
-  --lp-lavender:    #7c5cbf;
-  --lp-lav-soft:    #f0ebff;
-  --lp-lav-mid:     #c9b8f0;
+  /* Category accents on landing now match the app's canonical palette. */
+  --lp-lavender:    var(--fa-cat-howto);
+  --lp-lav-soft:    var(--fa-cat-howto-soft);
+  --lp-lav-mid:     var(--fa-cat-howto);
 
-  --lp-mint:        #28a46a;
-  --lp-mint-soft:   #eafaf3;
-  --lp-mint-mid:    #9ee0c2;
+  --lp-mint:        var(--fa-cat-recipe);
+  --lp-mint-soft:   var(--fa-cat-recipe-soft);
+  --lp-mint-mid:    var(--fa-cat-recipe);
 
-  --lp-sky:         #2e7fd4;
-  --lp-sky-soft:    #eaf4ff;
-  --lp-sky-mid:     #a8d4f8;
+  --lp-sky:         var(--fa-cat-fitness);
+  --lp-sky-soft:    var(--fa-cat-fitness-soft);
+  --lp-sky-mid:     var(--fa-cat-fitness);
 
   --lp-radius-sm:   8px;
   --lp-radius:      14px;
   --lp-radius-lg:   20px;
   --lp-radius-pill: 999px;
 
-  --lp-shadow-xs:   0 1px 4px rgba(28, 25, 23, 0.06);
-  --lp-shadow-sm:   0 4px 20px rgba(28, 25, 23, 0.07);
-  --lp-shadow-md:   0 8px 32px rgba(28, 25, 23, 0.10);
-  --lp-shadow-card: 0 2px 12px rgba(28, 25, 23, 0.06), 0 1px 3px rgba(28, 25, 23, 0.04);
+  --lp-shadow-xs:   0 1px 4px rgba(60, 35, 15, 0.05);
+  --lp-shadow-sm:   0 4px 20px rgba(60, 35, 15, 0.06);
+  --lp-shadow-md:   0 8px 32px rgba(60, 35, 15, 0.09);
+  --lp-shadow-card: var(--fa-shadow-soft);
 }
 
 /* ── Base ──────────────────────────────────────────────────────────────────── */
 .landing-root {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--lp-bg);
   color: var(--lp-ink);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
@@ -71,7 +75,7 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(250, 249, 246, 0.9);
+  background: color-mix(in srgb, var(--lp-bg) 90%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -89,8 +93,8 @@
   font-weight: 600;
   text-decoration: none;
   border: none;
-  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 2px 10px rgba(244, 98, 58, 0.28);
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px var(--fa-accent-ring);
   font-family: var(--font-syne), sans-serif;
   letter-spacing: -0.01em;
   cursor: pointer;
@@ -98,7 +102,10 @@
 .btn-primary:hover {
   background: var(--lp-coral-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(244, 98, 58, 0.35);
+  box-shadow: 0 6px 20px var(--fa-accent-ring);
+}
+.btn-primary:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .btn-ghost {
@@ -136,13 +143,13 @@
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--lp-lavender);
+  color: var(--fa-accent);
   font-family: var(--font-geist-mono), monospace;
   margin-bottom: 2rem;
   padding: 0.4rem 1rem;
   border-radius: var(--lp-radius-pill);
-  background: var(--lp-lav-soft);
-  border: 1px solid var(--lp-lav-mid);
+  background: var(--fa-accent-soft);
+  border: 1px solid var(--fa-accent-mid);
   animation: fadeUp 0.6s ease both;
 }
 
@@ -443,11 +450,12 @@
   position: absolute;
   width: 600px;
   height: 400px;
-  background: radial-gradient(ellipse, rgba(244, 98, 58, 0.08), transparent 70%);
+  background: radial-gradient(ellipse, var(--fa-accent-ring), transparent 70%);
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
+  opacity: 0.5;
 }
 
 .cta-glow {

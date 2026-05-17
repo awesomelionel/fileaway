@@ -1,24 +1,15 @@
 // Server-rendered skeleton shown while FeedApp hydrates.
 // Mirrors the FeedApp shell so there's no layout shift.
+import { Logo } from "@/components/Logo";
+
 export function FeedSkeleton() {
   return (
-    <div className="min-h-screen bg-fa-canvas text-fa-primary">
+    <div className="min-h-dvh bg-fa-canvas text-fa-primary">
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-fa-border bg-fa-canvas/95 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
-            {/* Logo */}
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded grid grid-cols-2 gap-0.5 p-1 bg-fa-input border border-fa-line">
-                <div className="bg-[#f97316] rounded-[1px]" />
-                <div className="bg-[#22c55e] rounded-[1px]" />
-                <div className="bg-[#3b82f6] rounded-[1px]" />
-                <div className="bg-[#a855f7] rounded-[1px]" />
-              </div>
-              <span className="font-bold text-sm tracking-tight text-fa-primary">
-                file<span className="text-fa-logo-dim">away</span>
-              </span>
-            </div>
+            <Logo size="md" href={null} />
             {/* URL input placeholder */}
             <div className="hidden sm:block flex-1">
               <div className="w-full h-9 bg-fa-input border border-fa-line rounded-lg animate-pulse" />

@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { LogoMark } from "@/components/Logo";
 
 export function AddPageContent() {
   const searchParams = useSearchParams();
@@ -41,17 +42,14 @@ export function AddPageContent() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-fa-canvas text-fa-primary flex items-center justify-center p-4">
+    <div className="min-h-dvh bg-fa-canvas text-fa-primary flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-4">
-        <div className="text-center">
-          <div className="w-10 h-10 rounded grid grid-cols-2 gap-0.5 p-2 bg-fa-input border border-fa-line mx-auto mb-3">
-            <div className="bg-[#f97316] rounded-[1px]" />
-            <div className="bg-[#22c55e] rounded-[1px]" />
-            <div className="bg-[#3b82f6] rounded-[1px]" />
-            <div className="bg-[#a855f7] rounded-[1px]" />
+        <div className="text-center flex flex-col items-center">
+          <div className="mb-3">
+            <LogoMark size="lg" />
           </div>
           <h1 className="text-lg font-bold tracking-tight">
-            file<span className="text-fa-subtle">away</span>
+            file<span className="text-fa-mid">away</span>
           </h1>
         </div>
 

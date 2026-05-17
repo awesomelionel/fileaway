@@ -26,8 +26,38 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "fileaway.app — save what matters",
-  description: "Save social media links. AI extracts the useful parts.",
+  metadataBase: new URL("https://fileaway.app"),
+  title: {
+    default: "fileaway — save what matters",
+    template: "%s · fileaway",
+  },
+  description:
+    "Paste any TikTok, Instagram, YouTube or X link. fileaway reads it and files it away as structured, useful data.",
+  applicationName: "fileaway",
+  authors: [{ name: "fileaway" }],
+  keywords: ["bookmarking", "social media", "AI", "TikTok", "Instagram", "save links"],
+  openGraph: {
+    type: "website",
+    siteName: "fileaway",
+    title: "fileaway — save what matters",
+    description: "AI files social media links into useful, indexed data.",
+    url: "https://fileaway.app",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "fileaway — save what matters",
+    description: "AI files social media links into useful, indexed data.",
+  },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
+};
+
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f3f0e8" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d0d0f" },
+  ],
 };
 
 export default function RootLayout({

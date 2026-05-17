@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ReactNode } from "react";
+import { Logo } from "@/components/Logo";
 
 export function LegalLayout({
   title,
@@ -11,20 +12,10 @@ export function LegalLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-fa-canvas">
+    <div className="min-h-dvh bg-fa-canvas">
       <header className="border-b border-fa-line">
         <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group w-fit">
-            <div className="w-7 h-7 rounded grid grid-cols-2 gap-0.5 p-1.5 bg-fa-input border border-fa-line group-hover:border-fa-ring transition-colors">
-              <div className="bg-[#f97316] rounded-[1px]" />
-              <div className="bg-[#22c55e] rounded-[1px]" />
-              <div className="bg-[#3b82f6] rounded-[1px]" />
-              <div className="bg-[#a855f7] rounded-[1px]" />
-            </div>
-            <span className="font-bold text-sm tracking-tight text-fa-primary">
-              file<span className="text-fa-subtle">away</span>
-            </span>
-          </Link>
+          <Logo size="md" className="w-fit" />
           <nav className="flex items-center gap-5 text-xs text-fa-subtle">
             <Link href="/terms" className="hover:text-fa-primary transition-colors">
               Terms

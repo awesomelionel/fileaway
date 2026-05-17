@@ -21,20 +21,25 @@ function trackAction(item: SavedItemResponse, action: string, extra?: Record<str
 
 // ─── Category metadata ───────────────────────────────────────────────────────
 
+/**
+ * Canonical category palette. `color` resolves at runtime from CSS vars so the same
+ * map works in light + dark mode. `border`/`bg`/`text` are Tailwind classes that
+ * also reference the tokens (see tailwind.config.ts).
+ */
 const BUILT_IN_CATEGORY_META: Record<
   string,
   { label: string; color: string; border: string; bg: string; text: string }
 > = {
-  food: { label: "Food", color: "#f97316", border: "border-l-[#f97316]", bg: "bg-[#f9731610]", text: "text-[#f97316]" },
-  recipe: { label: "Recipe", color: "#22c55e", border: "border-l-[#22c55e]", bg: "bg-[#22c55e10]", text: "text-[#22c55e]" },
-  fitness: { label: "Fitness", color: "#3b82f6", border: "border-l-[#3b82f6]", bg: "bg-[#3b82f610]", text: "text-[#3b82f6]" },
-  "how-to": { label: "How-To", color: "#a855f7", border: "border-l-[#a855f7]", bg: "bg-[#a855f710]", text: "text-[#a855f7]" },
-  "video-analysis": { label: "Video", color: "#14b8a6", border: "border-l-[#14b8a6]", bg: "bg-[#14b8a610]", text: "text-[#14b8a6]" },
-  travel: { label: "Travel", color: "#f59e0b", border: "border-l-[#f59e0b]", bg: "bg-[#f59e0b10]", text: "text-[#f59e0b]" },
-  other: { label: "Other", color: "#6b7280", border: "border-l-[#6b7280]", bg: "bg-[#6b728010]", text: "text-[#6b7280]" },
+  food: { label: "Food", color: "var(--fa-cat-food)", border: "border-l-fa-cat-food", bg: "bg-fa-cat-food-soft", text: "text-fa-cat-food" },
+  recipe: { label: "Recipe", color: "var(--fa-cat-recipe)", border: "border-l-fa-cat-recipe", bg: "bg-fa-cat-recipe-soft", text: "text-fa-cat-recipe" },
+  fitness: { label: "Fitness", color: "var(--fa-cat-fitness)", border: "border-l-fa-cat-fitness", bg: "bg-fa-cat-fitness-soft", text: "text-fa-cat-fitness" },
+  "how-to": { label: "How-To", color: "var(--fa-cat-howto)", border: "border-l-fa-cat-howto", bg: "bg-fa-cat-howto-soft", text: "text-fa-cat-howto" },
+  "video-analysis": { label: "Video", color: "var(--fa-cat-video)", border: "border-l-fa-cat-video", bg: "bg-fa-cat-video-soft", text: "text-fa-cat-video" },
+  travel: { label: "Travel", color: "var(--fa-cat-travel)", border: "border-l-fa-cat-travel", bg: "bg-fa-cat-travel-soft", text: "text-fa-cat-travel" },
+  other: { label: "Other", color: "var(--fa-cat-other)", border: "border-l-fa-cat-other", bg: "bg-fa-cat-other-soft", text: "text-fa-cat-other" },
 };
 
-const FALLBACK_COLORS = ["#e11d48", "#d946ef", "#0ea5e9", "#84cc16", "#f59e0b", "#06b6d4"];
+const FALLBACK_COLORS = ["#a83253", "#7c3a8b", "#2c6e9f", "#5c7a1c", "#a96b1a", "#1b6b6b"];
 
 export function getCategoryMeta(
   slug: string,
@@ -141,7 +146,7 @@ function RecipeBody({ data }: { data: Record<string, unknown> }) {
           <ul className="space-y-0.5">
             {ingredients.slice(0, 5).map((ing, i) => (
               <li key={i} className="text-xs text-fa-soft flex items-start gap-1.5">
-                <span className="text-[#22c55e] mt-0.5 flex-shrink-0">·</span>
+                <span className="text-fa-cat-recipe mt-0.5 flex-shrink-0">·</span>
                 {ing}
               </li>
             ))}
@@ -171,7 +176,7 @@ function FitnessBody({ data }: { data: Record<string, unknown> }) {
       {workoutName && <p className="font-semibold text-fa-primary leading-tight">{workoutName}</p>}
       <div className="flex gap-3 flex-wrap">
         {duration && (
-          <span className="text-xs text-[#3b82f6] bg-[#3b82f610] px-2 py-0.5 rounded font-mono">
+          <span className="text-xs text-fa-cat-fitness bg-fa-cat-fitness-soft px-2 py-0.5 rounded font-mono">
             {duration}m
           </span>
         )}
@@ -182,7 +187,7 @@ function FitnessBody({ data }: { data: Record<string, unknown> }) {
       {muscleGroups && muscleGroups.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {muscleGroups.map((g) => (
-            <span key={g} className="text-[10px] text-[#3b82f6]/70 bg-[#3b82f608] border border-[#3b82f620] px-1.5 py-0.5 rounded">
+            <span key={g} className="text-[10px] text-fa-cat-fitness/80 bg-fa-cat-fitness-soft border border-fa-cat-fitness/30 px-1.5 py-0.5 rounded">
               {g}
             </span>
           ))}
@@ -193,7 +198,7 @@ function FitnessBody({ data }: { data: Record<string, unknown> }) {
           {exercises.slice(0, 4).map((ex, i) => (
             <div key={i} className="flex items-center justify-between text-xs">
               <span className="text-fa-mid">{ex.name}</span>
-              <span className="text-[#3b82f6] font-mono text-[11px]">
+              <span className="text-fa-cat-fitness font-mono text-[11px]">
                 {ex.sets > 1 ? `${ex.sets}×` : ""}{ex.reps}
               </span>
             </div>
@@ -232,7 +237,7 @@ function HowToBody({ data }: { data: Record<string, unknown> }) {
           <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle">Key Points</p>
           {previewPoints.slice(0, 3).map((pt, i) => (
             <div key={i} className="flex items-start gap-1.5 text-xs">
-              <span className="text-[#a855f7] flex-shrink-0 mt-0.5">→</span>
+              <span className="text-fa-cat-howto flex-shrink-0 mt-0.5">→</span>
               <span className="text-fa-dim">{pt}</span>
             </div>
           ))}
@@ -261,7 +266,7 @@ function VideoBody({ data }: { data: Record<string, unknown> }) {
           <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle">Key Points</p>
           {keyPoints.slice(0, 3).map((pt, i) => (
             <div key={i} className="flex items-start gap-1.5 text-xs">
-              <span className="text-[#14b8a6] flex-shrink-0 mt-0.5">→</span>
+              <span className="text-fa-cat-video flex-shrink-0 mt-0.5">→</span>
               <span className="text-fa-dim">{pt}</span>
             </div>
           ))}
@@ -302,7 +307,7 @@ function TravelBody({ data }: { data: Record<string, unknown> }) {
             <div key={i} className="flex items-start justify-between gap-2 text-xs">
               <div className="min-w-0">
                 <p className="text-fa-mid truncate">
-                  <span className="text-[#f59e0b] font-mono mr-2">{(stop.order ?? i + 1).toString()}.</span>
+                  <span className="text-fa-cat-travel font-mono mr-2">{(stop.order ?? i + 1).toString()}.</span>
                   {stop.name ?? "Stop"}
                 </p>
                 {stop.location_text && (
@@ -314,7 +319,7 @@ function TravelBody({ data }: { data: Record<string, unknown> }) {
                   href={stop.google_maps_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-shrink-0 text-[11px] text-[#f59e0b] hover:underline"
+                  className="flex-shrink-0 text-[11px] text-fa-cat-travel hover:underline"
                   onClick={(e) => e.stopPropagation()}
                 >
                   Maps ↗
@@ -502,7 +507,7 @@ function ActionButton({
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => trackAction(item, "open_in_maps")}
-        className="inline-flex text-xs px-3 py-1.5 rounded bg-[#f9731615] text-[#f97316] border border-[#f9731630] font-medium hover:bg-[#f9731625] transition-colors min-h-[44px] sm:min-h-0"
+        className="inline-flex text-xs px-3 py-1.5 rounded bg-fa-cat-food-soft text-fa-cat-food border border-fa-cat-food font-medium hover:bg-fa-cat-food/10 transition-colors min-h-[44px] sm:min-h-0"
       >
         Open in Maps ↗
       </a>
@@ -520,7 +525,7 @@ function ActionButton({
           trackAction(item, "copy_ingredients", { ingredient_count: ingredients?.length ?? 0 });
           fire(() => copyText(text), "Copied!");
         }}
-        className="text-xs px-3 py-1.5 rounded bg-[#22c55e15] text-[#22c55e] border border-[#22c55e30] font-medium hover:bg-[#22c55e25] transition-colors min-h-[44px] sm:min-h-0"
+        className="text-xs px-3 py-1.5 rounded bg-fa-cat-recipe-soft text-fa-cat-recipe border border-fa-cat-recipe font-medium hover:opacity-80 transition-opacity min-h-[44px] sm:min-h-0"
       >
         Copy ingredients
       </button>
@@ -548,7 +553,7 @@ function ActionButton({
             );
           }, "Saved to routine!");
         }}
-        className="text-xs px-3 py-1.5 rounded bg-[#3b82f615] text-[#3b82f6] border border-[#3b82f630] font-medium hover:bg-[#3b82f625] transition-colors min-h-[44px] sm:min-h-0"
+        className="text-xs px-3 py-1.5 rounded bg-fa-cat-fitness-soft text-fa-cat-fitness border border-fa-cat-fitness font-medium hover:opacity-80 transition-opacity min-h-[44px] sm:min-h-0"
       >
         Save to routine
       </button>
@@ -563,7 +568,7 @@ function ActionButton({
           trackAction(item, "view_guide");
           onCardClick?.(item.id);
         }}
-        className="text-xs px-3 py-1.5 rounded bg-[#a855f715] text-[#a855f7] border border-[#a855f730] font-medium hover:bg-[#a855f725] transition-colors min-h-[44px] sm:min-h-0"
+        className="text-xs px-3 py-1.5 rounded bg-fa-cat-howto-soft text-fa-cat-howto border border-fa-cat-howto font-medium hover:opacity-80 transition-opacity min-h-[44px] sm:min-h-0"
       >
         View guide ↗
       </button>
@@ -580,7 +585,7 @@ function ActionButton({
           trackAction(item, "copy_summary");
           fire(() => copyText(text), "Copied!");
         }}
-        className="text-xs px-3 py-1.5 rounded bg-[#14b8a615] text-[#14b8a6] border border-[#14b8a630] font-medium hover:bg-[#14b8a625] transition-colors min-h-[44px] sm:min-h-0"
+        className="text-xs px-3 py-1.5 rounded bg-fa-cat-video-soft text-fa-cat-video border border-fa-cat-video font-medium hover:opacity-80 transition-opacity min-h-[44px] sm:min-h-0"
       >
         Copy summary
       </button>
@@ -607,7 +612,7 @@ function ActionButton({
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => trackAction(item, "open_in_maps")}
-          className="inline-flex text-xs px-3 py-1.5 rounded bg-[#f59e0b15] text-[#f59e0b] border border-[#f59e0b30] font-medium hover:bg-[#f59e0b25] transition-colors min-h-[44px] sm:min-h-0"
+          className="inline-flex text-xs px-3 py-1.5 rounded bg-fa-cat-travel-soft text-fa-cat-travel border border-fa-cat-travel font-medium hover:opacity-80 transition-opacity min-h-[44px] sm:min-h-0"
         >
           Open in Maps ↗
         </a>
@@ -623,7 +628,7 @@ function ActionButton({
           trackAction(item, "copy_summary");
           fire(() => copyText(text), "Copied!");
         }}
-        className="text-xs px-3 py-1.5 rounded bg-[#f59e0b15] text-[#f59e0b] border border-[#f59e0b30] font-medium hover:bg-[#f59e0b25] transition-colors min-h-[44px] sm:min-h-0"
+        className="text-xs px-3 py-1.5 rounded bg-fa-cat-travel-soft text-fa-cat-travel border border-fa-cat-travel font-medium hover:opacity-80 transition-opacity min-h-[44px] sm:min-h-0"
       >
         Copy summary
       </button>
@@ -640,7 +645,7 @@ function ActionButton({
         trackAction(item, "copy_summary");
         fire(() => copyText(text), "Copied!");
       }}
-      className="text-xs px-3 py-1.5 rounded bg-[#6b728015] text-[#9ca3af] border border-[#6b728030] font-medium hover:bg-[#6b728025] transition-colors min-h-[44px] sm:min-h-0"
+      className="text-xs px-3 py-1.5 rounded bg-fa-cat-other-soft text-fa-cat-other border border-fa-cat-other font-medium hover:opacity-80 transition-opacity min-h-[44px] sm:min-h-0"
     >
       Copy summary
     </button>
