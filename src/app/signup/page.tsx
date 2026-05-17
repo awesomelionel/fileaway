@@ -5,6 +5,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import { SiteFooter } from "@/components/SiteFooter";
 
 function GoogleIcon() {
   return (
@@ -141,7 +142,8 @@ export default function SignupPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-fa-canvas flex items-center justify-center px-4">
+      <div className="min-h-screen bg-fa-canvas flex flex-col">
+        <div className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-sm text-center">
           <h1 className="text-xl font-semibold text-fa-primary mb-2">Check your email</h1>
           <p className="text-sm text-fa-subtle mb-6">
@@ -196,12 +198,15 @@ export default function SignupPage() {
             </button>
           </p>
         </div>
+        </div>
+        <SiteFooter />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-fa-canvas flex items-center justify-center px-4">
+    <div className="min-h-screen bg-fa-canvas flex flex-col">
+      <div className="flex-1 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2 mb-10 group w-fit">
@@ -331,6 +336,8 @@ export default function SignupPage() {
           </button>
         </form>
       </div>
+      </div>
+      <SiteFooter />
     </div>
   );
 }

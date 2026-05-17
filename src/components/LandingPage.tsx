@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SiteFooter } from "./SiteFooter";
 import "./LandingPage.css";
 
 // ─── Logo ─────────────────────────────────────────────────────────────────────
@@ -357,17 +358,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── Footer ──────────────────────────────────────────────────────── */}
-      <footer className="landing-footer">
-        <Logo size="sm" />
-        <span className="footer-copy">© 2025 fileaway · save what matters</span>
-        <div className="footer-links">
-          <Link href="/login" className="footer-link">Sign in</Link>
-          <Link href="/signup" className="footer-link">Sign up</Link>
-          <Link href="/terms" className="footer-link">Terms</Link>
-          <Link href="/privacy" className="footer-link">Privacy</Link>
-        </div>
-      </footer>
+      <SiteFooter />
 
     </div>
   );
