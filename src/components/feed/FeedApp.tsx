@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useTransition } from "react";
+import { useState, useCallback, useEffect, useMemo, useTransition } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { ItemCard, getCategoryMeta } from "@/components/feed/ItemCard";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -10,6 +10,7 @@ import dynamic from "next/dynamic";
 import { track, EVENTS, urlHost } from "@/lib/analytics";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Logo } from "@/components/Logo";
+import { isLikelyUrl, normalizeUrl } from "@/lib/inputMode";
 
 function detectPlatform(url: string): "tiktok" | "instagram" | "youtube" | "twitter" | "other" {
   if (/tiktok\.com/i.test(url)) return "tiktok";
@@ -30,17 +31,38 @@ type TabValue = string;
 
 // ─── URL input form ───────────────────────────────────────────────────────────
 
-function UrlInput() {
-  const [url, setUrl] = useState("");
+function UrlInput({
+  searchQuery,
+  onSearchChange,
+}: {
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
+}) {
+  const [value, setValue] = useState(searchQuery);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const saveItem = useMutation(api.items.save);
+  const urlMode = isLikelyUrl(value);
+
+  const handleChange = (nextValue: string) => {
+    setValue(nextValue);
+    setErrorMsg("");
+    if (!isLikelyUrl(nextValue)) {
+      onSearchChange(nextValue);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.trim()) return;
+    const trimmed = value.trim();
+    if (!trimmed) return;
 
-    const cleaned = url.trim();
+    if (!isLikelyUrl(trimmed)) {
+      onSearchChange(trimmed);
+      return;
+    }
+
+    const cleaned = normalizeUrl(trimmed);
     const platform = detectPlatform(cleaned);
     track(EVENTS.LINK_SAVE_SUBMITTED, { platform, url_host: urlHost(cleaned) });
 
@@ -55,7 +77,8 @@ function UrlInput() {
         item_id: String(id),
       });
       setStatus("success");
-      setUrl("");
+      setValue("");
+      onSearchChange("");
       setTimeout(() => setStatus("idle"), 2500);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to save";
@@ -74,17 +97,17 @@ function UrlInput() {
     <form onSubmit={handleSubmit} className="flex gap-2">
       <div className="relative flex-1">
         <input
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="Paste a TikTok, Instagram, YouTube or X link…"
+          type="text"
+          value={value}
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder="Paste a link or search saved items…"
           disabled={status === "loading"}
           className="w-full bg-fa-input border border-fa-line rounded-lg px-4 py-2.5 text-sm text-fa-primary placeholder-fa-placeholder outline-none focus:border-fa-ring transition-colors disabled:opacity-50 font-mono"
         />
       </div>
       <button
         type="submit"
-        disabled={status === "loading" || !url.trim()}
+        disabled={status === "loading" || !value.trim()}
         className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
           status === "success"
             ? "bg-fa-success-soft text-fa-success border border-fa-success"
@@ -93,7 +116,15 @@ function UrlInput() {
             : "bg-fa-btn-bg text-fa-btn-fg hover:bg-fa-btn-hover"
         }`}
       >
-        {status === "loading" ? "Saving…" : status === "success" ? "✓ Saved" : status === "error" ? "Error" : "Save"}
+        {status === "loading"
+          ? "Saving…"
+          : status === "success"
+          ? "✓ Saved"
+          : status === "error"
+          ? "Error"
+          : urlMode
+          ? "Save"
+          : "Search"}
       </button>
 
       {status === "error" && errorMsg && (
@@ -250,11 +281,22 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
   const searchQuery = searchParams.get("q") ?? "";
   const archiveView = searchParams.get("view") === "archive";
 
-  // Feed view: SSR-preloaded, stays reactive. Archive view: lazy client query.
+  // Feed view without search is SSR-preloaded. Archive and search use live queries.
   const feedItems = usePreloadedQuery(preloadedItems);
-  const archiveItems = useQuery(api.items.list, archiveView ? { view: "archive" } : "skip");
-  const allItems = archiveView ? (archiveItems ?? []) : feedItems;
-  const loading = archiveView && archiveItems === undefined;
+  const liveItems = useQuery(
+    api.items.list,
+    archiveView || searchQuery
+      ? {
+          view: archiveView ? "archive" : "feed",
+          ...(searchQuery ? { q: searchQuery } : {}),
+        }
+      : "skip",
+  );
+  const allItems = useMemo(
+    () => (archiveView || searchQuery ? (liveItems ?? []) : feedItems),
+    [archiveView, feedItems, liveItems, searchQuery],
+  );
+  const loading = (archiveView || !!searchQuery) && liveItems === undefined;
 
   const categories = usePreloadedQuery(preloadedCategories);
   const tabs: { value: string; label: string }[] = [
@@ -306,51 +348,43 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
     [searchParams, router, pathname],
   );
 
-  // Client-side filter (instant response)
+  useEffect(() => {
+    setSearchInput(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (searchInput === searchQuery) return;
+
+    const timer = window.setTimeout(() => {
+      updateParam({ q: searchInput || null });
+      if (searchInput.trim().length > 0) {
+        track(EVENTS.SEARCH_PERFORMED, {
+          query_length: searchInput.trim().length,
+          result_count: allItems.length,
+        });
+      }
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [allItems.length, searchInput, searchQuery, updateParam]);
+
+  const handleSearch = useCallback((value: string) => {
+    setSearchInput(value);
+  }, []);
+
+  // Backend search narrows by q; category remains an instant client filter.
   const filteredItems = allItems.filter((item) => {
     if (activeCategory !== "all" && item.category !== activeCategory) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const text = [item.source_url, JSON.stringify(item.extracted_data ?? {})].join(" ").toLowerCase();
-      if (!text.includes(q)) return false;
-    }
     return true;
   });
 
   // Category counts for tabs
   const counts: Record<string, number> = {
-    _total: allItems.filter((i) => {
-      if (!searchQuery) return true;
-      const q = searchQuery.toLowerCase();
-      const text = [i.source_url, JSON.stringify(i.extracted_data ?? {})].join(" ").toLowerCase();
-      return text.includes(q);
-    }).length,
+    _total: allItems.length,
   };
   for (const item of allItems) {
-    if (!searchQuery) {
-      counts[item.category] = (counts[item.category] ?? 0) + 1;
-    } else {
-      const q = searchQuery.toLowerCase();
-      const text = [item.source_url, JSON.stringify(item.extracted_data ?? {})].join(" ").toLowerCase();
-      if (text.includes(q)) {
-        counts[item.category] = (counts[item.category] ?? 0) + 1;
-      }
-    }
+    counts[item.category] = (counts[item.category] ?? 0) + 1;
   }
-
-  const handleSearch = (value: string) => {
-    setSearchInput(value);
-    const timer = setTimeout(() => {
-      updateParam({ q: value || null });
-      if (value.trim().length > 0) {
-        track(EVENTS.SEARCH_PERFORMED, {
-          query_length: value.trim().length,
-          result_count: filteredItems.length,
-        });
-      }
-    }, 350);
-    return () => clearTimeout(timer);
-  };
 
   return (
     <div className="min-h-dvh bg-fa-canvas text-fa-primary">
@@ -363,7 +397,7 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
 
             {/* Desktop URL input — hidden on mobile */}
             <div className="hidden sm:block flex-1 relative">
-              <UrlInput />
+              <UrlInput searchQuery={searchQuery} onSearchChange={handleSearch} />
             </div>
 
             {/* Nav links + sign out — pushed to right */}
@@ -386,7 +420,7 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
 
           {/* Mobile URL input — shown below top row on mobile only */}
           <div className="sm:hidden mt-2">
-            <UrlInput />
+            <UrlInput searchQuery={searchQuery} onSearchChange={handleSearch} />
           </div>
         </div>
       </header>
@@ -394,18 +428,6 @@ export function FeedApp({ preloadedItems, preloadedCategories }: FeedAppProps) {
       {/* Filters row */}
       <div className="sm:sticky sm:top-[57px] z-20 bg-fa-canvas/95 backdrop-blur-sm border-b border-fa-border">
         <div className="max-w-5xl mx-auto px-4 py-2 flex flex-wrap items-center gap-2">
-          {/* Search */}
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-fa-faint text-xs">⌕</span>
-            <input
-              type="search"
-              value={searchInput}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Search…"
-              className="bg-fa-surface border border-fa-line rounded-lg pl-7 pr-3 py-1.5 text-xs text-fa-secondary placeholder-fa-placeholder outline-none focus:border-fa-line w-36 transition-all focus:w-48"
-            />
-          </div>
-
           {/* Category tabs */}
           <div className="flex-1 min-w-0">
             <CategoryTabs

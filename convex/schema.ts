@@ -21,6 +21,7 @@ export default defineSchema({
     thumbnailR2Key: v.optional(v.string()),
     actionTaken: v.optional(v.string()),
     userCorrection: v.optional(v.string()),
+    searchText: v.optional(v.string()),
     status: v.union(
       v.literal("pending"),
       v.literal("processing"),
@@ -30,7 +31,11 @@ export default defineSchema({
     archived: v.optional(v.boolean()),
   })
     .index("by_userId", ["userId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .searchIndex("search_searchText", {
+      searchField: "searchText",
+      filterFields: ["userId", "archived"],
+    }),
   categories: defineTable({
     slug: v.string(),
     label: v.string(),

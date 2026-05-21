@@ -1,5 +1,6 @@
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -9,6 +10,15 @@ import type { Id } from "./_generated/dataModel";
 type PlatformType = "tiktok" | "instagram" | "youtube" | "twitter" | "other";
 type CategoryType = string;
 type ItemStatus = "pending" | "processing" | "done" | "failed";
+type SearchableItem = {
+  sourceUrl: string;
+  platform: PlatformType;
+  category: CategoryType;
+  rawContent?: unknown;
+  extractedData?: unknown;
+  actionTaken?: string;
+  userCorrection?: string;
+};
 
 function detectPlatform(url: string): PlatformType {
   if (/tiktok\.com/i.test(url)) return "tiktok";
@@ -16,6 +26,53 @@ function detectPlatform(url: string): PlatformType {
   if (/youtube\.com|youtu\.be/i.test(url)) return "youtube";
   if (/twitter\.com|x\.com/i.test(url)) return "twitter";
   return "other";
+}
+
+function hostnameForSearch(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+function appendSearchParts(value: unknown, parts: string[]) {
+  if (value === null || value === undefined) return;
+  if (typeof value === "string") {
+    parts.push(value);
+    return;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    parts.push(String(value));
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) appendSearchParts(item, parts);
+    return;
+  }
+  if (typeof value === "object") {
+    for (const entry of Object.values(value as Record<string, unknown>)) {
+      appendSearchParts(entry, parts);
+    }
+  }
+}
+
+export function buildSearchText(item: SearchableItem): string {
+  const parts: string[] = [
+    item.sourceUrl,
+    hostnameForSearch(item.sourceUrl),
+    item.platform,
+    item.category,
+  ];
+  appendSearchParts(item.actionTaken, parts);
+  appendSearchParts(item.userCorrection, parts);
+  appendSearchParts(item.rawContent, parts);
+  appendSearchParts(item.extractedData, parts);
+  return parts
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 12000);
 }
 
 export function extractThumbnailUrl(
@@ -100,26 +157,41 @@ export function canReprocess(status: ItemStatus): boolean {
 
 const LIST_SCAN = 250;
 const LIST_LIMIT = 100;
+const SEARCH_LIMIT = 100;
 
 /** Returns saved items for the authenticated user (main feed or archive). */
 export const list = query({
   args: {
     view: v.optional(v.union(v.literal("feed"), v.literal("archive"))),
+    q: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
 
     const wantArchived = (args.view ?? "feed") === "archive";
-    const rows = await ctx.db
-      .query("savedItems")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .order("desc")
-      .take(LIST_SCAN);
+    const search = args.q?.trim();
+    const rows = search
+      ? await ctx.db
+          .query("savedItems")
+          .withSearchIndex("search_searchText", (q) =>
+            q
+              .search("searchText", search)
+              .eq("userId", userId)
+              .eq("archived", wantArchived),
+          )
+          .take(SEARCH_LIMIT)
+      : await ctx.db
+          .query("savedItems")
+          .withIndex("by_userId", (q) => q.eq("userId", userId))
+          .order("desc")
+          .take(LIST_SCAN);
 
-    const matched = rows.filter((item) =>
-      wantArchived ? item.archived === true : !item.archived,
-    );
+    const matched = search
+      ? rows
+      : rows.filter((item) =>
+          wantArchived ? item.archived === true : !item.archived,
+        );
     const items = matched.slice(0, LIST_LIMIT);
 
     const r2PublicUrl = process.env.R2_PUBLIC_URL;
@@ -207,6 +279,11 @@ export const save = mutation({
       category: "other",
       status: "pending",
       archived: false,
+      searchText: buildSearchText({
+        sourceUrl: url,
+        platform,
+        category: "other",
+      }),
     });
 
     // Schedule URL processing immediately
@@ -230,9 +307,12 @@ export const updateCategory = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    await getOwnedItem(ctx, userId, id);
+    const item = await getOwnedItem(ctx, userId, id);
 
-    await ctx.db.patch(id, { category });
+    await ctx.db.patch(id, {
+      category,
+      searchText: buildSearchText({ ...item, category }),
+    });
     return true;
   },
 });
@@ -250,7 +330,7 @@ export const saveCorrection = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    await getOwnedItem(ctx, userId, id);
+    const item = await getOwnedItem(ctx, userId, id);
 
     const correction = JSON.stringify({
       note,
@@ -264,7 +344,14 @@ export const saveCorrection = mutation({
 
     if (correctedCategory) patch.category = correctedCategory;
 
-    await ctx.db.patch(id, patch);
+    await ctx.db.patch(id, {
+      ...patch,
+      searchText: buildSearchText({
+        ...item,
+        category: correctedCategory ?? item.category,
+        userCorrection: correction,
+      }),
+    });
     return true;
   },
 });
@@ -279,9 +366,12 @@ export const setArchived = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    await getOwnedItem(ctx, userId, id);
+    const item = await getOwnedItem(ctx, userId, id);
 
-    await ctx.db.patch(id, { archived });
+    await ctx.db.patch(id, {
+      archived,
+      searchText: buildSearchText(item),
+    });
     return true;
   },
 });
@@ -321,7 +411,11 @@ export const reprocessWithCategory = mutation({
       throw new Error("Only done items can be re-processed");
     }
 
-    await ctx.db.patch(id, { status: "pending", category });
+    await ctx.db.patch(id, {
+      status: "pending",
+      category,
+      searchText: buildSearchText({ ...item, category }),
+    });
     await ctx.scheduler.runAfter(0, internal.processUrl.processItem, {
       savedItemId: id,
       url: item.sourceUrl,
@@ -376,8 +470,44 @@ export const updateResult = internalMutation({
       actionTaken,
       thumbnailStorageId,
       thumbnailR2Key,
+      searchText: buildSearchText({
+        sourceUrl: item.sourceUrl,
+        platform,
+        category,
+        rawContent,
+        extractedData,
+        actionTaken,
+        userCorrection: item.userCorrection,
+      }),
       status: "done",
     });
+  },
+});
+
+/** Backfills searchable text for existing saved items in bounded batches. */
+export const backfillSearchText = internalMutation({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, { paginationOpts }) => {
+    const page = await ctx.db.query("savedItems").paginate(paginationOpts);
+    let updated = 0;
+
+    for (const item of page.page) {
+      const searchText = buildSearchText(item);
+      if (item.searchText === searchText && item.archived !== undefined) continue;
+
+      await ctx.db.patch(item._id, {
+        searchText,
+        archived: item.archived ?? false,
+      });
+      updated++;
+    }
+
+    return {
+      scanned: page.page.length,
+      updated,
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+    };
   },
 });
 
