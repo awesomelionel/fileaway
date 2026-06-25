@@ -41,3 +41,6 @@ next-env.d.ts
 # superpowers
 .superpowers/
 .claude/settings.local.json
+
+# generated analysis output
+graphify-out/
