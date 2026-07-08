@@ -20,7 +20,7 @@ Ship an iOS version of fileaway that:
 | Repo layout | `mobile/` directory inside this repo | Shares `convex/_generated/api` types with the web app. |
 | Core focus | Share-to-save + full feed | Share Extension is the mobile killer feature; feed keeps parity with web. |
 | Share mechanism (v1) | `expo-share-intent` — app opens with shared URL and auto-saves | True in-place popup (`expo-share-extension`) deferred to v2: it requires App Groups + Keychain sharing for auth tokens, which adds risk without changing the core UX much. |
-| Auth | `@convex-dev/auth/react` + `expo-secure-store` (iOS Keychain) | Same email/password accounts as web. Email/password means **Sign in with Apple is NOT required** (only mandatory when third-party social login is offered). |
+| Auth | `@convex-dev/auth/react` + `expo-secure-store` (iOS Keychain) | Same accounts as web: email/password **plus Google and GitHub OAuth** (already configured in `convex/auth.ts`). Because third-party login is offered, **Sign in with Apple is REQUIRED** (Guideline 4.8) and is added as a provider for both mobile and backend. |
 | Analytics | No PostHog in mobile v1 | Fewer App Privacy declarations, zero ATT questions. Can add later. |
 | Apple Developer account | Enroll later | Simulator testing is free; enrollment starts when TestFlight is needed. |
 | Styling | NativeWind (Tailwind for RN) | Keeps styling idioms close to the web app. |
@@ -30,11 +30,14 @@ Ship an iOS version of fileaway that:
 - **One monorepo, two frontends, one backend.** The Expo app lives in `mobile/`. No structural changes to the Next.js app or Convex backend.
 - **Development builds, not Expo Go** — the share intent and secure-store modules require native code. JS changes hot-reload; the native shell rebuilds only when native config changes.
 - **Environment:** `EXPO_PUBLIC_CONVEX_URL` points at the dev Convex deployment during local testing, prod deployment for release builds.
-- **Backend addition (only one):** a `deleteAccount` mutation in `convex/` that deletes the user's auth record and all their `savedItems`. Required by App Store Guideline 5.1.1(v) — apps with account creation must offer in-app account deletion. Exposed in mobile Settings; optionally reused on web later.
+- **Backend additions (two):**
+  1. A `deleteAccount` mutation in `convex/` that deletes the user's auth record and all their `savedItems`. Required by App Store Guideline 5.1.1(v) — apps with account creation must offer in-app account deletion. Exposed in mobile Settings; optionally reused on web later.
+  2. An **Apple provider** in `convex/auth.ts` (`@auth/core/providers/apple`) so Sign in with Apple accounts live alongside Password/GitHub/Google. Requires Apple Developer setup (App ID with Sign in with Apple capability, Services ID, private key) — done during the enrollment phase.
+- **Sign in with Apple on device:** native flow via `expo-apple-authentication` (Apple requires the native button UX, not a web redirect, when running on iOS). Google/GitHub use the standard Convex Auth OAuth redirect flow through `expo-web-browser`.
 
 ## Screens
 
-1. **Auth** — login / signup (email + password), same validation as web.
+1. **Auth** — login / signup with email + password, **Sign in with Apple** (native button, required placement per Guideline 4.8), and Google/GitHub OAuth buttons, matching the web's provider set.
 2. **Feed** — reactive `useQuery(api.items.list)`, category tabs with counts, debounced search, pull-to-refresh, per-item status (`pending / processing / done / failed`).
 3. **Item cards** — ported category renderers:
    - food → open Google Maps link
@@ -64,7 +67,7 @@ Known trade-off: the app opens (~1s) rather than an in-place popup. Accepted for
 
 - **Unit (Jest, existing `tests/` setup):** URL validation, share-intent parsing, category helpers — the pure logic ported or added for mobile.
 - **Manual (Simulator):** screen flows, share-from-Safari, auth persistence across relaunch.
-- **Device (optional, free):** sideload with a free Apple ID (7-day provisioning) for real TikTok/IG share testing.
+- **Device (optional, free):** sideload with a free Apple ID (7-day provisioning) for real TikTok/IG share testing. Sign in with Apple is the one flow that can't run on a free team — it's verified immediately after Developer Program enrollment.
 
 ## Local Development Workflow
 
@@ -84,7 +87,8 @@ Path to store: enroll in Apple Developer Program ($99/yr, can take days — star
 
 Requirements handled by design:
 
-- [ ] **In-app account deletion** (5.1.1(v)) — `deleteAccount` mutation + Settings UI. Most common hard-rejection miss.
+- [ ] **Sign in with Apple** (4.8) — required because the app offers Google/GitHub login. Native button via `expo-apple-authentication`, Apple provider in `convex/auth.ts`, capability enabled on the App ID. Note: the Sign in with Apple entitlement needs a **paid** developer team — email/password and Google/GitHub are fully testable in the Simulator before enrollment; the Apple flow is verified right after enrollment, before TestFlight.
+- [ ] **In-app account deletion** (5.1.1(v)) — `deleteAccount` mutation + Settings UI. Most common hard-rejection miss. Must also revoke Sign in with Apple tokens on deletion (Apple checks this).
 - [ ] **Privacy policy URL** + **support URL** — simple pages on the existing web app.
 - [ ] **App Privacy labels** — declare: email (account), user content (saved links). No analytics/tracking in v1 → no ATT prompt needed.
 - [ ] **Encryption export compliance** — `ITSAppUsesNonExemptEncryption = NO` (HTTPS only).
