@@ -1,4 +1,4 @@
-import { appleProfileFromClaims } from "../../convex/appleNative";
+import { appleProfileFromClaims, isAppleEmailVerified } from "../../convex/appleNative";
 
 test("maps Apple claims to a profile", () => {
   expect(
@@ -16,4 +16,15 @@ test("tolerates missing email and name (Apple only sends them once)", () => {
 
 test("throws on missing sub", () => {
   expect(() => appleProfileFromClaims({} as any)).toThrow();
+});
+
+test("isAppleEmailVerified accepts boolean true and string 'true'", () => {
+  expect(isAppleEmailVerified({ email_verified: true })).toBe(true);
+  expect(isAppleEmailVerified({ email_verified: "true" })).toBe(true);
+});
+
+test("isAppleEmailVerified rejects everything else", () => {
+  expect(isAppleEmailVerified({ email_verified: "false" })).toBe(false);
+  expect(isAppleEmailVerified({ email_verified: false })).toBe(false);
+  expect(isAppleEmailVerified({})).toBe(false);
 });

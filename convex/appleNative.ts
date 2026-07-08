@@ -16,6 +16,10 @@ export function appleProfileFromClaims(
   };
 }
 
+export function isAppleEmailVerified(claims: { email_verified?: unknown }): boolean {
+  return claims.email_verified === true || claims.email_verified === "true";
+}
+
 // Native Sign in with Apple (App Store Guideline 4.8).
 // The client obtains an identityToken via expo-apple-authentication and we
 // verify it server-side against Apple's JWKS. audience = our bundle id.
@@ -46,7 +50,7 @@ export const AppleNative = ConvexCredentials({
         provider: "apple-native",
         account: { id: profile.id },
         profile: profileFields,
-        shouldLinkViaEmail: true,
+        shouldLinkViaEmail: isAppleEmailVerified(payload),
       });
       return { userId: user._id };
     }
