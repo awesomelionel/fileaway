@@ -8,3 +8,17 @@ export const setMockUserId = (id: string | null) => {
 export async function getAuthUserId(_ctx: unknown): Promise<string | null> {
   return mockUserId;
 }
+
+export async function createAccount(
+  _ctx: unknown,
+  _args: unknown,
+): Promise<{ user: { _id: string } }> {
+  return { user: { _id: "user1" } };
+}
+
+export async function retrieveAccount(
+  _ctx: unknown,
+  _args: unknown,
+): Promise<{ user: { _id: string } }> {
+  return { user: { _id: "user1" } };
+}

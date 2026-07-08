@@ -15,3 +15,4 @@ export const v = vProxy;
 export const internal = new Proxy({}, { get: () => new Proxy({}, { get: () => '' }) });
 export const ApifyClient = class {};
 export const GoogleGenerativeAI = class {};
+export const ConvexCredentials = (config: unknown) => config;

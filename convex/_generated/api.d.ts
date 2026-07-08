@@ -12,6 +12,7 @@ import type * as ResendMagicLink from "../ResendMagicLink.js";
 import type * as admin from "../admin.js";
 import type * as adminCategories from "../adminCategories.js";
 import type * as analytics from "../analytics.js";
+import type * as appleNative from "../appleNative.js";
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as items from "../items.js";
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   adminCategories: typeof adminCategories;
   analytics: typeof analytics;
+  appleNative: typeof appleNative;
   auth: typeof auth;
   http: typeof http;
   items: typeof items;

@@ -4,6 +4,7 @@ import GitHub from "@auth/core/providers/github";
 import Google from "@auth/core/providers/google";
 import { ResendMagicLink } from "./ResendMagicLink";
 import { rateLimiter } from "./rateLimiter";
+import { AppleNative } from "./appleNative";
 
 const TURNSTILE_VERIFY_URL =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
@@ -60,14 +61,17 @@ const ProtectedPassword = Password({
 }
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-  providers: [ProtectedPassword, GitHub, Google],
+  providers: [ProtectedPassword, GitHub, Google, AppleNative],
   callbacks: {
     async redirect({ redirectTo }) {
       const allowed = [
         process.env.APP_URL,
         "http://localhost:3000",
       ].filter(Boolean) as string[];
-      if (allowed.some((origin) => redirectTo.startsWith(origin))) {
+      if (
+        redirectTo.startsWith("fileaway://") ||
+        allowed.some((origin) => redirectTo.startsWith(origin))
+      ) {
         return redirectTo;
       }
       return process.env.APP_URL ?? redirectTo;

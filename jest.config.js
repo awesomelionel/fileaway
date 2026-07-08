@@ -5,6 +5,8 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
   moduleNameMapper: {
     '^@convex-dev/auth/server$': '<rootDir>/tests/__mocks__/convex-auth-server.ts',
+    '^@convex-dev/auth/providers/ConvexCredentials$': '<rootDir>/tests/__mocks__/convex-stub.ts',
+    '^jose$': '<rootDir>/tests/__mocks__/jose.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^\\./_generated/server$': '<rootDir>/tests/__mocks__/convex-stub.ts',
     '^\\./_generated/api$': '<rootDir>/tests/__mocks__/convex-stub.ts',
