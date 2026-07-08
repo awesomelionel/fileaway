@@ -44,3 +44,6 @@ next-env.d.ts
 
 # generated analysis output
 graphify-out/
+
+# Agent-Native local plan bridge tokens
+plans/**/.plan-url
