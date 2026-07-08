@@ -1,4 +1,4 @@
-import { isLikelyUrl, normalizeUrl } from "@/lib/inputMode";
+import { isLikelyUrl, normalizeUrl, extractShareUrl } from "@/lib/inputMode";
 
 describe("input mode helpers", () => {
   test("treats http and https URLs as saveable links", () => {
@@ -14,5 +14,27 @@ describe("input mode helpers", () => {
   test("treats ordinary search text as search input", () => {
     expect(isLikelyUrl("pasta recipes")).toBe(false);
     expect(isLikelyUrl("leg day workout")).toBe(false);
+  });
+});
+
+describe("extractShareUrl", () => {
+  test("prefers webUrl", () => {
+    expect(
+      extractShareUrl({ webUrl: "https://www.tiktok.com/@chef/video/7", text: "check this" }),
+    ).toBe("https://www.tiktok.com/@chef/video/7");
+  });
+  test("falls back to first URL inside shared text", () => {
+    expect(
+      extractShareUrl({ text: "look! https://vt.tiktok.com/ZS8xyz/ so good" }),
+    ).toBe("https://vt.tiktok.com/ZS8xyz/");
+  });
+  test("normalizes bare domains", () => {
+    expect(extractShareUrl({ text: "tiktok.com/@a/video/1" })).toBe(
+      "https://tiktok.com/@a/video/1",
+    );
+  });
+  test("returns null for non-URLs", () => {
+    expect(extractShareUrl({ text: "just some words" })).toBeNull();
+    expect(extractShareUrl({})).toBeNull();
   });
 });
