@@ -210,7 +210,7 @@ export default function TermsPage() {
         <h2>17. Contact</h2>
         <p>
           Questions about these Terms? Reach us at{" "}
-          <a href="mailto:hello@fileaway.app">hello@fileaway.app</a>.
+          <a href="mailto:lionel.ttl+claude2@gmail.com">lionel.ttl+claude2@gmail.com</a>.
         </p>
       </section>
     </LegalLayout>
