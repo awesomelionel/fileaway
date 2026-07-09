@@ -3,6 +3,7 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import * as SecureStore from "expo-secure-store";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { ShareIntentProvider } from "expo-share-intent";
 import { ToastProvider } from "../src/components/Toast";
 
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
@@ -17,12 +18,14 @@ const secureStorage = {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <ConvexAuthProvider client={convex} storage={secureStorage}>
-        <ToastProvider>
-          <Stack screenOptions={{ headerShown: false }} />
-        </ToastProvider>
-      </ConvexAuthProvider>
-    </SafeAreaProvider>
+    <ShareIntentProvider>
+      <SafeAreaProvider>
+        <ConvexAuthProvider client={convex} storage={secureStorage}>
+          <ToastProvider>
+            <Stack screenOptions={{ headerShown: false }} />
+          </ToastProvider>
+        </ConvexAuthProvider>
+      </SafeAreaProvider>
+    </ShareIntentProvider>
   );
 }

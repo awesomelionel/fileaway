@@ -4,7 +4,11 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useOAuthSignIn } from "../useOAuthSignIn";
 
-export function SignInScreen() {
+interface SignInScreenProps {
+  pendingUrl?: string | null;
+}
+
+export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
   const { signIn } = useAuthActions();
   const signInGoogle = useOAuthSignIn("google");
   const signInGitHub = useOAuthSignIn("github");
@@ -64,6 +68,11 @@ export function SignInScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>fileaway</Text>
       <Text style={styles.subtitle}>Save it now. Use it later.</Text>
+      {pendingUrl && (
+        <View style={styles.pendingBanner}>
+          <Text style={styles.pendingBannerText}>1 link waiting — sign in to save it</Text>
+        </View>
+      )}
       {appleAvailable && (
         <View pointerEvents={busy ? "none" : "auto"}>
           <AppleAuthentication.AppleAuthenticationButton
@@ -115,6 +124,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 24, gap: 12 },
   title: { fontSize: 32, fontWeight: "700", textAlign: "center" },
   subtitle: { textAlign: "center", color: "#666", marginBottom: 16 },
+  pendingBanner: {
+    backgroundColor: "#EEF6FF",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  pendingBannerText: { textAlign: "center", color: "#1B5EAA", fontSize: 14, fontWeight: "500" },
   appleButton: { height: 48, width: "100%" },
   oauthButton: { height: 48, borderWidth: 1, borderColor: "#ccc", borderRadius: 8, alignItems: "center", justifyContent: "center" },
   oauthLabel: { fontSize: 16, fontWeight: "500" },

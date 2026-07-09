@@ -2,8 +2,13 @@ import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { ActivityIndicator, View } from "react-native";
 import { SignInScreen } from "../src/screens/SignInScreen";
 import { FeedScreen } from "../src/screens/FeedScreen";
+import { useShareSave } from "../src/useShareSave";
+import { useToast } from "../src/components/Toast";
 
 export default function Index() {
+  const { showToast } = useToast();
+  const { pendingUrl } = useShareSave(showToast);
+
   return (
     <>
       <AuthLoading>
@@ -12,7 +17,7 @@ export default function Index() {
         </View>
       </AuthLoading>
       <Unauthenticated>
-        <SignInScreen />
+        <SignInScreen pendingUrl={pendingUrl} />
       </Unauthenticated>
       <Authenticated>
         <FeedScreen />
