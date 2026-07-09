@@ -6,7 +6,7 @@ const vProxy: Record<string, () => unknown> = new Proxy({}, {
 });
 
 export default {};
-export const query = noop;
+export const query = (config: unknown) => config;
 export const mutation = (config: unknown) => config;
 export const internalMutation = noop;
 export const internalQuery = noop;

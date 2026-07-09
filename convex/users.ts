@@ -59,3 +59,13 @@ export const deleteAccount = mutation({
     return true;
   },
 });
+
+export const me = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const user = await ctx.db.get(userId);
+    return user ? { email: (user as any).email ?? null, name: (user as any).name ?? null } : null;
+  },
+});

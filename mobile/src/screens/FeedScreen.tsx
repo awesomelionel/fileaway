@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -10,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { useQuery } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../backend";
 import { ItemCard, type FeedItem } from "../components/ItemCard";
@@ -22,7 +21,7 @@ interface CategoryTab {
 }
 
 export function FeedScreen() {
-  const { signOut } = useAuthActions();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState("all");
@@ -46,13 +45,7 @@ export function FeedScreen() {
       ? (items ?? []).length
       : (items ?? []).filter((i) => i.category === slug).length;
 
-  const handleGearPress = () => {
-    // TODO(task-8): route to /settings
-    Alert.alert("Sign out?", undefined, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Sign out", style: "destructive", onPress: () => signOut() },
-    ]);
-  };
+  const handleGearPress = () => router.push("/settings");
 
   return (
     <KeyboardAvoidingView
