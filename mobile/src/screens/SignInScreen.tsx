@@ -1,8 +1,22 @@
 import { useEffect, useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, Alert } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useOAuthSignIn } from "../useOAuthSignIn";
+
+function friendlySignInError(raw: string): string {
+  if (raw.includes("InvalidSecret") || raw.includes("InvalidAccountId")) {
+    return "Incorrect email or password. Please try again.";
+  }
+  if (raw.includes("TooManyFailedAttempts") || raw.includes("rate limit")) {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+  if (raw.includes("Network request failed")) {
+    return "Can't reach the server. Check your connection and try again.";
+  }
+  return "Something went wrong signing you in. Please try again.";
+}
 
 interface SignInScreenProps {
   pendingUrl?: string | null;
@@ -14,6 +28,7 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
   const signInGitHub = useOAuthSignIn("github");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
 
@@ -26,7 +41,9 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
     try {
       await fn();
     } catch (e) {
-      Alert.alert(failMsg, e instanceof Error ? e.message : "Please try again.");
+      const rawMsg = e instanceof Error ? e.message : "Please try again.";
+      const msg = rawMsg.includes("[CONVEX") ? friendlySignInError(rawMsg) : rawMsg;
+      Alert.alert(failMsg, msg);
     } finally {
       setBusy(false);
     }
@@ -99,13 +116,23 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
         value={email}
         onChangeText={setEmail}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="Password"
+          autoCapitalize="none"
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
+        />
+        <Pressable
+          hitSlop={8}
+          accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+          onPress={() => setShowPassword(!showPassword)}
+        >
+          <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#888" />
+        </Pressable>
+      </View>
       <Pressable
         style={[styles.primaryButton, busy && styles.disabled]}
         disabled={busy || !email.trim() || !password}
@@ -137,6 +164,8 @@ const styles = StyleSheet.create({
   oauthLabel: { fontSize: 16, fontWeight: "500" },
   divider: { textAlign: "center", color: "#999", marginVertical: 4 },
   input: { height: 48, borderWidth: 1, borderColor: "#ccc", borderRadius: 8, paddingHorizontal: 12, fontSize: 16 },
+  passwordContainer: { height: 48, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#ccc", borderRadius: 8, paddingHorizontal: 12 },
+  passwordInput: { flex: 1, fontSize: 16 },
   primaryButton: { height: 48, borderRadius: 8, backgroundColor: "#111", alignItems: "center", justifyContent: "center" },
   primaryLabel: { color: "#fff", fontSize: 16, fontWeight: "600" },
   disabled: { opacity: 0.5 },
