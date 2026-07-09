@@ -133,7 +133,8 @@ export default function PrivacyPage() {
           <li>Update your email or password from your account settings.</li>
           <li>Delete saved items individually from the Service.</li>
           <li>Delete your account directly from the iOS app: open Settings and tap Delete account. This permanently removes your account and saved items.</li>
-          <li>Request deletion of your account by emailing us if you&apos;d rather not do it in-app.</li>
+          <li>Request deletion of your account by emailing us at{" "}
+            <a href="mailto:lionel.ttl+claude2@gmail.com">lionel.ttl+claude2@gmail.com</a> if you&apos;d rather not do it in-app.</li>
           <li>Disconnect Google or GitHub from your account by revoking access in the relevant provider.</li>
         </ul>
         <p>
@@ -194,7 +195,7 @@ export default function PrivacyPage() {
         <h2>13. Contact</h2>
         <p>
           For questions, requests, or complaints about this Policy or your information, contact us
-          at <a href="mailto:privacy@fileaway.app">privacy@fileaway.app</a>.
+          at <a href="mailto:lionel.ttl+claude2@gmail.com">lionel.ttl+claude2@gmail.com</a>.
         </p>
       </section>
     </LegalLayout>

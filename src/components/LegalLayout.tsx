@@ -23,6 +23,9 @@ export function LegalLayout({
             <Link href="/privacy" className="hover:text-fa-primary transition-colors">
               Privacy
             </Link>
+            <Link href="/support" className="hover:text-fa-primary transition-colors">
+              Support
+            </Link>
           </nav>
         </div>
       </header>
@@ -44,6 +47,9 @@ export function LegalLayout({
             </Link>
             <Link href="/privacy" className="hover:text-fa-primary transition-colors">
               Privacy
+            </Link>
+            <Link href="/support" className="hover:text-fa-primary transition-colors">
+              Support
             </Link>
           </div>
         </div>
