@@ -37,7 +37,7 @@ Ship an iOS version of fileaway that:
 
 ## Screens
 
-1. **Auth** — login / signup with email + password, **Sign in with Apple** (native button, required placement per Guideline 4.8), and Google/GitHub OAuth buttons, matching the web's provider set.
+1. **Auth** — login with email + password, **Sign in with Apple** (native button, required placement per Guideline 4.8), and Google/GitHub OAuth buttons. **Amendment (implementation):** password *sign-up* is web-only — the backend's Password provider gates sign-up behind a Cloudflare Turnstile captcha, which has no native iOS equivalent. New accounts on mobile are created via Apple/Google/GitHub (App Store 5.1.1 requires in-app account creation, which OAuth satisfies).
 2. **Feed** — reactive `useQuery(api.items.list)`, category tabs with counts, debounced search, pull-to-refresh, per-item status (`pending / processing / done / failed`).
 3. **Item cards** — ported category renderers:
    - food → open Google Maps link
