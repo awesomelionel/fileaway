@@ -1,5 +1,19 @@
 import { internalAction, internalMutation } from "./_generated/server";
-import { createAccount } from "@convex-dev/auth/server";
+import { createAccount, modifyAccountCredentials } from "@convex-dev/auth/server";
+import { v } from "convex/values";
+
+// Dev-only: reset a password account's secret so the developer can sign in
+// on the Simulator against the dev deployment.
+export const setDevPassword = internalAction({
+  args: { email: v.string(), password: v.string() },
+  handler: async (ctx, args) => {
+    await modifyAccountCredentials(ctx, {
+      provider: "password",
+      account: { id: args.email, secret: args.password },
+    });
+    return "updated";
+  },
+});
 
 export const markTestUserVerified = internalMutation({
   args: {},
