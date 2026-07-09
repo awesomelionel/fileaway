@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout title="Privacy Policy" lastUpdated="May 16, 2026">
+    <LegalLayout title="Privacy Policy" lastUpdated="July 9, 2026">
       <section>
         <p>
           This Privacy Policy explains what information fileaway (&quot;fileaway&quot;, &quot;we&quot;,
@@ -30,11 +30,12 @@ export default function PrivacyPage() {
           link (such as captions or transcripts), structured data extracted by AI from that content,
           and metadata such as timestamps and processing status.</p>
 
-        <p><strong>Usage data.</strong> We collect information about how you interact with the
-          Service, including pages viewed, features used, approximate location derived from IP
-          address, device and browser type, referring page, and performance metrics. This is
-          collected through analytics providers including PostHog and Vercel Analytics / Speed
-          Insights.</p>
+        <p><strong>Usage data.</strong> On the web app, we collect information about how you
+          interact with the Service, including pages viewed, features used, approximate location
+          derived from IP address, device and browser type, referring page, and performance
+          metrics. This is collected through analytics providers including PostHog and Vercel
+          Analytics / Speed Insights. The iOS app does not include any analytics or tracking SDKs
+          and does not collect this usage data.</p>
 
         <p><strong>Cookies and similar technologies.</strong> We use cookies and similar
           technologies to keep you signed in, remember your preferences, secure the Service, and
@@ -95,7 +96,11 @@ export default function PrivacyPage() {
 
       <section>
         <h2>5. Sharing of information</h2>
-        <p>We do not sell your personal information. We share it only:</p>
+        <p>
+          We do not sell your personal information, we do not run advertising, and we do not
+          share your data across other companies&apos; apps or services for cross-app tracking or
+          advertising purposes. We share information only:
+        </p>
         <ul>
           <li>With the service providers listed above, to run the Service.</li>
           <li>When you direct us to (for example, by using a feature that shares a saved item).</li>
@@ -127,7 +132,8 @@ export default function PrivacyPage() {
         <ul>
           <li>Update your email or password from your account settings.</li>
           <li>Delete saved items individually from the Service.</li>
-          <li>Request deletion of your account by emailing us.</li>
+          <li>Delete your account directly from the iOS app: open Settings and tap Delete account. This permanently removes your account and saved items.</li>
+          <li>Request deletion of your account by emailing us if you&apos;d rather not do it in-app.</li>
           <li>Disconnect Google or GitHub from your account by revoking access in the relevant provider.</li>
         </ul>
         <p>
