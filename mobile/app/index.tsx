@@ -1,12 +1,22 @@
-import { Text, View } from "react-native";
-import { api } from "../src/backend";
-
-console.log("typeof api", typeof api);
+import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
+import { ActivityIndicator, View } from "react-native";
+import { SignInScreen } from "../src/screens/SignInScreen";
+import { FeedScreen } from "../src/screens/FeedScreen";
 
 export default function Index() {
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <Text>fileaway</Text>
-    </View>
+    <>
+      <AuthLoading>
+        <View style={{ flex: 1, justifyContent: "center" }}>
+          <ActivityIndicator />
+        </View>
+      </AuthLoading>
+      <Unauthenticated>
+        <SignInScreen />
+      </Unauthenticated>
+      <Authenticated>
+        <FeedScreen />
+      </Authenticated>
+    </>
   );
 }

@@ -10,7 +10,10 @@
     "ios": {
       "bundleIdentifier": "com.fileaway.app",
       "deploymentTarget": "16.4",
-      "config": { "usesNonExemptEncryption": false },
+      "usesAppleSignIn": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "icon": "./assets/expo.icon"
     },
     "android": {
@@ -35,7 +38,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
