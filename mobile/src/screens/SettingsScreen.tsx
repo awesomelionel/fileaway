@@ -16,8 +16,12 @@ export function SettingsScreen() {
   const deleteAccount = useMutation(api.users.deleteAccount);
 
   const onSignOut = async () => {
-    await signOut();
-    router.back();
+    try {
+      await signOut();
+      router.back();
+    } catch {
+      Alert.alert("Sign out failed", "Please try again.");
+    }
   };
 
   const onDelete = () =>
@@ -32,7 +36,15 @@ export function SettingsScreen() {
           onPress: async () => {
             try {
               await deleteAccount({});
-              await signOut();
+              // Account deleted successfully. Now try to sign out.
+              try {
+                await signOut();
+                router.back();
+              } catch {
+                // Sign out failed, but account is already deleted.
+                // The auth gate will redirect once client auth state clears.
+                // Swallow the error silently.
+              }
             } catch {
               Alert.alert("Deletion failed", "Please try again.");
             }
