@@ -70,6 +70,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       ].filter(Boolean) as string[];
       if (
         redirectTo.startsWith("fileaway://") ||
+        redirectTo.startsWith("exp+fileaway://") ||
         allowed.some((origin) => redirectTo.startsWith(origin))
       ) {
         return redirectTo;

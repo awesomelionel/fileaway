@@ -11,8 +11,12 @@ export function useOAuthSignIn(provider: "github" | "google") {
     if (!redirect) return;
     const result = await openAuthSessionAsync(redirect.toString(), redirectTo);
     if (result.type === "success") {
-      const code = new URL(result.url).searchParams.get("code");
-      if (code) await signIn(provider, { code });
+      const url = new URL(result.url);
+      const error = url.searchParams.get("error");
+      if (error) throw new Error(`Provider returned: ${error}`);
+      const code = url.searchParams.get("code");
+      if (!code) throw new Error("Sign-in was cancelled or returned no code");
+      await signIn(provider, { code });
     }
   };
 }

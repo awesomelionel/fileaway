@@ -47,23 +47,33 @@ export function SignInScreen() {
     }, "Apple sign-in failed");
 
   const onPassword = () =>
-    run(
-      () => signIn("password", { email: email.trim().toLowerCase(), password, flow: "signIn" }),
-      "Sign-in failed",
-    );
+    run(async () => {
+      const result = await signIn("password", {
+        email: email.trim().toLowerCase(),
+        password,
+        flow: "signIn",
+      });
+      if (result.signingIn === false) {
+        throw new Error(
+          "This account needs email verification. Check your inbox for a verification link, then sign in again.",
+        );
+      }
+    }, "Sign-in failed");
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>fileaway</Text>
       <Text style={styles.subtitle}>Save it now. Use it later.</Text>
       {appleAvailable && (
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-          cornerRadius={8}
-          style={styles.appleButton}
-          onPress={onApple}
-        />
+        <View pointerEvents={busy ? "none" : "auto"}>
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            cornerRadius={8}
+            style={styles.appleButton}
+            onPress={onApple}
+          />
+        </View>
       )}
       <Pressable style={styles.oauthButton} disabled={busy} onPress={() => run(signInGoogle, "Google sign-in failed")}>
         <Text style={styles.oauthLabel}>Continue with Google</Text>
