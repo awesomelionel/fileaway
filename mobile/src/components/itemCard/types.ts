@@ -55,14 +55,14 @@ export function relativeTime(iso: string): string {
   return "just now";
 }
 
-/** How-to steps may arrive as `steps` (string[]), or `shots` (object[]), or `key_points`. */
+/** How-to steps may arrive as `key_points`, or `shots` (object[]), or `steps`. */
 export function extractHowToSteps(data: Record<string, unknown>): string[] {
-  const steps = data.steps as string[] | undefined;
-  if (steps?.length) return steps;
+  const keyPoints = data.key_points as string[] | undefined;
+  if (keyPoints?.length) return keyPoints;
   const shots = data.shots as Array<{ description?: string; detail?: string }> | undefined;
   if (shots?.length) {
     return shots.map((s) => [s.description, s.detail].filter(Boolean).join(" — "));
   }
-  const keyPoints = data.key_points as string[] | undefined;
-  return keyPoints ?? [];
+  const steps = data.steps as string[] | undefined;
+  return steps ?? [];
 }
