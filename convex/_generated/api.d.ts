@@ -19,6 +19,7 @@ import type * as items from "../items.js";
 import type * as processUrl from "../processUrl.js";
 import type * as rateLimiter from "../rateLimiter.js";
 import type * as signupAdmin from "../signupAdmin.js";
+import type * as testSeed from "../testSeed.js";
 import type * as users from "../users.js";
 
 import type {
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   processUrl: typeof processUrl;
   rateLimiter: typeof rateLimiter;
   signupAdmin: typeof signupAdmin;
+  testSeed: typeof testSeed;
   users: typeof users;
 }>;
 
