@@ -4,6 +4,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useOAuthSignIn } from "../useOAuthSignIn";
+import { KnownSignInError, withSignInTimeout } from "../signInErrors";
 
 function friendlySignInError(raw: string): string {
   if (raw.includes("InvalidSecret") || raw.includes("InvalidAccountId")) {
@@ -11,9 +12,6 @@ function friendlySignInError(raw: string): string {
   }
   if (raw.includes("TooManyFailedAttempts") || raw.includes("rate limit")) {
     return "Too many attempts. Please wait a moment and try again.";
-  }
-  if (raw.includes("Network request failed")) {
-    return "Can't reach the server. Check your connection and try again.";
   }
   return "Something went wrong signing you in. Please try again.";
 }
@@ -41,8 +39,7 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
     try {
       await fn();
     } catch (e) {
-      const rawMsg = e instanceof Error ? e.message : "Please try again.";
-      const msg = rawMsg.includes("[CONVEX") ? friendlySignInError(rawMsg) : rawMsg;
+      const msg = e instanceof KnownSignInError ? e.message : friendlySignInError(e instanceof Error ? e.message : String(e));
       Alert.alert(failMsg, msg);
     } finally {
       setBusy(false);
@@ -57,25 +54,25 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
-      if (!cred.identityToken) throw new Error("Apple returned no identity token");
+      if (!cred.identityToken) throw new KnownSignInError("Apple returned no identity token");
       const fullName = [cred.fullName?.givenName, cred.fullName?.familyName]
         .filter(Boolean)
         .join(" ");
-      await signIn("apple-native", {
+      await withSignInTimeout(signIn("apple-native", {
         identityToken: cred.identityToken,
         ...(fullName ? { fullName } : {}),
-      });
+      }));
     }, "Apple sign-in failed");
 
   const onPassword = () =>
     run(async () => {
-      const result = await signIn("password", {
+      const result = await withSignInTimeout(signIn("password", {
         email: email.trim().toLowerCase(),
         password,
         flow: "signIn",
-      });
+      }));
       if (result.signingIn === false) {
-        throw new Error(
+        throw new KnownSignInError(
           "This account needs email verification. Check your inbox for a verification link, then sign in again.",
         );
       }
