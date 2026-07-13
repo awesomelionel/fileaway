@@ -16,8 +16,9 @@ export function appleProfileFromClaims(
   };
 }
 
-export function isAppleEmailVerified(claims: { email_verified?: unknown }): boolean {
-  return claims.email_verified === true || claims.email_verified === "true";
+export function isAppleEmailVerified(claims: JWTPayload): boolean {
+  const emailVerified = claims["email_verified"];
+  return emailVerified === true || emailVerified === "true";
 }
 
 // Native Sign in with Apple (App Store Guideline 4.8).

@@ -3,7 +3,10 @@ import { makeRedirectUri } from "expo-auth-session";
 import { openAuthSessionAsync } from "expo-web-browser";
 import { KnownSignInError, withSignInTimeout } from "./signInErrors";
 
-const redirectTo = makeRedirectUri(); // fileaway://
+const redirectTo = makeRedirectUri({
+  native: "fileaway://",
+  scheme: "fileaway",
+});
 
 export function useOAuthSignIn(provider: "github" | "google") {
   const { signIn } = useAuthActions();

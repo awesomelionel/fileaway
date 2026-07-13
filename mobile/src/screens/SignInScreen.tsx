@@ -26,7 +26,11 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
   const signInGitHub = useOAuthSignIn("github");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resetRequested, setResetRequested] = useState(false);
   const [busy, setBusy] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
 
@@ -78,6 +82,36 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
       }
     }, "Sign-in failed");
 
+  const requestPasswordReset = () =>
+    run(async () => {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail) {
+        throw new KnownSignInError("Enter your email address first.");
+      }
+      await withSignInTimeout(signIn("password", {
+        email: normalizedEmail,
+        flow: "reset",
+      }));
+      setResetRequested(true);
+      setResetCode("");
+      setNewPassword("");
+      Alert.alert("Check your email", "Enter the reset code we sent, then choose a new password.");
+    }, "Reset email failed");
+
+  const onResetPassword = () =>
+    run(async () => {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail) throw new KnownSignInError("Enter your email address.");
+      if (!resetCode.trim()) throw new KnownSignInError("Enter the reset code from your email.");
+      if (newPassword.length < 8) throw new KnownSignInError("Use a password with at least 8 characters.");
+      await withSignInTimeout(signIn("password", {
+        email: normalizedEmail,
+        code: resetCode.trim(),
+        newPassword,
+        flow: "reset-verification",
+      }));
+    }, "Password reset failed");
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>fileaway</Text>
@@ -113,33 +147,97 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
         value={email}
         onChangeText={setEmail}
       />
-      <View style={styles.passwordContainer}>
-        <TextInput
-          style={styles.passwordInput}
-          placeholder="Password"
-          autoCapitalize="none"
-          secureTextEntry={!showPassword}
-          value={password}
-          onChangeText={setPassword}
-        />
+      {resetRequested ? (
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder="Reset code"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={resetCode}
+            onChangeText={setResetCode}
+          />
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="New password"
+              autoCapitalize="none"
+              secureTextEntry={!showNewPassword}
+              value={newPassword}
+              onChangeText={setNewPassword}
+            />
+            <Pressable
+              hitSlop={8}
+              accessibilityLabel={showNewPassword ? "Hide new password" : "Show new password"}
+              onPress={() => setShowNewPassword(!showNewPassword)}
+            >
+              <Ionicons name={showNewPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#888" />
+            </Pressable>
+          </View>
+          <Pressable
+            style={[styles.primaryButton, busy && styles.disabled]}
+            disabled={busy || !email.trim() || !resetCode.trim() || !newPassword}
+            onPress={onResetPassword}
+          >
+            <Text style={styles.primaryLabel}>{busy ? "Updating…" : "Update password"}</Text>
+          </Pressable>
+          <Pressable
+            style={styles.linkButton}
+            disabled={busy}
+            onPress={() => setResetRequested(false)}
+          >
+            <Text style={styles.linkLabel}>Back to sign in</Text>
+          </Pressable>
+        </>
+      ) : (
+        <>
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Password"
+              autoCapitalize="none"
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPassword}
+            />
+            <Pressable
+              hitSlop={8}
+              accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#888" />
+            </Pressable>
+          </View>
+          <Pressable
+            style={styles.forgotButton}
+            disabled={busy}
+            onPress={requestPasswordReset}
+          >
+            <Text style={styles.linkLabel}>Forgot password?</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.primaryButton, busy && styles.disabled]}
+            disabled={busy || !email.trim() || !password}
+            onPress={onPassword}
+          >
+            <Text style={styles.primaryLabel}>{busy ? "Signing in…" : "Sign in"}</Text>
+          </Pressable>
+        </>
+      )}
+      {!resetRequested && (
+        <Text style={styles.footnote}>
+          New here? Use Apple, Google, or GitHub above to create your account.
+        </Text>
+      )}
+      {resetRequested && (
         <Pressable
-          hitSlop={8}
-          accessibilityLabel={showPassword ? "Hide password" : "Show password"}
-          onPress={() => setShowPassword(!showPassword)}
+          style={styles.linkButton}
+          disabled={busy}
+          onPress={requestPasswordReset}
         >
-          <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#888" />
+          <Text style={styles.linkLabel}>Resend reset code</Text>
         </Pressable>
-      </View>
-      <Pressable
-        style={[styles.primaryButton, busy && styles.disabled]}
-        disabled={busy || !email.trim() || !password}
-        onPress={onPassword}
-      >
-        <Text style={styles.primaryLabel}>{busy ? "Signing in…" : "Sign in"}</Text>
-      </Pressable>
-      <Text style={styles.footnote}>
-        New here? Use Apple, Google, or GitHub above to create your account.
-      </Text>
+      )}
     </View>
   );
 }
@@ -163,6 +261,9 @@ const styles = StyleSheet.create({
   input: { height: 48, borderWidth: 1, borderColor: "#ccc", borderRadius: 8, paddingHorizontal: 12, fontSize: 16 },
   passwordContainer: { height: 48, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#ccc", borderRadius: 8, paddingHorizontal: 12 },
   passwordInput: { flex: 1, fontSize: 16 },
+  forgotButton: { alignSelf: "flex-end", paddingVertical: 2 },
+  linkButton: { alignItems: "center", paddingVertical: 2 },
+  linkLabel: { color: "#111", fontSize: 14, fontWeight: "600" },
   primaryButton: { height: 48, borderRadius: 8, backgroundColor: "#111", alignItems: "center", justifyContent: "center" },
   primaryLabel: { color: "#fff", fontSize: 16, fontWeight: "600" },
   disabled: { opacity: 0.5 },

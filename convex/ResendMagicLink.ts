@@ -45,3 +45,34 @@ export const ResendMagicLink = Email({
     }
   },
 });
+
+export const ResendPasswordReset = Email({
+  id: "resend-password-reset",
+  maxAge: MAX_AGE_SECONDS,
+  generateVerificationToken: generateToken,
+  async sendVerificationRequest({ identifier: email, token }: { identifier: string; token: string }) {
+    const apiKey = process.env.AUTH_RESEND_KEY;
+    const from = process.env.AUTH_EMAIL_FROM;
+    if (!apiKey) throw new Error("AUTH_RESEND_KEY is not set");
+    if (!from) throw new Error("AUTH_EMAIL_FROM is not set");
+
+    const resend = new Resend(apiKey);
+    const { error } = await resend.emails.send({
+      from,
+      to: [email],
+      subject: "Reset your fileaway password",
+      text: `Use this code to reset your fileaway password:\n\n${token}\n\nThe code expires in 15 minutes. If you didn't request a password reset, you can ignore this email.`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#1a1a1a">
+          <h1 style="font-size:18px;margin:0 0 16px">Reset your fileaway password</h1>
+          <p style="font-size:14px;line-height:1.5;margin:0 0 16px">Use this code to choose a new password. It expires in 15 minutes.</p>
+          <p style="font-size:22px;letter-spacing:1px;font-weight:700;margin:0 0 24px;word-break:break-all">${token}</p>
+          <p style="font-size:12px;color:#666;line-height:1.5;margin:0">If you didn't request a password reset, you can ignore this email.</p>
+        </div>
+      `,
+    });
+    if (error) {
+      throw new Error(`Resend error: ${error.message}`);
+    }
+  },
+});

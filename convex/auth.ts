@@ -2,7 +2,7 @@ import { convexAuth } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
 import GitHub from "@auth/core/providers/github";
 import Google from "@auth/core/providers/google";
-import { ResendMagicLink } from "./ResendMagicLink";
+import { ResendMagicLink, ResendPasswordReset } from "./ResendMagicLink";
 import { rateLimiter } from "./rateLimiter";
 import { AppleNative } from "./appleNative";
 
@@ -32,6 +32,7 @@ async function verifyTurnstileToken(token: unknown): Promise<void> {
 }
 
 const ProtectedPassword = Password({
+  reset: ResendPasswordReset,
   verify: ResendMagicLink,
 });
 
