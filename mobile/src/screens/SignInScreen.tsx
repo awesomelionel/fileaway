@@ -90,6 +90,7 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
       }
       await withSignInTimeout(signIn("password", {
         email: normalizedEmail,
+        redirectTo: "fileaway://",
         flow: "reset",
       }));
       setResetRequested(true);
