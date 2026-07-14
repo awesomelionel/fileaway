@@ -1,0 +1,216 @@
+---
+title: fileaway iOS app — screen flow & implementation plan
+---
+
+### Objective
+
+Ship an iOS app for fileaway that a user can test locally in the free iOS Simulator first, then submit to the App Store without a rejection surprise. The app covers share-to-save from TikTok/Instagram plus full feed parity with the web app (category tabs, search, item cards with actions), against the **same Convex backend and accounts** the web app uses today. "Done" for v1: a dev build runs in the Simulator against the dev Convex deployment, share-from-Safari saves an item end-to-end through the existing Apify → Gemini pipeline, and every App Store checklist item below is implemented or staged.
+
+The storyboard above shows the six user-visible states; the document below carries the technical plan. A few decisions are still open — see Open Questions at the bottom.
+
+<Callout id="decision-stack" tone="decision">
+
+**Stack: Expo (React Native) development builds, in `mobile/` inside this repo.** `convex/react` and `@convex-dev/auth` officially support React Native, so the existing queries, mutations, and email/password + Google/GitHub accounts work with the generated types from `convex/_generated/api`. Native SwiftUI was rejected because Convex Auth has no Swift client (hand-rolled token flows would be the riskiest item in the project); a Capacitor web wrapper was rejected for Guideline 4.2 "minimum functionality" rejection risk. Expo Go is not enough — share intent and Keychain storage need a dev client (`npx expo run:ios`).
+
+</Callout>
+
+### Architecture
+
+<Diagram id="arch" caption="Both frontends share one Convex backend; the processing pipeline is untouched." frame="show">
+
+```html
+<div class="diagram-panel" style="display:flex;flex-direction:column;gap:14px;padding:16px">
+  <div style="display:flex;gap:14px">
+    <div class="diagram-box" style="flex:1;display:flex;flex-direction:column;gap:8px;padding:12px">
+      <span class="diagram-pill">existing</span>
+      <strong>Web — Next.js 16</strong>
+      <span class="diagram-muted">src/components/feed</span>
+    </div>
+    <div class="diagram-box" style="flex:1;display:flex;flex-direction:column;gap:8px;padding:12px;border-color:var(--wf-accent)">
+      <span class="diagram-pill" style="background:var(--wf-accent-soft)">new</span>
+      <strong>iOS — Expo RN</strong>
+      <span class="diagram-muted">mobile/ · expo-share-intent · expo-apple-authentication · expo-secure-store</span>
+    </div>
+  </div>
+  <div class="diagram-box" style="display:flex;flex-direction:column;gap:8px;padding:12px">
+    <strong>Convex backend (shared)</strong>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span class="diagram-node">auth.ts — Password · GitHub · Google · <b>+ Apple</b></span>
+      <span class="diagram-node">items.ts — list / save</span>
+      <span class="diagram-node"><b>+ users.ts — deleteAccount</b></span>
+      <span class="diagram-node">processUrl.ts — pipeline</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:14px">
+    <div class="diagram-box" style="flex:1;padding:12px"><strong>Apify</strong> <span class="diagram-muted">TikTok / Instagram scraping</span></div>
+    <div class="diagram-box" style="flex:1;padding:12px"><strong>Gemini</strong> <span class="diagram-muted">categorize + extract</span></div>
+  </div>
+</div>
+```
+
+```css
+.diagram-panel { width: 100%; box-sizing: border-box; }
+```
+
+</Diagram>
+
+### Reuse vs. new
+
+<Table
+  id="reuse-table"
+  columns={["Area", "Reused as-is", "New for iOS"]}
+  rows={[
+    ["Data & pipeline", "savedItems schema, api.items.list / save, processUrl.ts (Apify → Gemini)", "nothing"],
+    ["Auth", "Password, GitHub, Google providers; same user accounts", "Apple provider in convex/auth.ts; native Apple button; expo-secure-store token storage"],
+    ["Account lifecycle", "signup/login flows", "users.deleteAccount mutation (auth record + all savedItems + Apple token revocation)"],
+    ["UI", "card semantics from ItemCard.tsx, tab/search behavior from FeedApp.tsx", "RN screens in mobile/ (NativeWind styling); AsyncStorage replaces localStorage for fitness routines"],
+    ["Save entry points", "paste-to-save input behavior", "iOS share sheet via expo-share-intent, auto-save on arrival"],
+  ]}
+/>
+
+### Milestones
+
+<Checklist
+  id="milestones"
+  items={[
+    { id: "m0", label: "M0 — Scaffold: create mobile/ Expo app, dev client builds, ConvexProvider connects to dev deployment", note: "npx expo run:ios boots to a placeholder feed reading api.items.list" },
+    { id: "m1", label: "M1 — Auth: email/password + Google/GitHub sign-in, session persists in Keychain across relaunch" },
+    { id: "m2", label: "M2 — Feed parity: tabs with counts, debounced search, status states, all five card actions ported" },
+    { id: "m3", label: "M3 — Share-to-save: share sheet entry, URL validation, auto-save + toast, held-until-login case" },
+    { id: "m4", label: "M4 — Store readiness: deleteAccount mutation + Settings UI, Sign in with Apple (needs paid team), privacy/support pages, icon + screenshots" },
+    { id: "m5", label: "M5 — Distribution: enroll in Apple Developer Program, TestFlight build, App Store submission with review notes + demo account" },
+  ]}
+/>
+
+### Key new files
+
+<TabsBlock
+  id="file-map"
+  orientation="vertical"
+  tabs={[
+    {
+      id: "tab-provider",
+      label: "mobile/src/ConvexClientProvider.tsx",
+      blocks: [
+        {
+          id: "provider-code",
+          type: "annotated-code",
+          data: {
+            filename: "mobile/src/ConvexClientProvider.tsx",
+            language: "tsx",
+            code: "import { ConvexReactClient } from \"convex/react\";\nimport { ConvexAuthProvider } from \"@convex-dev/auth/react\";\nimport * as SecureStore from \"expo-secure-store\";\n\nconst convex = new ConvexReactClient(\n  process.env.EXPO_PUBLIC_CONVEX_URL!,\n  { unsavedChangesWarning: false },\n);\n\nexport function ConvexClientProvider({ children }) {\n  return (\n    <ConvexAuthProvider client={convex} storage={SecureStore}>\n      {children}\n    </ConvexAuthProvider>\n  );\n}",
+            annotations: [
+              { lines: "5-8", label: "Same backend", note: "EXPO_PUBLIC_CONVEX_URL points at the dev deployment locally, prod for release builds." },
+              { lines: "12", label: "Keychain", note: "expo-secure-store keeps the session across relaunches — the RN equivalent of the web's cookie storage." },
+            ],
+          },
+        },
+      ],
+    },
+    {
+      id: "tab-share",
+      label: "mobile/src/hooks/useShareSave.ts",
+      blocks: [
+        {
+          id: "share-code",
+          type: "annotated-code",
+          data: {
+            filename: "mobile/src/hooks/useShareSave.ts",
+            language: "ts",
+            code: "export function useShareSave() {\n  const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext();\n  const save = useMutation(api.items.save);\n  const { isAuthenticated } = useConvexAuth();\n\n  useEffect(() => {\n    if (!hasShareIntent) return;\n    const url = extractValidUrl(shareIntent.webUrl ?? shareIntent.text);\n    if (!url) return showToast(\"That link could not be read\");\n    if (!isAuthenticated) return holdForLogin(url);\n    save({ url }).then(() => showToast(\"Saved — processing…\"));\n    resetShareIntent();\n  }, [hasShareIntent, isAuthenticated]);\n}",
+            annotations: [
+              { lines: "8-9", label: "Validate first", note: "Same URL validation as the web input; invalid shares get a visible message, never a silent drop." },
+              { lines: "10", label: "Held until login", note: "Signed-out shares are kept in memory and saved right after auth succeeds." },
+              { lines: "11", label: "Existing mutation", note: "api.items.save already schedules internal.processUrl.processItem — no backend change." },
+            ],
+          },
+        },
+      ],
+    },
+    {
+      id: "tab-delete",
+      label: "convex/users.ts",
+      blocks: [
+        {
+          id: "delete-code",
+          type: "annotated-code",
+          data: {
+            filename: "convex/users.ts",
+            language: "ts",
+            code: "export const deleteAccount = mutation({\n  args: {},\n  handler: async (ctx) => {\n    const userId = await getAuthUserId(ctx);\n    if (!userId) throw new ConvexError(\"Not signed in\");\n    const items = await ctx.db\n      .query(\"savedItems\")\n      .withIndex(\"by_user\", (q) => q.eq(\"userId\", userId))\n      .collect();\n    for (const item of items) await ctx.db.delete(item._id);\n    await revokeAppleTokens(ctx, userId); // no-op for non-Apple accounts\n    await deleteAuthAccount(ctx, userId);\n  },\n});",
+            annotations: [
+              { lines: "1", label: "Guideline 5.1.1(v)", note: "In-app account deletion is a hard App Store requirement for apps with account creation." },
+              { lines: "11", label: "Apple revocation", note: "Apple's review checks that Sign in with Apple tokens are revoked on account deletion (revoke endpoint)." },
+            ],
+          },
+        },
+      ],
+    },
+  ]}
+/>
+
+### App Store readiness
+
+<Checklist
+  id="store-checklist"
+  items={[
+    { id: "s-apple", label: "Sign in with Apple (4.8)", note: "Required because Google/GitHub login is offered. Native button via expo-apple-authentication; the entitlement needs a paid team, so this is verified right after enrollment." },
+    { id: "s-delete", label: "In-app account deletion (5.1.1(v))", note: "deleteAccount mutation + Settings row, with Apple token revocation." },
+    { id: "s-privacy", label: "Privacy policy + support URLs", note: "Two simple pages on the existing Next.js site, linked in Settings and App Store Connect." },
+    { id: "s-labels", label: "App Privacy nutrition labels", note: "Declare email (account) and user content (saved links) only — no PostHog/analytics in mobile v1, so no tracking declarations or ATT prompt." },
+    { id: "s-crypto", label: "Encryption export compliance", note: "ITSAppUsesNonExemptEncryption = NO (HTTPS only) — skips the per-release export question." },
+    { id: "s-42", label: "Minimum functionality (4.2)", note: "Native UI + share sheet integration; not a webview wrapper." },
+    { id: "s-ugc", label: "UGC / third-party content notes (1.2, 5.2.3)", note: "Review Notes state: content is private per-user; the app saves user-chosen links and shows AI-extracted text — it never downloads, rehosts, or plays platform videos." },
+    { id: "s-assets", label: "Assets + demo account", note: "1024px icon (no alpha), 6.9\" and 6.5\" screenshots, description/keywords, and a pre-seeded reviewer account with processed items." },
+  ]}
+/>
+
+### Verification
+
+Local loop: `npx convex dev` (terminal 1) and `cd mobile && npx expo run:ios` (terminal 2). The end-to-end smoke that must pass before calling any milestone done:
+
+1. Fresh Simulator install → sign up with email/password → feed loads live data from the dev deployment.
+2. Share a TikTok URL from Safari → app opens, "Saved — processing…" toast, item appears in `pending`, then flips to `done` with extracted data as `processUrl` completes (watch the Convex dashboard logs).
+3. Kill and relaunch the app → still signed in (Keychain persistence).
+4. Settings → Delete account → confirm → Convex dashboard shows the user's auth record and all `savedItems` rows gone; app returns to sign-in.
+5. Jest units for `extractValidUrl` and share-intent parsing run in the existing `tests/` setup.
+
+Sign in with Apple gets the same smoke on a physical device immediately after Developer Program enrollment, before the TestFlight build.
+
+### Open Questions
+
+<QuestionForm
+  id="open-questions"
+  questions={[
+    {
+      id: "q-store-name",
+      title: "App Store display name",
+      subtitle: "The store listing name can differ from the home-screen name (max 30 chars).",
+      mode: "single",
+      options: [
+        { id: "n-plain", label: "fileaway", detail: "Clean, matches the web brand.", recommended: true },
+        { id: "n-desc", label: "fileaway — save links with AI", detail: "Adds keyword weight for search, slightly busier." },
+      ],
+    },
+    {
+      id: "q-web-parity",
+      title: "Bring the new auth/account features to the web at the same time?",
+      subtitle: "The backend changes (Apple provider, deleteAccount) are shared either way.",
+      mode: "single",
+      options: [
+        { id: "w-later", label: "Mobile first, web later", detail: "Ship iOS v1; add the web Settings/Apple button as a follow-up.", recommended: true },
+        { id: "w-same", label: "Same release", detail: "Update web login + settings pages in this project too." },
+      ],
+    },
+    {
+      id: "q-min-ios",
+      title: "Minimum iOS version",
+      mode: "single",
+      options: [
+        { id: "ios16", label: "iOS 16+", detail: "Covers ~96% of active iPhones; no feature in this plan needs newer.", recommended: true },
+        { id: "ios17", label: "iOS 17+", detail: "Slightly simpler testing matrix, cuts off older devices." },
+      ],
+    },
+  ]}
+  submitLabel="Send answers"
+/>

@@ -9,8 +9,9 @@ function VerifyInner() {
   const { signIn } = useAuthActions();
   const router = useRouter();
   const params = useSearchParams();
-  const token = params.get("token");
+  const token = params.get("token") ?? params.get("code");
   const email = params.get("email");
+  const mode = params.get("mode");
   const hasParams = !!token && !!email;
 
   const [status, setStatus] = useState<"verifying" | "error">(
@@ -47,7 +48,9 @@ function VerifyInner() {
         {status === "verifying" ? (
           <>
             <h1 className="text-xl font-semibold text-fa-primary mb-2">Verifying…</h1>
-            <p className="text-sm text-fa-subtle">Hang tight, finishing up your sign-up.</p>
+            <p className="text-sm text-fa-subtle">
+              {mode === "signin" ? "Hang tight, signing you in." : "Hang tight, finishing up your sign-up."}
+            </p>
           </>
         ) : (
           <>

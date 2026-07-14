@@ -44,3 +44,12 @@ next-env.d.ts
 
 # generated analysis output
 graphify-out/
+
+# Agent-Native local plan bridge tokens
+plans/**/.plan-url
+
+# mobile (Expo)
+mobile/ios
+mobile/.expo
+mobile/node_modules
+mobile/.env

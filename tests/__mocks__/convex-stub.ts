@@ -6,8 +6,8 @@ const vProxy: Record<string, () => unknown> = new Proxy({}, {
 });
 
 export default {};
-export const query = noop;
-export const mutation = noop;
+export const query = (config: unknown) => config;
+export const mutation = (config: unknown) => config;
 export const internalMutation = noop;
 export const internalQuery = noop;
 export const internalAction = noop;
@@ -15,3 +15,4 @@ export const v = vProxy;
 export const internal = new Proxy({}, { get: () => new Proxy({}, { get: () => '' }) });
 export const ApifyClient = class {};
 export const GoogleGenerativeAI = class {};
+export const ConvexCredentials = (config: unknown) => config;
