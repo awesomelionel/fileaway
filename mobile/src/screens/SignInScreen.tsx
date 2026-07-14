@@ -20,6 +20,8 @@ interface SignInScreenProps {
   pendingUrl?: string | null;
 }
 
+type AuthStep = "signIn" | "forgotPassword" | "resetPassword";
+
 export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
   const { signIn } = useAuthActions();
   const signInGoogle = useOAuthSignIn("google");
@@ -30,7 +32,7 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [resetRequested, setResetRequested] = useState(false);
+  const [authStep, setAuthStep] = useState<AuthStep>("signIn");
   const [busy, setBusy] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
 
@@ -93,17 +95,17 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
         redirectTo: "fileaway://",
         flow: "reset",
       }));
-      setResetRequested(true);
+      setAuthStep("resetPassword");
       setResetCode("");
       setNewPassword("");
-      Alert.alert("Check your email", "Enter the reset code we sent, then choose a new password.");
+      Alert.alert("Check your email", "Enter the 6-digit reset code we sent, then choose a new password.");
     }, "Reset email failed");
 
   const onResetPassword = () =>
     run(async () => {
       const normalizedEmail = email.trim().toLowerCase();
       if (!normalizedEmail) throw new KnownSignInError("Enter your email address.");
-      if (!resetCode.trim()) throw new KnownSignInError("Enter the reset code from your email.");
+      if (!/^\d{6}$/.test(resetCode)) throw new KnownSignInError("Enter the 6-digit reset code from your email.");
       if (newPassword.length < 8) throw new KnownSignInError("Use a password with at least 8 characters.");
       await withSignInTimeout(signIn("password", {
         email: normalizedEmail,
@@ -117,46 +119,71 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
     <View style={styles.container}>
       <Text style={styles.title}>fileaway</Text>
       <Text style={styles.subtitle}>Save it now. Use it later.</Text>
-      {pendingUrl && (
+      {authStep === "signIn" && pendingUrl && (
         <View style={styles.pendingBanner}>
           <Text style={styles.pendingBannerText}>1 link waiting — sign in to save it</Text>
         </View>
       )}
-      {appleAvailable && (
-        <View pointerEvents={busy ? "none" : "auto"}>
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-            cornerRadius={8}
-            style={styles.appleButton}
-            onPress={onApple}
-          />
-        </View>
+      {authStep === "signIn" && (
+        <>
+          {appleAvailable && (
+            <View pointerEvents={busy ? "none" : "auto"}>
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={8}
+                style={styles.appleButton}
+                onPress={onApple}
+              />
+            </View>
+          )}
+          <Pressable style={styles.oauthButton} disabled={busy} onPress={() => run(signInGoogle, "Google sign-in failed")}>
+            <Text style={styles.oauthLabel}>Continue with Google</Text>
+          </Pressable>
+          <Pressable style={styles.oauthButton} disabled={busy} onPress={() => run(signInGitHub, "GitHub sign-in failed")}>
+            <Text style={styles.oauthLabel}>Continue with GitHub</Text>
+          </Pressable>
+          <Text style={styles.divider}>or sign in with email</Text>
+        </>
       )}
-      <Pressable style={styles.oauthButton} disabled={busy} onPress={() => run(signInGoogle, "Google sign-in failed")}>
-        <Text style={styles.oauthLabel}>Continue with Google</Text>
-      </Pressable>
-      <Pressable style={styles.oauthButton} disabled={busy} onPress={() => run(signInGitHub, "GitHub sign-in failed")}>
-        <Text style={styles.oauthLabel}>Continue with GitHub</Text>
-      </Pressable>
-      <Text style={styles.divider}>or sign in with email</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      {resetRequested ? (
+      {authStep === "forgotPassword" ? (
+        <>
+          <Text style={styles.screenTitle}>Reset password</Text>
+          <Text style={styles.screenSubtitle}>{"Enter your email and we'll send you a short reset code."}</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <Pressable
+            style={[styles.primaryButton, busy && styles.disabled]}
+            disabled={busy || !email.trim()}
+            onPress={requestPasswordReset}
+          >
+            <Text style={styles.primaryLabel}>{busy ? "Sending…" : "Send reset code"}</Text>
+          </Pressable>
+          <Pressable
+            style={styles.linkButton}
+            disabled={busy}
+            onPress={() => setAuthStep("signIn")}
+          >
+            <Text style={styles.linkLabel}>Back to sign in</Text>
+          </Pressable>
+        </>
+      ) : authStep === "resetPassword" ? (
         <>
           <TextInput
             style={styles.input}
-            placeholder="Reset code"
+            placeholder="6-digit reset code"
             autoCapitalize="none"
             autoCorrect={false}
+            keyboardType="number-pad"
+            maxLength={6}
             value={resetCode}
-            onChangeText={setResetCode}
+            onChangeText={(value) => setResetCode(value.replace(/\D/g, "").slice(0, 6))}
           />
           <View style={styles.passwordContainer}>
             <TextInput
@@ -185,13 +212,21 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
           <Pressable
             style={styles.linkButton}
             disabled={busy}
-            onPress={() => setResetRequested(false)}
+            onPress={() => setAuthStep("signIn")}
           >
             <Text style={styles.linkLabel}>Back to sign in</Text>
           </Pressable>
         </>
       ) : (
         <>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
           <View style={styles.passwordContainer}>
             <TextInput
               style={styles.passwordInput}
@@ -212,7 +247,7 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
           <Pressable
             style={styles.forgotButton}
             disabled={busy}
-            onPress={requestPasswordReset}
+            onPress={() => setAuthStep("forgotPassword")}
           >
             <Text style={styles.linkLabel}>Forgot password?</Text>
           </Pressable>
@@ -225,12 +260,12 @@ export function SignInScreen({ pendingUrl }: SignInScreenProps = {}) {
           </Pressable>
         </>
       )}
-      {!resetRequested && (
+      {authStep === "signIn" && (
         <Text style={styles.footnote}>
           New here? Use Apple, Google, or GitHub above to create your account.
         </Text>
       )}
-      {resetRequested && (
+      {authStep === "resetPassword" && (
         <Pressable
           style={styles.linkButton}
           disabled={busy}
@@ -259,6 +294,8 @@ const styles = StyleSheet.create({
   oauthButton: { height: 48, borderWidth: 1, borderColor: "#ccc", borderRadius: 8, alignItems: "center", justifyContent: "center" },
   oauthLabel: { fontSize: 16, fontWeight: "500" },
   divider: { textAlign: "center", color: "#999", marginVertical: 4 },
+  screenTitle: { fontSize: 20, fontWeight: "700", textAlign: "center" },
+  screenSubtitle: { textAlign: "center", color: "#666", fontSize: 14, lineHeight: 20 },
   input: { height: 48, borderWidth: 1, borderColor: "#ccc", borderRadius: 8, paddingHorizontal: 12, fontSize: 16 },
   passwordContainer: { height: 48, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#ccc", borderRadius: 8, paddingHorizontal: 12 },
   passwordInput: { flex: 1, fontSize: 16 },
