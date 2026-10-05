@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalLayout title="Terms and Conditions" lastUpdated="May 16, 2026">
+    <LegalLayout title="Terms and Conditions" lastUpdated="October 5, 2026">
       <section>
         <p>
           Welcome to fileaway (&quot;fileaway&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;). These
@@ -22,8 +22,7 @@ export default function TermsPage() {
       <section>
         <h2>1. The Service</h2>
         <p>
-          fileaway lets you save links to publicly available social media posts (currently TikTok and
-          Instagram, with other platforms supported on a best-effort basis) and uses third-party
+          fileaway lets you save links to publicly available TikTok, Instagram, and X posts and uses third-party
           artificial intelligence models to categorize each post and extract structured information
           from it — for example, restaurant details, recipes, fitness routines, or step-by-step
           instructions. We may add, remove, or change features at any time.
@@ -89,7 +88,7 @@ export default function TermsPage() {
         <h2>6. Third-party content and platforms</h2>
         <p>
           The Service retrieves and processes publicly available content from third-party platforms
-          (such as TikTok and Instagram) via third-party data providers. We do not own that content
+          (such as TikTok, Instagram, and X) via third-party data providers. We do not own that content
           and have no control over the platforms or what they make available. Use of those platforms
           is governed by their own terms; you are responsible for complying with them when you save
           a link.

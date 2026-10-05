@@ -676,7 +676,7 @@ function buildExtractionPrompt(
 const BUILT_IN_ACTIONS: Record<string, string> = {
   food: "Save to Google Maps",
   recipe: "Export ingredient list",
-  fitness: "Add to my routine",
+  fitness: "Copy workout",
   "how-to": "Save as guide",
   "video-analysis": "Save transcript",
   travel: "Open itinerary in Maps",

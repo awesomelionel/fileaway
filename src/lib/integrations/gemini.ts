@@ -173,7 +173,7 @@ function getDefaultAction(category: CategoryType): string {
   const actions: Record<CategoryType, string> = {
     food: "Save to Google Maps",
     recipe: "Export ingredient list",
-    fitness: "Add to my routine",
+    fitness: "Copy workout",
     "how-to": "Save as guide",
     "video-analysis": "Save transcript",
     other: "Save for later",

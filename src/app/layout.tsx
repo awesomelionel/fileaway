@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     template: "%s · fileaway",
   },
   description:
-    "Paste any TikTok, Instagram, YouTube or X link. fileaway reads it and files it away as structured, useful data.",
+    "Paste a TikTok, Instagram, or X link. fileaway reads it and files it away as structured, useful data.",
   applicationName: "fileaway",
   authors: [{ name: "fileaway" }],
   keywords: ["bookmarking", "social media", "AI", "TikTok", "Instagram", "save links"],

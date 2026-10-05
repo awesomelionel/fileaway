@@ -8,6 +8,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { track, EVENTS } from "@/lib/analytics";
+import { formatWorkoutClipboard } from "@/lib/workoutClipboard";
 
 function trackAction(item: SavedItemResponse, action: string, extra?: Record<string, unknown>) {
   track(EVENTS.ITEM_ACTION_TAKEN, {
@@ -533,29 +534,18 @@ function ActionButton({
   }
 
   if (category === "fitness") {
-    const exercises = item.extracted_data?.exercises as Array<{
-      name: string;
-      sets: number;
-      reps: number | string;
-    }> | undefined;
+    const exercises = item.extracted_data?.exercises;
+    const exerciseCount = Array.isArray(exercises) ? exercises.length : 0;
+    const text = formatWorkoutClipboard(item.extracted_data);
     return (
       <button
         onClick={() => {
-          trackAction(item, "save_to_routine", { exercise_count: exercises?.length ?? 0 });
-          fire(() => {
-            if (!exercises) return;
-            const existing = JSON.parse(
-              localStorage.getItem("fileaway-routine") ?? "[]",
-            ) as Array<unknown>;
-            localStorage.setItem(
-              "fileaway-routine",
-              JSON.stringify([...existing, ...exercises]),
-            );
-          }, "Saved to routine!");
+          trackAction(item, "copy_workout", { exercise_count: exerciseCount });
+          fire(() => copyText(text), "Copied!");
         }}
         className="text-xs px-3 py-1.5 rounded bg-fa-cat-fitness-soft text-fa-cat-fitness border border-fa-cat-fitness font-medium hover:opacity-80 transition-opacity min-h-[44px] sm:min-h-0"
       >
-        Save to routine
+        Copy workout
       </button>
     );
   }
