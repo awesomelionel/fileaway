@@ -1,9 +1,15 @@
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { rateLimiter } from "./rateLimiter";
+import {
+  formatSaveRateLimit,
+  prepareSaveUrl,
+  reusableSavedItem,
+} from "../src/lib/saveUrl";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -19,14 +25,6 @@ type SearchableItem = {
   actionTaken?: string;
   userCorrection?: string;
 };
-
-function detectPlatform(url: string): PlatformType {
-  if (/tiktok\.com/i.test(url)) return "tiktok";
-  if (/instagram\.com/i.test(url)) return "instagram";
-  if (/youtube\.com|youtu\.be/i.test(url)) return "youtube";
-  if (/twitter\.com|x\.com/i.test(url)) return "twitter";
-  return "other";
-}
 
 function hostnameForSearch(url: string): string {
   try {
@@ -263,37 +261,73 @@ export const stats = query({
 
 // ─── Public mutations ─────────────────────────────────────────────────────────
 
-/** Creates a new saved item and enqueues background processing. */
+/**
+ * Creates a saved item and enqueues processing.
+ * Invalid or unsupported URLs fail before any work is scheduled.
+ * The same canonical URL already in the user's library (and not archived)
+ * is returned as `alreadySaved` with no new scrape.
+ * New saves are limited per user — see SAVE_RATE_LIMITS in rateLimiter.ts.
+ */
 export const save = mutation({
   args: { url: v.string() },
+  returns: v.object({
+    id: v.id("savedItems"),
+    alreadySaved: v.boolean(),
+  }),
   handler: async (ctx, { url }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    const platform = detectPlatform(url);
+    const prepared = prepareSaveUrl(url);
+    if (!prepared.ok) {
+      throw new ConvexError(prepared.message);
+    }
+
+    // Bounded: one user rarely has many rows for a single canonical URL.
+    // Newest first so we reuse the latest active copy. Archived rows do not count.
+    const matches = await ctx.db
+      .query("savedItems")
+      .withIndex("by_userId_and_sourceUrl", (q) =>
+        q.eq("userId", userId).eq("sourceUrl", prepared.url),
+      )
+      .order("desc")
+      .take(32);
+    const existing = reusableSavedItem(matches);
+    if (existing) {
+      return { id: existing._id, alreadySaved: true };
+    }
+
+    const perMinute = await rateLimiter.limit(ctx, "saveItemPerMinute", { key: userId });
+    const perHour = await rateLimiter.limit(ctx, "saveItemPerHour", { key: userId });
+    if (!perMinute.ok || !perHour.ok) {
+      const retryAfter = Math.max(
+        perMinute.ok ? 0 : perMinute.retryAfter,
+        perHour.ok ? 0 : perHour.retryAfter,
+      );
+      throw new ConvexError(formatSaveRateLimit(retryAfter));
+    }
 
     const id = await ctx.db.insert("savedItems", {
       userId,
-      sourceUrl: url,
-      platform,
+      sourceUrl: prepared.url,
+      platform: prepared.platform,
       category: "other",
       status: "pending",
       archived: false,
       searchText: buildSearchText({
-        sourceUrl: url,
-        platform,
+        sourceUrl: prepared.url,
+        platform: prepared.platform,
         category: "other",
       }),
     });
 
-    // Schedule URL processing immediately
     await ctx.scheduler.runAfter(0, internal.processUrl.processItem, {
       savedItemId: id,
-      url,
+      url: prepared.url,
       distinctId: userId,
     });
 
-    return id;
+    return { id, alreadySaved: false };
   },
 });
 

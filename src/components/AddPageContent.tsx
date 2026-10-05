@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { LogoMark } from "@/components/Logo";
+import { messageFromSaveError, prepareSaveUrl } from "@/lib/saveUrl";
 
 export function AddPageContent() {
   const searchParams = useSearchParams();
@@ -15,20 +16,31 @@ export function AddPageContent() {
     "idle"
   );
   const [errorMsg, setErrorMsg] = useState("");
+  const [doneMsg, setDoneMsg] = useState("Saved! Returning to feed…");
   const saveItem = useMutation(api.items.save);
   const autoSubmitted = useRef(false);
 
   const handleSave = async (targetUrl: string) => {
-    if (!targetUrl.trim()) return;
+    const prepared = prepareSaveUrl(targetUrl);
+    if (!prepared.ok) {
+      setStatus("error");
+      setErrorMsg(prepared.message);
+      return;
+    }
     setStatus("saving");
     setErrorMsg("");
     try {
-      await saveItem({ url: targetUrl.trim() });
+      const result = await saveItem({ url: prepared.url });
+      setDoneMsg(
+        result.alreadySaved
+          ? "Already in your library. Returning to feed…"
+          : "Saved! Returning to feed…",
+      );
       setStatus("done");
       setTimeout(() => router.push("/"), 1500);
     } catch (err: unknown) {
       setStatus("error");
-      setErrorMsg(err instanceof Error ? err.message : "Failed to save");
+      setErrorMsg(messageFromSaveError(err));
     }
   };
 
@@ -71,7 +83,7 @@ export function AddPageContent() {
         {status === "done" && (
           <div className="text-center py-6 space-y-2">
             <p className="text-[#22c55e] text-2xl">✓</p>
-            <p className="text-sm text-fa-muted">Saved! Returning to feed…</p>
+            <p className="text-sm text-fa-muted">{doneMsg}</p>
           </div>
         )}
 
@@ -81,12 +93,18 @@ export function AddPageContent() {
             <input
               type="url"
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                if (status === "error") {
+                  setStatus("idle");
+                  setErrorMsg("");
+                }
+              }}
               placeholder="https://…"
               className="w-full bg-fa-input border border-fa-line rounded-lg px-4 py-2.5 text-sm text-fa-primary placeholder-fa-placeholder outline-none focus:border-fa-ring font-mono"
             />
             {status === "error" && (
-              <p className="text-xs text-[#ef4444]">{errorMsg}</p>
+              <p role="alert" className="text-xs text-[#ef4444]">{errorMsg}</p>
             )}
             <button
               onClick={() => handleSave(url)}

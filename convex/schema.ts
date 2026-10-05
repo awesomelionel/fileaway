@@ -31,6 +31,7 @@ export default defineSchema({
     archived: v.optional(v.boolean()),
   })
     .index("by_userId", ["userId"])
+    .index("by_userId_and_sourceUrl", ["userId", "sourceUrl"])
     .index("by_status", ["status"])
     .searchIndex("search_searchText", {
       searchField: "searchText",

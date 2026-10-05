@@ -13,5 +13,6 @@ export const internalQuery = noop;
 export const internalAction = noop;
 export const v = vProxy;
 export const internal = new Proxy({}, { get: () => new Proxy({}, { get: () => '' }) });
+export const components = new Proxy({}, { get: () => ({}) });
 export const ApifyClient = class {};
 export const GoogleGenerativeAI = class {};
