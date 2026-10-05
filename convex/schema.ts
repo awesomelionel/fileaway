@@ -28,6 +28,8 @@ export default defineSchema({
       v.literal("done"),
       v.literal("failed"),
     ),
+    /** Short, user-safe explanation set when status is "failed". */
+    failureReason: v.optional(v.string()),
     archived: v.optional(v.boolean()),
   })
     .index("by_userId", ["userId"])

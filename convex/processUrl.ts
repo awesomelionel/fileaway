@@ -11,6 +11,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import type { Id } from "./_generated/dataModel";
 import { captureServer, SERVER_EVENTS } from "./analytics";
+import { userFacingFailureReason, type FailureStage } from "../src/lib/failureReason";
 
 async function emitAiGeneration(
   distinctId: string,
@@ -945,6 +946,7 @@ export const processItem = internalAction({
       properties: { item_id: savedItemId, platform, url_host: urlHostname },
     });
 
+    let stage: FailureStage = "scrape";
     try {
       console.log(`[processUrl] Scraping url via Apify...`);
       const scrapeStart = Date.now();
@@ -982,6 +984,7 @@ export const processItem = internalAction({
       console.log(`[processUrl] Scrape complete in ${Date.now() - scrapeStart}ms — platform: ${platform}, title: ${scrapeResult.title ?? "(none)"}, hasVideo: ${!!scrapeResult.videoUrl}, hashtags: ${(scrapeResult.hashtags ?? []).length}`);
 
       console.log(`[processUrl] Categorizing content...`);
+      stage = "categorize";
       const categorizeStart = Date.now();
       const category = overrideCategory ?? (await categorizeContent(ctx, scrapeResult, savedItemId, distinctId));
       await captureServer({
@@ -998,6 +1001,7 @@ export const processItem = internalAction({
       console.log(`[processUrl] Category resolved: ${category}`);
 
       console.log(`[processUrl] Extracting structured data...`);
+      stage = "extract";
       const extractStart = Date.now();
       let extraction;
       try {
@@ -1078,6 +1082,7 @@ export const processItem = internalAction({
         }
       }
 
+      stage = "save";
       await ctx.runMutation(internal.items.updateResult, {
         id: savedItemId,
         platform,
@@ -1102,7 +1107,10 @@ export const processItem = internalAction({
           error_message: err instanceof Error ? err.message : "unknown",
         },
       });
-      await ctx.runMutation(internal.items.markFailed, { id: savedItemId });
+      await ctx.runMutation(internal.items.markFailed, {
+        id: savedItemId,
+        failureReason: userFacingFailureReason(err, stage),
+      });
     }
   },
 });
