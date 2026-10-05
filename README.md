@@ -63,7 +63,7 @@ The app is available at [http://localhost:3000](http://localhost:3000).
 
 ### Production build
 
-`npm run build` runs `convex deploy` then `next build`. Ensure Convex env vars are set in the target deployment.
+`npm run build` runs `convex deploy`, then `next build`, on local builds and on Vercel production. Vercel Preview builds skip `convex deploy` when `CONVEX_DEPLOY_KEY` is a production key, so a pull request cannot push functions to production. A Convex [Preview Deploy Key](https://docs.convex.dev/production/hosting/vercel) on the Vercel Preview environment still creates a per-branch backend. Ensure Convex env vars are set in the target deployment.
 
 ## Data access (Convex)
 

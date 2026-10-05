@@ -10,7 +10,7 @@ npx convex dev       # Convex backend watcher (terminal 1)
 npm run dev          # Next.js frontend at localhost:3000 (terminal 2)
 
 # Build & deploy
-npm run build        # Runs: npx convex deploy --cmd 'next build'
+npm run build        # Production/local: npx convex deploy --cmd 'next build'. Vercel preview with a production deploy key: next build only (scripts/build.js)
 
 # Tests
 npm test             # Run all tests

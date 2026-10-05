@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
-    "build": "npx convex deploy --cmd 'next build'",
+    "build": "node scripts/build.js",
     "start": "next start",
     "lint": "eslint src",
     "test": "jest",
