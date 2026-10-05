@@ -10,15 +10,8 @@ import dynamic from "next/dynamic";
 import { track, EVENTS, urlHost } from "@/lib/analytics";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Logo } from "@/components/Logo";
-import { isLikelyUrl, normalizeUrl } from "@/lib/inputMode";
-
-function detectPlatform(url: string): "tiktok" | "instagram" | "youtube" | "twitter" | "other" {
-  if (/tiktok\.com/i.test(url)) return "tiktok";
-  if (/instagram\.com/i.test(url)) return "instagram";
-  if (/youtube\.com|youtu\.be/i.test(url)) return "youtube";
-  if (/twitter\.com|x\.com/i.test(url)) return "twitter";
-  return "other";
-}
+import { isLikelyUrl } from "@/lib/inputMode";
+import { messageFromSaveError, prepareSaveUrl } from "@/lib/saveUrl";
 
 const DetailModal = dynamic(
   () => import("@/components/feed/DetailModal").then((m) => ({ default: m.DetailModal })),
@@ -39,7 +32,7 @@ function UrlInput({
   onSearchChange: (value: string) => void;
 }) {
   const [value, setValue] = useState(searchQuery);
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "duplicate" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const saveItem = useMutation(api.items.save);
   const urlMode = isLikelyUrl(value);
@@ -47,6 +40,7 @@ function UrlInput({
   const handleChange = (nextValue: string) => {
     setValue(nextValue);
     setErrorMsg("");
+    setStatus((current) => (current === "loading" ? current : "idle"));
     if (!isLikelyUrl(nextValue)) {
       onSearchChange(nextValue);
     }
@@ -62,73 +56,92 @@ function UrlInput({
       return;
     }
 
-    const cleaned = normalizeUrl(trimmed);
-    const platform = detectPlatform(cleaned);
-    track(EVENTS.LINK_SAVE_SUBMITTED, { platform, url_host: urlHost(cleaned) });
+    const prepared = prepareSaveUrl(trimmed);
+    if (!prepared.ok) {
+      track(EVENTS.LINK_SAVE_FAILED, {
+        platform: prepared.platform ?? "other",
+        url_host: urlHost(trimmed),
+        error_message: prepared.message,
+      });
+      setStatus("error");
+      setErrorMsg(prepared.message);
+      return;
+    }
+
+    track(EVENTS.LINK_SAVE_SUBMITTED, {
+      platform: prepared.platform,
+      url_host: urlHost(prepared.url),
+    });
 
     setStatus("loading");
     setErrorMsg("");
 
     try {
-      const id = await saveItem({ url: cleaned });
+      const result = await saveItem({ url: prepared.url });
       track(EVENTS.LINK_SAVE_SUCCEEDED, {
-        platform,
-        url_host: urlHost(cleaned),
-        item_id: String(id),
+        platform: prepared.platform,
+        url_host: urlHost(prepared.url),
+        item_id: String(result.id),
+        already_saved: result.alreadySaved,
       });
-      setStatus("success");
+      setStatus(result.alreadySaved ? "duplicate" : "success");
       setValue("");
       onSearchChange("");
       setTimeout(() => setStatus("idle"), 2500);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to save";
+      const msg = messageFromSaveError(err);
       track(EVENTS.LINK_SAVE_FAILED, {
-        platform,
-        url_host: urlHost(cleaned),
+        platform: prepared.platform,
+        url_host: urlHost(prepared.url),
         error_message: msg,
       });
       setStatus("error");
       setErrorMsg(msg);
-      setTimeout(() => setStatus("idle"), 3000);
     }
   };
 
+  const savedState = status === "success" || status === "duplicate";
+
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
-      <div className="relative flex-1">
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => handleChange(e.target.value)}
-          placeholder="Paste a link or search saved items…"
-          disabled={status === "loading"}
-          className="w-full bg-fa-input border border-fa-line rounded-lg px-4 py-2.5 text-sm text-fa-primary placeholder-fa-placeholder outline-none focus:border-fa-ring transition-colors disabled:opacity-50 font-mono"
-        />
-      </div>
-      <button
-        type="submit"
-        disabled={status === "loading" || !value.trim()}
-        className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-          status === "success"
-            ? "bg-fa-success-soft text-fa-success border border-fa-success"
+    <form onSubmit={handleSubmit} className="flex flex-col gap-1">
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => handleChange(e.target.value)}
+            placeholder="Paste a link or search saved items…"
+            disabled={status === "loading"}
+            className="w-full bg-fa-input border border-fa-line rounded-lg px-4 py-2.5 text-sm text-fa-primary placeholder-fa-placeholder outline-none focus:border-fa-ring transition-colors disabled:opacity-50 font-mono"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={status === "loading" || (!savedState && !value.trim())}
+          className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+            savedState
+              ? "bg-fa-success-soft text-fa-success border border-fa-success"
+              : status === "error"
+              ? "bg-fa-danger-soft text-fa-danger border border-fa-danger"
+              : "bg-fa-btn-bg text-fa-btn-fg hover:bg-fa-btn-hover"
+          }`}
+        >
+          {status === "loading"
+            ? "Saving…"
+            : status === "duplicate"
+            ? "Already saved"
+            : status === "success"
+            ? "✓ Saved"
             : status === "error"
-            ? "bg-fa-danger-soft text-fa-danger border border-fa-danger"
-            : "bg-fa-btn-bg text-fa-btn-fg hover:bg-fa-btn-hover"
-        }`}
-      >
-        {status === "loading"
-          ? "Saving…"
-          : status === "success"
-          ? "✓ Saved"
-          : status === "error"
-          ? "Error"
-          : urlMode
-          ? "Save"
-          : "Search"}
-      </button>
+            ? "Error"
+            : urlMode
+            ? "Save"
+            : "Search"}
+        </button>
+      </div>
 
       {status === "error" && errorMsg && (
-        <p className="absolute top-full left-0 mt-1 text-xs text-fa-danger">{errorMsg}</p>
+        <p role="alert" className="text-xs text-fa-danger">{errorMsg}</p>
       )}
     </form>
   );
