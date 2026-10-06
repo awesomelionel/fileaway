@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useEffect, useMemo, useTransition } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { ItemCard, getCategoryMeta } from "@/components/feed/ItemCard";
+import { ItemCard } from "@/components/feed/ItemCard";
+import { categoryAccentStyle, getCategoryMeta } from "@/lib/categoryMeta";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery, useMutation, usePreloadedQuery, Preloaded } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -164,15 +165,17 @@ function CategoryTabs({
     <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
       {tabs.map(({ value, label }) => {
         const isActive = active === value;
-        const color = value !== "all" ? getCategoryMeta(value).color : undefined;
+        const meta = value !== "all" ? getCategoryMeta(value) : undefined;
         const count = value === "all" ? counts._total : counts[value];
         return (
           <button
             key={value}
             onClick={() => onChange(value)}
-            style={isActive && color ? { borderColor: color, color } : undefined}
+            style={isActive && meta ? categoryAccentStyle(meta) : undefined}
             className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              isActive
+              isActive && meta
+                ? "bg-fa-input border cat-accent-text cat-accent-border-all"
+                : isActive
                 ? "bg-fa-input border border-fa-strong"
                 : "text-fa-subtle hover:text-fa-muted hover:bg-fa-elevated border border-transparent"
             }`}

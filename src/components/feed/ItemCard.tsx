@@ -9,6 +9,9 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { track, EVENTS } from "@/lib/analytics";
 import { formatWorkoutClipboard } from "@/lib/workoutClipboard";
+import { categoryAccentStyle, getCategoryMeta } from "@/lib/categoryMeta";
+
+export { CATEGORY_META, getCategoryMeta } from "@/lib/categoryMeta";
 
 function trackAction(item: SavedItemResponse, action: string, extra?: Record<string, unknown>) {
   track(EVENTS.ITEM_ACTION_TAKEN, {
@@ -19,45 +22,6 @@ function trackAction(item: SavedItemResponse, action: string, extra?: Record<str
     ...extra,
   });
 }
-
-// ─── Category metadata ───────────────────────────────────────────────────────
-
-/**
- * Canonical category palette. `color` resolves at runtime from CSS vars so the same
- * map works in light + dark mode. `border`/`bg`/`text` are Tailwind classes that
- * also reference the tokens (see tailwind.config.ts).
- */
-const BUILT_IN_CATEGORY_META: Record<
-  string,
-  { label: string; color: string; border: string; bg: string; text: string }
-> = {
-  food: { label: "Food", color: "var(--fa-cat-food)", border: "border-l-fa-cat-food", bg: "bg-fa-cat-food-soft", text: "text-fa-cat-food" },
-  recipe: { label: "Recipe", color: "var(--fa-cat-recipe)", border: "border-l-fa-cat-recipe", bg: "bg-fa-cat-recipe-soft", text: "text-fa-cat-recipe" },
-  fitness: { label: "Fitness", color: "var(--fa-cat-fitness)", border: "border-l-fa-cat-fitness", bg: "bg-fa-cat-fitness-soft", text: "text-fa-cat-fitness" },
-  "how-to": { label: "How-To", color: "var(--fa-cat-howto)", border: "border-l-fa-cat-howto", bg: "bg-fa-cat-howto-soft", text: "text-fa-cat-howto" },
-  "video-analysis": { label: "Video", color: "var(--fa-cat-video)", border: "border-l-fa-cat-video", bg: "bg-fa-cat-video-soft", text: "text-fa-cat-video" },
-  travel: { label: "Travel", color: "var(--fa-cat-travel)", border: "border-l-fa-cat-travel", bg: "bg-fa-cat-travel-soft", text: "text-fa-cat-travel" },
-  other: { label: "Other", color: "var(--fa-cat-other)", border: "border-l-fa-cat-other", bg: "bg-fa-cat-other-soft", text: "text-fa-cat-other" },
-};
-
-const FALLBACK_COLORS = ["#a83253", "#7c3a8b", "#2c6e9f", "#5c7a1c", "#a96b1a", "#1b6b6b"];
-
-export function getCategoryMeta(
-  slug: string,
-  index?: number,
-): { label: string; color: string; border: string; bg: string; text: string } {
-  if (BUILT_IN_CATEGORY_META[slug]) return BUILT_IN_CATEGORY_META[slug];
-  const color = FALLBACK_COLORS[(index ?? 0) % FALLBACK_COLORS.length];
-  return {
-    label: slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, " "),
-    color,
-    border: `border-l-[${color}]`,
-    bg: `bg-[${color}10]`,
-    text: `text-[${color}]`,
-  };
-}
-
-export const CATEGORY_META = BUILT_IN_CATEGORY_META;
 
 const PLATFORM_LABELS: Record<string, string> = {
   tiktok: "TikTok",
@@ -828,7 +792,8 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
   return (
     <>
       <div
-        className={`relative bg-fa-surface border border-fa-line border-l-4 ${meta.border} rounded-lg overflow-hidden transition-all duration-200 hover:border-fa-strong hover:shadow-lg hover:shadow-fa-card flex flex-col ${onCardClick && item.status === "done" ? "cursor-pointer" : ""}`}
+        className={`relative bg-fa-surface border border-fa-line border-l-4 cat-accent-border rounded-lg overflow-hidden transition-all duration-200 hover:border-fa-strong hover:shadow-lg hover:shadow-fa-card flex flex-col ${onCardClick && item.status === "done" ? "cursor-pointer" : ""}`}
+        style={categoryAccentStyle(meta)}
         onClick={() => {
           if (onCardClick && item.status === "done") onCardClick(item.id);
         }}
@@ -836,7 +801,7 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
         {/* Header */}
         <div className="px-4 pt-3 pb-2 flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge className={`${meta.bg} ${meta.text}`}>{meta.label}</Badge>
+            <Badge className="cat-accent-bg cat-accent-text">{meta.label}</Badge>
             <Badge className="bg-fa-muted-bg text-fa-subtle">
               {PLATFORM_LABELS[item.platform] ?? item.platform}
             </Badge>
