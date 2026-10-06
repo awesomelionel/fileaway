@@ -305,6 +305,7 @@ export const MOCK_ITEMS: SavedItemResponse[] = [
     platform: "instagram",
     category: "other",
     status: "failed",
+    failure_reason: "Could not load this post. It may be private, deleted, or temporarily unavailable.",
     archived: false,
     extracted_data: null,
     action_taken: null,

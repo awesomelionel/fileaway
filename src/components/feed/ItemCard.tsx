@@ -435,14 +435,18 @@ function ProcessingBody({ url }: { url: string }) {
 
 function FailedBody({
   url,
+  reason,
   onRetry,
 }: {
   url: string;
+  reason?: string | null;
   onRetry: () => void;
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs text-[#ef4444]">Could not extract content</p>
+      <p className="text-xs text-[#ef4444] break-words">
+        {reason?.trim() || "Could not extract content"}
+      </p>
       <p className="text-[11px] text-fa-faint font-mono truncate">{url}</p>
       <button
         onClick={onRetry}
@@ -882,7 +886,13 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
         <div className="px-4 py-2 flex-1">
           {item.status === "pending" && <PendingBody url={item.source_url} />}
           {item.status === "processing" && <ProcessingBody url={item.source_url} />}
-          {item.status === "failed" && <FailedBody url={item.source_url} onRetry={handleRetry} />}
+          {item.status === "failed" && (
+            <FailedBody
+              url={item.source_url}
+              reason={item.failure_reason}
+              onRetry={handleRetry}
+            />
+          )}
           {item.status === "done" && item.extracted_data && (
             <>
               {item.category === "food" ? <FoodExtractCard data={item.extracted_data} />

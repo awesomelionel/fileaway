@@ -5,6 +5,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { rateLimiter } from "./rateLimiter";
+import { sanitizeFailureReason } from "../src/lib/failureReason";
 import {
   formatSaveRateLimit,
   prepareSaveUrl,
@@ -111,6 +112,7 @@ function toResponse(
     actionTaken?: string;
     userCorrection?: string;
     status: ItemStatus;
+    failureReason?: string;
     archived?: boolean;
   },
   thumbnailUrl: string | null,
@@ -126,6 +128,7 @@ function toResponse(
     action_taken: item.actionTaken ?? null,
     user_correction: item.userCorrection ?? null,
     status: item.status,
+    failure_reason: item.status === "failed" ? item.failureReason ?? null : null,
     archived: item.archived === true,
     thumbnail_url: thumbnailUrl,
     created_at: new Date(item._creationTime).toISOString(),
@@ -420,7 +423,7 @@ export const retryItem = mutation({
     const item = await getOwnedItem(ctx, userId, id);
     if (item.status !== "failed") throw new Error("Only failed items can be retried");
 
-    await ctx.db.patch(id, { status: "pending" });
+    await ctx.db.patch(id, { status: "pending", failureReason: undefined });
     await ctx.scheduler.runAfter(0, internal.processUrl.processItem, {
       savedItemId: id,
       url: item.sourceUrl,
@@ -448,6 +451,7 @@ export const reprocessWithCategory = mutation({
     await ctx.db.patch(id, {
       status: "pending",
       category,
+      failureReason: undefined,
       searchText: buildSearchText({ ...item, category }),
     });
     await ctx.scheduler.runAfter(0, internal.processUrl.processItem, {
@@ -468,7 +472,7 @@ export const markProcessing = internalMutation({
   handler: async (ctx, { id }) => {
     const item = await ctx.db.get(id);
     if (!item) return;
-    await ctx.db.patch(id, { status: "processing" });
+    await ctx.db.patch(id, { status: "processing", failureReason: undefined });
   },
 });
 
@@ -514,6 +518,7 @@ export const updateResult = internalMutation({
         userCorrection: item.userCorrection,
       }),
       status: "done",
+      failureReason: undefined,
     });
   },
 });
@@ -611,12 +616,18 @@ export const listItemsNeedingR2Migration = internalQuery({
   },
 });
 
-/** Marks item as failed. */
+/** Marks item as failed and stores a short user-safe reason. */
 export const markFailed = internalMutation({
-  args: { id: v.id("savedItems") },
-  handler: async (ctx, { id }) => {
+  args: {
+    id: v.id("savedItems"),
+    failureReason: v.optional(v.string()),
+  },
+  handler: async (ctx, { id, failureReason }) => {
     const item = await ctx.db.get(id);
     if (!item) return;
-    await ctx.db.patch(id, { status: "failed" });
+    await ctx.db.patch(id, {
+      status: "failed",
+      failureReason: sanitizeFailureReason(failureReason),
+    });
   },
 });
