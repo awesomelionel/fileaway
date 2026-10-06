@@ -2,13 +2,14 @@
 
 import type { SavedItemResponse } from "@/lib/api/types";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { FoodExtractModal } from "@/components/feed/foodExtract";
 import { categoryAccentStyle, getCategoryMeta } from "@/lib/categoryMeta";
+import { hrefWithoutItemParam } from "@/lib/itemQuery";
 
 // ─── Per-category detail renderers ───────────────────────────────────────────
 
@@ -432,11 +433,17 @@ interface DetailModalProps {
 
 export function DetailModal({ item, categories }: DetailModalProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState(item.category);
   const [reprocessing, setReprocessing] = useState(false);
   const reprocessWithCategory = useMutation(api.items.reprocessWithCategory);
 
-  const close = useCallback(() => router.back(), [router]);
+  const close = useCallback(() => {
+    router.replace(hrefWithoutItemParam(pathname, searchParams.toString()), {
+      scroll: false,
+    });
+  }, [router, pathname, searchParams]);
 
   const handleReprocess = async () => {
     if (selectedCategory === item.category) return;
@@ -528,7 +535,12 @@ export function DetailModal({ item, categories }: DetailModalProps) {
 
         {/* Body */}
         <div className="p-5">
-          <DetailContent item={item} />
+          {item.status === "failed" && (
+            <p className="text-sm text-[#ef4444] break-words">
+              {item.failure_reason?.trim() || "Could not extract content"}
+            </p>
+          )}
+          {item.status !== "failed" && <DetailContent item={item} />}
         </div>
 
         {/* Footer */}

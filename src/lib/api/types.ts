@@ -21,6 +21,8 @@ export interface SavedItemResponse {
   action_taken: string | null;
   user_correction: string | null;
   status: ItemStatus;
+  /** User-safe explanation when status is "failed". Null otherwise. */
+  failure_reason?: string | null;
   /** Hidden from main feed when true. */
   archived: boolean;
   thumbnail_url: string | null;
