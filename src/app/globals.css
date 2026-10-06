@@ -22,6 +22,53 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /*
+   * Category accent. The color is a custom property set on the element so
+   * admin-added categories can use a runtime hex without Tailwind class names.
+   * Built-ins set the variables to --fa-cat-* tokens, which already flip in dark mode.
+   */
+  .cat-accent-text {
+    color: var(--cat-accent);
+  }
+
+  .cat-accent-bg {
+    background-color: var(--cat-accent-soft);
+  }
+
+  .cat-accent-border {
+    border-left-color: var(--cat-accent);
+  }
+
+  .cat-accent-border-all {
+    border-color: var(--cat-accent);
+  }
+
+  .cat-accent-fill {
+    background-color: var(--cat-accent);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .cat-accent-text {
+      color: var(--cat-accent-dark, var(--cat-accent));
+    }
+
+    .cat-accent-bg {
+      background-color: var(--cat-accent-soft-dark, var(--cat-accent-soft));
+    }
+
+    .cat-accent-border {
+      border-left-color: var(--cat-accent-dark, var(--cat-accent));
+    }
+
+    .cat-accent-border-all {
+      border-color: var(--cat-accent-dark, var(--cat-accent));
+    }
+
+    .cat-accent-fill {
+      background-color: var(--cat-accent-dark, var(--cat-accent));
+    }
+  }
 }
 
 /**

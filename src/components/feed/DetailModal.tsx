@@ -8,6 +8,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { FoodExtractModal } from "@/components/feed/foodExtract";
+import { categoryAccentStyle, getCategoryMeta } from "@/lib/categoryMeta";
 import { hrefWithoutItemParam } from "@/lib/itemQuery";
 
 // ─── Per-category detail renderers ───────────────────────────────────────────
@@ -466,7 +467,8 @@ export function DetailModal({ item, categories }: DetailModalProps) {
     return () => document.removeEventListener("keydown", handler);
   }, [close]);
 
-  const categoryLabel = CATEGORY_LABELS[item.category] ?? item.category;
+  const meta = getCategoryMeta(item.category);
+  const categoryLabel = CATEGORY_LABELS[item.category] ?? meta.label;
   const platformLabel = PLATFORM_LABELS[item.platform] ?? item.platform;
 
   return (
@@ -476,12 +478,23 @@ export function DetailModal({ item, categories }: DetailModalProps) {
         if (e.target === e.currentTarget) close();
       }}
     >
-      <div className="w-full max-w-xl bg-fa-surface border border-fa-line rounded-xl shadow-2xl mb-8">
+      <div
+        className={`w-full max-w-xl bg-fa-surface border border-fa-line rounded-xl shadow-2xl mb-8 ${
+          meta.builtIn ? "" : "border-l-4 cat-accent-border"
+        }`}
+        style={meta.builtIn ? undefined : categoryAccentStyle(meta)}
+      >
         {/* Header */}
         <div className="flex items-start justify-between p-5 border-b border-fa-separator">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle">
+              <span
+                className={
+                  meta.builtIn
+                    ? "text-[10px] font-medium uppercase tracking-wider text-fa-subtle"
+                    : "cat-accent-text cat-accent-bg text-[10px] font-medium uppercase tracking-wider rounded px-1.5 py-0.5"
+                }
+              >
                 {categoryLabel}
               </span>
               <span className="text-fa-faint text-[10px]">·</span>

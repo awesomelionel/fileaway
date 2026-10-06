@@ -2,12 +2,16 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { CATEGORY_META } from "@/components/feed/ItemCard";
-import type { CategoryType } from "@/lib/api/types";
+import {
+  categoryAccentStyle,
+  dashboardCategorySlugs,
+  getCategoryMeta,
+} from "@/lib/categoryMeta";
 import Link from "next/link";
 
 export function DashboardView() {
   const stats = useQuery(api.items.stats);
+  const categoryRows = useQuery(api.adminCategories.listCategories);
 
   if (stats === undefined) {
     // Loading
@@ -28,9 +32,7 @@ export function DashboardView() {
     );
   }
 
-  const categories: CategoryType[] = [
-    "food", "recipe", "fitness", "how-to", "video-analysis", "other",
-  ];
+  const categories = dashboardCategorySlugs(stats.byCategory, categoryRows);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
@@ -62,19 +64,18 @@ export function DashboardView() {
         <div className="space-y-2">
           {categories.map((cat) => {
             const count = stats.byCategory[cat] ?? 0;
-            const meta = CATEGORY_META[cat];
+            const meta = getCategoryMeta(cat);
             const max = Math.max(...Object.values(stats.byCategory), 1);
             return (
-              <div key={cat} className="flex items-center gap-3">
-                <span className={`text-xs w-20 flex-shrink-0 ${meta.text}`}>
+              <div key={cat} className="flex items-center gap-3" style={categoryAccentStyle(meta)}>
+                <span className="text-xs w-20 flex-shrink-0 truncate cat-accent-text" title={meta.label}>
                   {meta.label}
                 </span>
                 <div className="flex-1 h-2 bg-fa-muted-bg rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
+                    className="h-full rounded-full transition-all duration-500 cat-accent-fill"
                     style={{
                       width: `${(count / max) * 100}%`,
-                      backgroundColor: meta.color,
                       opacity: 0.7,
                     }}
                   />
@@ -96,13 +97,14 @@ export function DashboardView() {
           </h2>
           <div className="space-y-1.5">
             {stats.recentItems.map((item) => {
-              const meta = CATEGORY_META[item.category as CategoryType] ?? CATEGORY_META.other;
+              const meta = getCategoryMeta(item.category);
               return (
                 <div
                   key={item.id}
                   className="flex items-center gap-3 bg-fa-surface border border-fa-border-soft rounded-lg px-4 py-2.5"
+                  style={categoryAccentStyle(meta)}
                 >
-                  <span className={`text-[10px] font-medium ${meta.text} w-16 flex-shrink-0`}>
+                  <span className="text-[10px] font-medium cat-accent-text w-16 flex-shrink-0 truncate" title={meta.label}>
                     {meta.label}
                   </span>
                   <span className="text-xs text-fa-icon-muted font-mono truncate flex-1">
