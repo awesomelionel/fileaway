@@ -56,7 +56,7 @@ All backend logic lives in Convex — no separate API server.
 - `components/feed/ItemCard.tsx` — Category-specific card renderers + action buttons:
   - **food** → Google Maps link
   - **recipe** → Copy ingredients to clipboard
-  - **fitness** → Save to `localStorage` key `fileaway-routine`
+  - **fitness** → Copy workout text to the clipboard
   - **how-to** → Full-screen step guide modal
   - **video/other** → Copy summary to clipboard
 

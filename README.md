@@ -2,6 +2,8 @@
 
 A web app that lets users save social media links and have AI automatically extract actionable information from them — turning passive saves into useful, organized content.
 
+Saving accepts TikTok, Instagram, and X posts. YouTube links are rejected in the save form and are not scraped. The `youtube` platform value stays in the schema for detection and any older records.
+
 ## Architecture
 
 - **Next.js 16** (App Router) calls **Convex** queries and mutations from the browser for data and writes.

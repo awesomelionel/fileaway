@@ -97,8 +97,8 @@ function FitnessCard() {
         ))}
       </ul>
       <button className="cta-pill" style={{ background: "var(--fa-cat-fitness-soft)", color: "var(--fa-cat-fitness)", borderColor: "var(--fa-cat-fitness)" }}>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Save to routine
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy workout
       </button>
     </div>
   );
@@ -152,15 +152,6 @@ function InstagramIcon() {
   );
 }
 
-function YouTubeIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
-      <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#faf9f6"/>
-    </svg>
-  );
-}
-
 function XIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
@@ -201,7 +192,7 @@ export function LandingPage() {
         </h1>
 
         <p className="hero-subtext">
-          Paste any TikTok, Instagram, YouTube or X link. fileaway&apos;s AI reads it and turns it into structured, actionable data — restaurant directions, ingredient lists, workout routines, step-by-step guides.
+          Paste a TikTok, Instagram, or X link. fileaway&apos;s AI reads it and turns it into structured, actionable data — restaurant directions, ingredient lists, workouts, step-by-step guides.
         </p>
 
         <div className="hero-ctas">
@@ -218,7 +209,6 @@ export function LandingPage() {
           <div className="demo-platforms" style={{ color: "#d4cfc9" }}>
             <TikTokIcon />
             <InstagramIcon />
-            <YouTubeIcon />
             <XIcon />
           </div>
           <div className="demo-input">
@@ -245,12 +235,11 @@ export function LandingPage() {
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
               </svg>
             </div>
-            <div className="step-title">Paste any link</div>
-            <p className="step-desc">Drop a URL from any major platform into your feed. No browser extension needed — just paste and go.</p>
+            <div className="step-title">Paste a link</div>
+            <p className="step-desc">Drop a TikTok, Instagram, or X URL into your feed. No browser extension needed — just paste and go.</p>
             <div className="platform-tags">
               <span className="platform-tag"><TikTokIcon />TikTok</span>
               <span className="platform-tag"><InstagramIcon />Instagram</span>
-              <span className="platform-tag"><YouTubeIcon />YouTube</span>
               <span className="platform-tag"><XIcon />X / Twitter</span>
             </div>
           </div>
@@ -286,11 +275,11 @@ export function LandingPage() {
               </svg>
             </div>
             <div className="step-title">Take action instantly</div>
-            <p className="step-desc">Each card gives you the right action for its category — open in Maps, copy a shopping list, save a workout, follow step-by-step.</p>
+            <p className="step-desc">Each card gives you the right action for its category — open in Maps, copy a shopping list, copy a workout, follow step-by-step.</p>
             <div className="platform-tags">
               <span className="platform-tag" style={{ color: "var(--fa-cat-food)", borderColor: "var(--fa-cat-food)", background: "var(--fa-cat-food-soft)" }}>→ Maps</span>
               <span className="platform-tag" style={{ color: "var(--fa-cat-recipe)", borderColor: "var(--fa-cat-recipe)", background: "var(--fa-cat-recipe-soft)" }}>→ Clipboard</span>
-              <span className="platform-tag" style={{ color: "var(--fa-cat-fitness)", borderColor: "var(--fa-cat-fitness)", background: "var(--fa-cat-fitness-soft)" }}>→ Routine</span>
+              <span className="platform-tag" style={{ color: "var(--fa-cat-fitness)", borderColor: "var(--fa-cat-fitness)", background: "var(--fa-cat-fitness-soft)" }}>→ Copy</span>
               <span className="platform-tag" style={{ color: "var(--fa-cat-travel)", borderColor: "var(--fa-cat-travel)", background: "var(--fa-cat-travel-soft)" }}>→ Guide</span>
             </div>
           </div>
