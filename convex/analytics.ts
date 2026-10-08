@@ -1,6 +1,8 @@
 "use node";
 
+import { v } from "convex/values";
 import { PostHog } from "posthog-node";
+import { internalAction } from "./_generated/server";
 
 export const SERVER_EVENTS = {
   ITEM_PROCESSING_STARTED: "item_processing_started",
@@ -12,6 +14,8 @@ export const SERVER_EVENTS = {
   ITEM_PROCESSING_FAILED: "item_processing_failed",
   EXTRACTION_FIELD_MISSING: "extraction_field_missing",
   LLM_GENERATION: "$ai_generation",
+  /** Cross-user processed-result reuse. `result` is "hit" or "miss". */
+  ITEM_SAVE_REUSE: "item_save_reuse",
 } as const;
 
 export type ServerEventName = (typeof SERVER_EVENTS)[keyof typeof SERVER_EVENTS];
@@ -43,3 +47,26 @@ export async function captureServer({ distinctId, event, properties }: CaptureIn
   c.capture({ distinctId, event, properties });
   await c.flush();
 }
+
+/** Scheduled from `items.save`. Properties stay free of any other user's id. */
+export const captureSaveReuse = internalAction({
+  args: {
+    distinctId: v.string(),
+    result: v.union(v.literal("hit"), v.literal("miss")),
+    platform: v.string(),
+    urlHost: v.string(),
+  },
+  returns: v.null(),
+  handler: async (_ctx, { distinctId, result, platform, urlHost }) => {
+    await captureServer({
+      distinctId,
+      event: SERVER_EVENTS.ITEM_SAVE_REUSE,
+      properties: {
+        result,
+        platform,
+        url_host: urlHost,
+      },
+    });
+    return null;
+  },
+});

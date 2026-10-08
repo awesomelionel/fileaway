@@ -84,6 +84,7 @@ function UrlInput({
         url_host: urlHost(prepared.url),
         item_id: String(result.id),
         already_saved: result.alreadySaved,
+        reused: result.reused,
       });
       setStatus(result.alreadySaved ? "duplicate" : "success");
       setValue("");
