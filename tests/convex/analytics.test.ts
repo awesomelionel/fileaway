@@ -50,6 +50,11 @@ test("captureServer reuses a single PostHog client across calls", async () => {
   expect(captureMock).toHaveBeenCalledTimes(2);
 });
 
+test("item_save_reuse is a stable server event name", async () => {
+  const { SERVER_EVENTS } = await import("../../convex/analytics");
+  expect(SERVER_EVENTS.ITEM_SAVE_REUSE).toBe("item_save_reuse");
+});
+
 test("captureServer is a no-op without a token", async () => {
   delete process.env.NEXT_PUBLIC_POSTHOG_TOKEN;
   const { captureServer, SERVER_EVENTS } = await import("../../convex/analytics");

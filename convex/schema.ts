@@ -31,9 +31,17 @@ export default defineSchema({
     /** Short, user-safe explanation set when status is "failed". */
     failureReason: v.optional(v.string()),
     archived: v.optional(v.boolean()),
+    /**
+     * When processing finished (ms since epoch). Set on success and copied
+     * as-is when another user reuses the result, so copies do not extend
+     * freshness. Older rows omit it; reuse falls back to `_creationTime`.
+     * No backfill required.
+     */
+    processedAt: v.optional(v.number()),
   })
     .index("by_userId", ["userId"])
     .index("by_userId_and_sourceUrl", ["userId", "sourceUrl"])
+    .index("by_sourceUrl_and_status", ["sourceUrl", "status"])
     .index("by_status", ["status"])
     .searchIndex("search_searchText", {
       searchField: "searchText",

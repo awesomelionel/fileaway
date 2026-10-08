@@ -1,4 +1,10 @@
-import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
+import {
+  query,
+  mutation,
+  internalMutation,
+  internalQuery,
+  type MutationCtx,
+} from "./_generated/server";
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
@@ -11,6 +17,11 @@ import {
   prepareSaveUrl,
   reusableSavedItem,
 } from "../src/lib/saveUrl";
+import {
+  REUSE_CANDIDATE_LIMIT,
+  copyPublicProcessedFields,
+  selectReusableProcessedItem,
+} from "../src/lib/processedReuse";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -154,6 +165,27 @@ export function canReprocess(status: ItemStatus): boolean {
   return status === "done";
 }
 
+function scheduleSaveReuseSignal(
+  ctx: MutationCtx,
+  args: {
+    distinctId: string;
+    result: "hit" | "miss";
+    platform: string;
+    url: string;
+  },
+) {
+  const urlHost = hostnameForSearch(args.url);
+  console.log(
+    `[items.save] reuse=${args.result} platform=${args.platform} host=${urlHost}`,
+  );
+  return ctx.scheduler.runAfter(0, internal.analytics.captureSaveReuse, {
+    distinctId: args.distinctId,
+    result: args.result,
+    platform: args.platform,
+    urlHost,
+  });
+}
+
 // ─── Public queries ───────────────────────────────────────────────────────────
 
 const LIST_SCAN = 250;
@@ -269,13 +301,17 @@ export const stats = query({
  * Invalid or unsupported URLs fail before any work is scheduled.
  * The same canonical URL already in the user's library (and not archived)
  * is returned as `alreadySaved` with no new scrape.
- * New saves are limited per user — see SAVE_RATE_LIMITS in rateLimiter.ts.
+ * If another user's item for that URL is already `done` and still fresh,
+ * the new row is inserted `done` from that public result (`reused`) and
+ * scrape/AI is not scheduled. In-flight or failed rows are not reused.
+ * New scrapes use SAVE_RATE_LIMITS; reused copies use SAVE_REUSE_RATE_LIMITS.
  */
 export const save = mutation({
   args: { url: v.string() },
   returns: v.object({
     id: v.id("savedItems"),
     alreadySaved: v.boolean(),
+    reused: v.boolean(),
   }),
   handler: async (ctx, { url }) => {
     const userId = await getAuthUserId(ctx);
@@ -297,7 +333,70 @@ export const save = mutation({
       .take(32);
     const existing = reusableSavedItem(matches);
     if (existing) {
-      return { id: existing._id, alreadySaved: true };
+      return { id: existing._id, alreadySaved: true, reused: false };
+    }
+
+    // Done rows only. Pending/failed saves of this URL are not a result;
+    // this save processes on its own instead of waiting on them.
+    const doneCandidates = await ctx.db
+      .query("savedItems")
+      .withIndex("by_sourceUrl_and_status", (q) =>
+        q.eq("sourceUrl", prepared.url).eq("status", "done"),
+      )
+      .order("desc")
+      .take(REUSE_CANDIDATE_LIMIT);
+    const reusable = selectReusableProcessedItem(doneCandidates, Date.now());
+    if (reusable) {
+      const perMinute = await rateLimiter.limit(ctx, "saveReusePerMinute", { key: userId });
+      const perHour = await rateLimiter.limit(ctx, "saveReusePerHour", { key: userId });
+      if (!perMinute.ok || !perHour.ok) {
+        const retryAfter = Math.max(
+          perMinute.ok ? 0 : perMinute.retryAfter,
+          perHour.ok ? 0 : perHour.retryAfter,
+        );
+        throw new ConvexError(formatSaveRateLimit(retryAfter));
+      }
+
+      const catalogRow = await ctx.db
+        .query("categories")
+        .withIndex("by_slug", (q) => q.eq("slug", reusable.category))
+        .unique();
+      const fields = copyPublicProcessedFields(reusable, {
+        catalogHasSlug: catalogRow !== null,
+      });
+
+      const id = await ctx.db.insert("savedItems", {
+        userId,
+        sourceUrl: prepared.url,
+        platform: fields.platform,
+        category: fields.category,
+        ...(fields.rawContent !== undefined ? { rawContent: fields.rawContent } : {}),
+        ...(fields.extractedData !== undefined ? { extractedData: fields.extractedData } : {}),
+        ...(fields.thumbnailStorageId !== undefined
+          ? { thumbnailStorageId: fields.thumbnailStorageId }
+          : {}),
+        ...(fields.thumbnailR2Key !== undefined ? { thumbnailR2Key: fields.thumbnailR2Key } : {}),
+        ...(fields.actionTaken !== undefined ? { actionTaken: fields.actionTaken } : {}),
+        processedAt: fields.processedAt,
+        status: fields.status,
+        archived: false,
+        searchText: buildSearchText({
+          sourceUrl: prepared.url,
+          platform: fields.platform,
+          category: fields.category,
+          rawContent: fields.rawContent,
+          extractedData: fields.extractedData,
+          actionTaken: fields.actionTaken,
+        }),
+      });
+
+      await scheduleSaveReuseSignal(ctx, {
+        distinctId: userId,
+        result: "hit",
+        platform: fields.platform,
+        url: prepared.url,
+      });
+      return { id, alreadySaved: false, reused: true };
     }
 
     const perMinute = await rateLimiter.limit(ctx, "saveItemPerMinute", { key: userId });
@@ -329,8 +428,14 @@ export const save = mutation({
       url: prepared.url,
       distinctId: userId,
     });
+    await scheduleSaveReuseSignal(ctx, {
+      distinctId: userId,
+      result: "miss",
+      platform: prepared.platform,
+      url: prepared.url,
+    });
 
-    return { id, alreadySaved: false };
+    return { id, alreadySaved: false, reused: false };
   },
 });
 
@@ -519,6 +624,7 @@ export const updateResult = internalMutation({
       }),
       status: "done",
       failureReason: undefined,
+      processedAt: Date.now(),
     });
   },
 });
