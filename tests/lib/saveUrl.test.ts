@@ -1,8 +1,10 @@
 import {
+  formatReprocessRateLimit,
   formatSaveRateLimit,
   messageFromSaveError,
   platformFromHostname,
   prepareSaveUrl,
+  reprocessRateLimitMessage,
   reusableSavedItem,
   SAVE_URL_MESSAGES,
 } from "@/lib/saveUrl";
@@ -150,6 +152,43 @@ describe("formatSaveRateLimit", () => {
   });
 });
 
+describe("reprocess rate limit message", () => {
+  it("uses the same string ConvexError payload shape as save", () => {
+    expect(formatReprocessRateLimit(1000)).toBe(
+      "You're reprocessing too quickly. Try again in 1 second.",
+    );
+    expect(
+      reprocessRateLimitMessage({ ok: false, retryAfter: 1000 }, { ok: true }),
+    ).toBe("You're reprocessing too quickly. Try again in 1 second.");
+    expect(
+      reprocessRateLimitMessage({ ok: true }, { ok: false, retryAfter: 120_000 }),
+    ).toBe("You're reprocessing too quickly. Try again in 2 minutes.");
+    expect(
+      reprocessRateLimitMessage(
+        { ok: false, retryAfter: 5_000 },
+        { ok: false, retryAfter: 120_000 },
+      ),
+    ).toBe("You're reprocessing too quickly. Try again in 2 minutes.");
+    expect(reprocessRateLimitMessage({ ok: true }, { ok: true })).toBeNull();
+  });
+
+  it("is what the retry and reprocess UI reads from a ConvexError", () => {
+    const message = reprocessRateLimitMessage(
+      { ok: false, retryAfter: 45_100 },
+      { ok: true },
+    );
+    expect(
+      messageFromSaveError(
+        {
+          data: message,
+          message: "[CONVEX M(items:retryItem)] Uncaught ConvexError: ignored",
+        },
+        "Couldn't retry this item. Try again.",
+      ),
+    ).toBe("You're reprocessing too quickly. Try again in 46 seconds.");
+  });
+});
+
 describe("messageFromSaveError", () => {
   it("reads a string ConvexError data payload", () => {
     expect(
@@ -171,5 +210,8 @@ describe("messageFromSaveError", () => {
 
   it("falls back when the error has no usable message", () => {
     expect(messageFromSaveError(null)).toBe("Couldn't save that link. Try again.");
+    expect(messageFromSaveError(null, "Couldn't retry this item. Try again.")).toBe(
+      "Couldn't retry this item. Try again.",
+    );
   });
 });

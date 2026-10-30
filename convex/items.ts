@@ -15,6 +15,7 @@ import { sanitizeFailureReason } from "../src/lib/failureReason";
 import {
   formatSaveRateLimit,
   prepareSaveUrl,
+  reprocessRateLimitMessage,
   reusableSavedItem,
 } from "../src/lib/saveUrl";
 import {
@@ -162,6 +163,39 @@ async function getOwnedItem(
 /** Returns true if the item is eligible for re-processing with a new category. */
 export function canReprocess(status: ItemStatus): boolean {
   return status === "done";
+}
+
+export const ALREADY_PROCESSING_MESSAGE = "This item is already being processed.";
+
+/**
+ * Why this item must not schedule another `processItem` job.
+ * Pending and processing are rejected before the rate limiter so a duplicate
+ * click does not consume quota or start a second paid run.
+ */
+export function reprocessScheduleBlock(
+  status: ItemStatus,
+  action: "retry" | "reprocess",
+): string | null {
+  if (status === "pending" || status === "processing") {
+    return ALREADY_PROCESSING_MESSAGE;
+  }
+  if (action === "retry" && status !== "failed") {
+    return "Only failed items can be retried";
+  }
+  if (action === "reprocess" && !canReprocess(status)) {
+    return "Only done items can be re-processed";
+  }
+  return null;
+}
+
+async function assertReprocessWithinLimit(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+) {
+  const perMinute = await rateLimiter.limit(ctx, "reprocessPerMinute", { key: userId });
+  const perHour = await rateLimiter.limit(ctx, "reprocessPerHour", { key: userId });
+  const message = reprocessRateLimitMessage(perMinute, perHour);
+  if (message) throw new ConvexError(message);
 }
 
 function scheduleSaveReuseSignal(
@@ -525,7 +559,10 @@ export const retryItem = mutation({
     if (!userId) throw new Error("Not authenticated");
 
     const item = await getOwnedItem(ctx, userId, id);
-    if (item.status !== "failed") throw new Error("Only failed items can be retried");
+    const blocked = reprocessScheduleBlock(item.status, "retry");
+    if (blocked) throw new ConvexError(blocked);
+
+    await assertReprocessWithinLimit(ctx, userId);
 
     await ctx.db.patch(id, { status: "pending", failureReason: undefined });
     await ctx.scheduler.runAfter(0, internal.processUrl.processItem, {
@@ -548,9 +585,10 @@ export const reprocessWithCategory = mutation({
     if (!userId) throw new Error("Not authenticated");
 
     const item = await getOwnedItem(ctx, userId, id);
-    if (!canReprocess(item.status)) {
-      throw new Error("Only done items can be re-processed");
-    }
+    const blocked = reprocessScheduleBlock(item.status, "reprocess");
+    if (blocked) throw new ConvexError(blocked);
+
+    await assertReprocessWithinLimit(ctx, userId);
 
     await ctx.db.patch(id, {
       status: "pending",

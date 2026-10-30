@@ -1,5 +1,9 @@
 import { HOUR, MINUTE } from "@convex-dev/rate-limiter";
-import { SAVE_RATE_LIMITS, SAVE_REUSE_RATE_LIMITS } from "../../convex/rateLimiter";
+import {
+  REPROCESS_RATE_LIMITS,
+  SAVE_RATE_LIMITS,
+  SAVE_REUSE_RATE_LIMITS,
+} from "../../convex/rateLimiter";
 
 describe("save rate limits", () => {
   it("allows a short burst and caps hourly new saves", () => {
@@ -29,6 +33,25 @@ describe("save rate limits", () => {
       period: HOUR,
     });
     expect(SAVE_REUSE_RATE_LIMITS.saveReusePerHour.rate).toBeGreaterThan(
+      SAVE_RATE_LIMITS.saveItemPerHour.rate,
+    );
+  });
+
+  it("caps retry and category reprocess on a tighter quota than new saves", () => {
+    expect(REPROCESS_RATE_LIMITS.reprocessPerMinute).toEqual({
+      kind: "fixed window",
+      rate: 5,
+      period: MINUTE,
+    });
+    expect(REPROCESS_RATE_LIMITS.reprocessPerHour).toEqual({
+      kind: "fixed window",
+      rate: 20,
+      period: HOUR,
+    });
+    expect(REPROCESS_RATE_LIMITS.reprocessPerMinute.rate).toBeLessThan(
+      SAVE_RATE_LIMITS.saveItemPerMinute.rate,
+    );
+    expect(REPROCESS_RATE_LIMITS.reprocessPerHour.rate).toBeLessThan(
       SAVE_RATE_LIMITS.saveItemPerHour.rate,
     );
   });
