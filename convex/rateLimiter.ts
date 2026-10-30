@@ -24,9 +24,24 @@ export const SAVE_REUSE_RATE_LIMITS = {
   saveReusePerHour: { kind: "fixed window" as const, rate: 200, period: HOUR },
 };
 
+/**
+ * Per-user limits for `items.retryItem` and `items.reprocessWithCategory`.
+ * Both schedule `processItem` (Apify + Gemini + R2), the same paid work as a
+ * new save, but they are correction traffic rather than new links.
+ * A dedicated window keeps that spend off the save quota: retries cannot
+ * lock someone out of saving, and saves cannot hide a reprocess loop.
+ * - reprocessPerMinute: 5 jobs / minute (stops a tight click or API loop)
+ * - reprocessPerHour: 20 jobs / hour (caps paid reprocessing)
+ */
+export const REPROCESS_RATE_LIMITS = {
+  reprocessPerMinute: { kind: "fixed window" as const, rate: 5, period: MINUTE },
+  reprocessPerHour: { kind: "fixed window" as const, rate: 20, period: HOUR },
+};
+
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
   signUpPerEmail: { kind: "fixed window", rate: 3, period: HOUR },
   signUpGlobal: { kind: "token bucket", rate: 30, period: MINUTE, capacity: 10 },
   ...SAVE_RATE_LIMITS,
   ...SAVE_REUSE_RATE_LIMITS,
+  ...REPROCESS_RATE_LIMITS,
 });

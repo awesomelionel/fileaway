@@ -10,6 +10,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { track, EVENTS } from "@/lib/analytics";
 import { formatWorkoutClipboard } from "@/lib/workoutClipboard";
 import { categoryAccentStyle, getCategoryMeta } from "@/lib/categoryMeta";
+import { messageFromSaveError } from "@/lib/saveUrl";
 
 export { CATEGORY_META, getCategoryMeta } from "@/lib/categoryMeta";
 
@@ -401,10 +402,14 @@ function FailedBody({
   url,
   reason,
   onRetry,
+  retrying,
+  retryError,
 }: {
   url: string;
   reason?: string | null;
   onRetry: () => void;
+  retrying: boolean;
+  retryError: string;
 }) {
   return (
     <div className="space-y-2">
@@ -413,11 +418,22 @@ function FailedBody({
       </p>
       <p className="text-[11px] text-fa-faint font-mono truncate">{url}</p>
       <button
-        onClick={onRetry}
-        className="text-xs px-3 py-1.5 rounded bg-[#ef444415] text-[#ef4444] border border-[#ef444430] font-medium hover:bg-[#ef444425] transition-colors min-h-[44px] sm:min-h-0"
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRetry();
+        }}
+        disabled={retrying}
+        aria-busy={retrying}
+        className="text-xs px-3 py-1.5 rounded bg-[#ef444415] text-[#ef4444] border border-[#ef444430] font-medium hover:bg-[#ef444425] transition-colors min-h-[44px] sm:min-h-0 disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        Retry
+        {retrying ? "Retrying…" : "Retry"}
       </button>
+      {retryError && (
+        <p role="alert" className="text-xs text-[#ef4444] break-words">
+          {retryError}
+        </p>
+      )}
     </div>
   );
 }
@@ -755,6 +771,8 @@ interface ItemCardProps {
 export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
   const [showCorrection, setShowCorrection] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState("");
   const retryItem = useMutation(api.items.retryItem);
   const setArchived = useMutation(api.items.setArchived);
 
@@ -766,10 +784,15 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
       platform: item.platform,
       category: item.category,
     });
+    setRetryError("");
+    setRetrying(true);
     try {
       await retryItem({ id: item.id as Id<"savedItems"> });
     } catch (err: unknown) {
       console.error("[ItemCard] retryItem failed:", err);
+      setRetryError(messageFromSaveError(err, "Couldn't retry this item. Try again."));
+    } finally {
+      setRetrying(false);
     }
   };
 
@@ -856,6 +879,8 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
               url={item.source_url}
               reason={item.failure_reason}
               onRetry={handleRetry}
+              retrying={retrying}
+              retryError={retryError}
             />
           )}
           {item.status === "done" && item.extracted_data && (
