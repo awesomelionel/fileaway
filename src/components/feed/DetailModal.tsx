@@ -10,6 +10,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { FoodExtractModal } from "@/components/feed/foodExtract";
 import { categoryAccentStyle, getCategoryMeta } from "@/lib/categoryMeta";
 import { hrefWithoutItemParam } from "@/lib/itemQuery";
+import { messageFromSaveError } from "@/lib/saveUrl";
 
 // ─── Per-category detail renderers ───────────────────────────────────────────
 
@@ -437,6 +438,7 @@ export function DetailModal({ item, categories }: DetailModalProps) {
   const searchParams = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState(item.category);
   const [reprocessing, setReprocessing] = useState(false);
+  const [reprocessError, setReprocessError] = useState("");
   const reprocessWithCategory = useMutation(api.items.reprocessWithCategory);
 
   const close = useCallback(() => {
@@ -446,13 +448,17 @@ export function DetailModal({ item, categories }: DetailModalProps) {
   }, [router, pathname, searchParams]);
 
   const handleReprocess = async () => {
-    if (selectedCategory === item.category) return;
+    if (selectedCategory === item.category || reprocessing) return;
     setReprocessing(true);
+    setReprocessError("");
     try {
       await reprocessWithCategory({ id: item.id as Id<"savedItems">, category: selectedCategory });
       close();
     } catch (err) {
       console.error("Failed to reprocess item:", err);
+      setReprocessError(
+        messageFromSaveError(err, "Couldn't reprocess this item. Try again."),
+      );
     } finally {
       setReprocessing(false);
     }
@@ -559,7 +565,10 @@ export function DetailModal({ item, categories }: DetailModalProps) {
               <span className="text-[11px] text-fa-faint flex-shrink-0">Wrong category?</span>
               <select
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setReprocessError("");
+                }}
                 className="text-[11px] text-fa-subtle bg-fa-input border border-fa-line rounded px-2 py-0.5 outline-none focus:border-fa-ring flex-1 min-w-0"
               >
                 {categories.map((cat) => (
@@ -567,13 +576,20 @@ export function DetailModal({ item, categories }: DetailModalProps) {
                 ))}
               </select>
               <button
+                type="button"
                 onClick={handleReprocess}
                 disabled={selectedCategory === item.category || reprocessing}
+                aria-busy={reprocessing}
                 className="text-[11px] text-fa-subtle bg-fa-input border border-fa-line rounded px-2.5 py-0.5 hover:text-fa-primary hover:border-fa-ring transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
               >
                 {reprocessing ? "Queuing…" : "Re-process ↺"}
               </button>
             </div>
+          )}
+          {reprocessError && (
+            <p role="alert" className="text-xs text-[#ef4444] break-words">
+              {reprocessError}
+            </p>
           )}
         </div>
       </div>

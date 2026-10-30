@@ -1,4 +1,8 @@
-import { extractThumbnailUrl } from "../../convex/items";
+import {
+  ALREADY_PROCESSING_MESSAGE,
+  extractThumbnailUrl,
+  reprocessScheduleBlock,
+} from "../../convex/items";
 
 describe("extractThumbnailUrl", () => {
   it("returns null when both args are null", () => {
@@ -54,6 +58,27 @@ describe("extractThumbnailUrl", () => {
     const extracted = { thumbnailUrl: 12345 };
     const raw = { coverUrl: null };
     expect(extractThumbnailUrl(extracted, raw)).toBeNull();
+  });
+});
+
+describe("reprocess schedule guard", () => {
+  it("refuses to schedule when the item is already pending or processing", () => {
+    for (const action of ["retry", "reprocess"] as const) {
+      expect(reprocessScheduleBlock("pending", action)).toBe(ALREADY_PROCESSING_MESSAGE);
+      expect(reprocessScheduleBlock("processing", action)).toBe(ALREADY_PROCESSING_MESSAGE);
+    }
+  });
+
+  it("allows a failed retry and a done category reprocess", () => {
+    expect(reprocessScheduleBlock("failed", "retry")).toBeNull();
+    expect(reprocessScheduleBlock("done", "reprocess")).toBeNull();
+  });
+
+  it("rejects the wrong terminal status without scheduling", () => {
+    expect(reprocessScheduleBlock("done", "retry")).toBe("Only failed items can be retried");
+    expect(reprocessScheduleBlock("failed", "reprocess")).toBe(
+      "Only done items can be re-processed",
+    );
   });
 });
 

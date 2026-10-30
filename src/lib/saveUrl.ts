@@ -81,21 +81,51 @@ export function reusableSavedItem<T>(matches: readonly T[]): T | null {
   );
 }
 
-/** User-facing copy when a new save is over the per-user limit. `retryAfterMs` comes from the rate limiter. */
-export function formatSaveRateLimit(retryAfterMs: number): string {
+function formatTooQuickly(action: string, retryAfterMs: number): string {
   const seconds = Math.max(1, Math.ceil(retryAfterMs / 1000));
   if (seconds < 60) {
-    return `You're saving links too quickly. Try again in ${seconds} second${seconds === 1 ? "" : "s"}.`;
+    return `You're ${action} too quickly. Try again in ${seconds} second${seconds === 1 ? "" : "s"}.`;
   }
   const minutes = Math.ceil(seconds / 60);
-  return `You're saving links too quickly. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
+  return `You're ${action} too quickly. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
+}
+
+/** User-facing copy when a new save is over the per-user limit. `retryAfterMs` comes from the rate limiter. */
+export function formatSaveRateLimit(retryAfterMs: number): string {
+  return formatTooQuickly("saving links", retryAfterMs);
+}
+
+/** User-facing copy when retry or category reprocess is over the per-user limit. */
+export function formatReprocessRateLimit(retryAfterMs: number): string {
+  return formatTooQuickly("reprocessing", retryAfterMs);
+}
+
+export type RateLimitCheck = { ok: boolean; retryAfter?: number };
+
+/**
+ * String payload for `ConvexError`, matching `items.save`.
+ * Null when both windows still have capacity. The longer wait wins.
+ */
+export function reprocessRateLimitMessage(
+  perMinute: RateLimitCheck,
+  perHour: RateLimitCheck,
+): string | null {
+  if (perMinute.ok && perHour.ok) return null;
+  const retryAfter = Math.max(
+    perMinute.ok ? 0 : perMinute.retryAfter ?? 0,
+    perHour.ok ? 0 : perHour.retryAfter ?? 0,
+  );
+  return formatReprocessRateLimit(retryAfter);
 }
 
 /**
- * Prefer ConvexError `data` (a string message from `items.save`).
+ * Prefer ConvexError `data` (a string message from save, retry, or reprocess).
  * Plain server Errors arrive wrapped as `[CONVEX M(...)] Uncaught Error: ...`.
  */
-export function messageFromSaveError(err: unknown): string {
+export function messageFromSaveError(
+  err: unknown,
+  fallback = "Couldn't save that link. Try again.",
+): string {
   if (typeof err === "object" && err !== null && "data" in err) {
     const data = (err as { data?: unknown }).data;
     if (typeof data === "string" && data.trim()) return data;
@@ -113,5 +143,5 @@ export function messageFromSaveError(err: unknown): string {
     const match = err.message.match(/Uncaught (?:ConvexError|Error):\s*([^\n]+)/);
     if (match?.[1]?.trim()) return match[1].trim();
   }
-  return "Couldn't save that link. Try again.";
+  return fallback;
 }
