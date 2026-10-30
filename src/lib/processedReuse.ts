@@ -1,3 +1,5 @@
+import { sanitizeExtractedUrls } from "./safeUrl";
+
 /**
  * Cross-user reuse of a successfully processed link.
  *
@@ -155,7 +157,9 @@ export function copyPublicProcessedFields<TStorage extends string = string>(
     processedAt: processedFreshnessMs(source),
   };
   if (source.rawContent !== undefined) copy.rawContent = cloneJson(source.rawContent);
-  if (source.extractedData !== undefined) copy.extractedData = cloneJson(source.extractedData);
+  if (source.extractedData !== undefined) {
+    copy.extractedData = sanitizeExtractedUrls(cloneJson(source.extractedData));
+  }
   if (source.thumbnailStorageId !== undefined) copy.thumbnailStorageId = source.thumbnailStorageId;
   if (source.thumbnailR2Key !== undefined) copy.thumbnailR2Key = source.thumbnailR2Key;
   if (source.actionTaken !== undefined) copy.actionTaken = source.actionTaken;

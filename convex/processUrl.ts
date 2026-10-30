@@ -12,6 +12,7 @@ import * as path from "path";
 import type { Id } from "./_generated/dataModel";
 import { captureServer, SERVER_EVENTS } from "./analytics";
 import { userFacingFailureReason, type FailureStage } from "../src/lib/failureReason";
+import { sanitizeExtractedUrls } from "../src/lib/safeUrl";
 
 async function emitAiGeneration(
   distinctId: string,
@@ -1088,7 +1089,7 @@ export const processItem = internalAction({
         platform,
         category,
         rawContent: scrapeResult.metadata,
-        extractedData: extraction.extractedData,
+        extractedData: sanitizeExtractedUrls(extraction.extractedData),
         actionTaken: extraction.actionTaken,
         thumbnailR2Key,
       });

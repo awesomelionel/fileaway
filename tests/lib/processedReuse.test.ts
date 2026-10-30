@@ -127,6 +127,36 @@ describe("copyPublicProcessedFields", () => {
     expect(JSON.stringify(copy)).not.toContain("old failure");
   });
 
+  it("strips script URLs from extracted data before another user receives the copy", () => {
+    const source = doneItem({
+      extractedData: {
+        dish_name: "Ramen",
+        thumbnailUrl: "javascript:alert(1)",
+        itinerary: [
+          {
+            name: "Louvre",
+            google_maps_query: "Louvre Museum",
+            google_maps_url: "javascript:alert(1)",
+          },
+        ],
+      },
+    });
+    const copy = copyPublicProcessedFields(source, { catalogHasSlug: true });
+    expect(copy.extractedData).toEqual({
+      dish_name: "Ramen",
+      itinerary: [
+        {
+          name: "Louvre",
+          google_maps_query: "Louvre Museum",
+          google_maps_url: "https://www.google.com/maps/search/?api=1&query=Louvre%20Museum",
+        },
+      ],
+    });
+    expect(source.extractedData).toMatchObject({
+      thumbnailUrl: "javascript:alert(1)",
+    });
+  });
+
   it("deep-copies extracted data and raw content so the source can change independently", () => {
     const source = doneItem();
     const copy = copyPublicProcessedFields(source, { catalogHasSlug: true });

@@ -23,6 +23,7 @@ import {
   copyPublicProcessedFields,
   selectReusableProcessedItem,
 } from "../src/lib/processedReuse";
+import { safeUrl, sanitizeExtractedUrls } from "../src/lib/safeUrl";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -90,22 +91,18 @@ export function extractThumbnailUrl(
   extractedData: Record<string, unknown> | null,
   rawContent: Record<string, unknown> | null,
 ): string | null {
-  if (extractedData) {
-    const url =
-      extractedData.thumbnailUrl ??
-      extractedData.thumbnail_url ??
-      extractedData.displayUrl;
-    if (typeof url === "string") return url;
+  const candidates = [
+    extractedData?.thumbnailUrl,
+    extractedData?.thumbnail_url,
+    extractedData?.displayUrl,
+    rawContent?.coverUrl,
+    rawContent?.displayUrl,
+    rawContent?.thumbnailUrl,
+  ];
+  for (const candidate of candidates) {
+    const safe = safeUrl(candidate);
+    if (safe) return safe;
   }
-
-  if (rawContent) {
-    const url =
-      rawContent.coverUrl ??
-      rawContent.displayUrl ??
-      rawContent.thumbnailUrl;
-    if (typeof url === "string") return url;
-  }
-
   return null;
 }
 
@@ -130,7 +127,9 @@ function toResponse(
   thumbnailUrl: string | null,
 ) {
   const extractedData =
-    (item.extractedData as Record<string, unknown> | null) ?? null;
+    item.extractedData == null
+      ? null
+      : (sanitizeExtractedUrls(item.extractedData) as Record<string, unknown>);
   return {
     id: item._id as string,
     source_url: item.sourceUrl,
@@ -643,11 +642,13 @@ export const updateResult = internalMutation({
   ) => {
     const item = await ctx.db.get(id);
     if (!item) return;
+    const safeExtracted =
+      extractedData === undefined ? undefined : sanitizeExtractedUrls(extractedData);
     await ctx.db.patch(id, {
       platform,
       category,
       rawContent,
-      extractedData,
+      extractedData: safeExtracted,
       actionTaken,
       thumbnailStorageId,
       thumbnailR2Key,
@@ -656,7 +657,7 @@ export const updateResult = internalMutation({
         platform,
         category,
         rawContent,
-        extractedData,
+        extractedData: safeExtracted,
         actionTaken,
         userCorrection: item.userCorrection,
       }),

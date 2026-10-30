@@ -10,6 +10,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { track, EVENTS } from "@/lib/analytics";
 import { formatWorkoutClipboard } from "@/lib/workoutClipboard";
 import { categoryAccentStyle, getCategoryMeta } from "@/lib/categoryMeta";
+import { safeMapsHref, safeUrl } from "@/lib/safeUrl";
 import { messageFromSaveError } from "@/lib/saveUrl";
 
 export { CATEGORY_META, getCategoryMeta } from "@/lib/categoryMeta";
@@ -61,28 +62,38 @@ function ThumbnailBanner({
   thumbnailUrl: string;
   sourceUrl: string;
 }) {
+  const src = safeUrl(thumbnailUrl);
+  const href = safeUrl(sourceUrl, { allowHttp: true });
   const [failed, setFailed] = useState(false);
 
-  if (failed) return null;
+  if (!src || failed) return null;
+
+  const image = (
+    <Image
+      src={src}
+      alt=""
+      fill
+      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+      className="object-cover transition-opacity duration-200 hover:opacity-85"
+      unoptimized
+    />
+  );
+
+  if (!href) {
+    return <div className="block w-full overflow-hidden relative h-40">{image}</div>;
+  }
 
   return (
     <a
-      href={sourceUrl}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       className="block w-full overflow-hidden relative h-40"
       onClick={(e) => e.stopPropagation()}
     >
-      <Image
-        src={thumbnailUrl}
-        alt=""
-        fill
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        referrerPolicy="no-referrer"
-        onError={() => setFailed(true)}
-        className="object-cover transition-opacity duration-200 hover:opacity-85"
-        unoptimized
-      />
+      {image}
     </a>
   );
 }
@@ -253,6 +264,7 @@ function TravelBody({ data }: { data: Record<string, unknown> }) {
         order?: number | string;
         name?: string;
         location_text?: string;
+        google_maps_query?: string;
         google_maps_url?: string;
       }>
     | undefined;
@@ -269,30 +281,37 @@ function TravelBody({ data }: { data: Record<string, unknown> }) {
       {itinerary && itinerary.length > 0 && (
         <div className="space-y-1">
           <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle">Itinerary</p>
-          {itinerary.slice(0, 4).map((stop, i) => (
-            <div key={i} className="flex items-start justify-between gap-2 text-xs">
-              <div className="min-w-0">
-                <p className="text-fa-mid truncate">
-                  <span className="text-fa-cat-travel font-mono mr-2">{(stop.order ?? i + 1).toString()}.</span>
-                  {stop.name ?? "Stop"}
-                </p>
-                {stop.location_text && (
-                  <p className="text-[11px] text-fa-subtle truncate">{stop.location_text}</p>
-                )}
+          {itinerary.slice(0, 4).map((stop, i) => {
+            const mapsHref = safeMapsHref({
+              url: stop.google_maps_url,
+              query: stop.google_maps_query,
+              name: stop.name,
+            });
+            return (
+              <div key={i} className="flex items-start justify-between gap-2 text-xs">
+                <div className="min-w-0">
+                  <p className="text-fa-mid truncate">
+                    <span className="text-fa-cat-travel font-mono mr-2">{(stop.order ?? i + 1).toString()}.</span>
+                    {stop.name ?? "Stop"}
+                  </p>
+                  {stop.location_text && (
+                    <p className="text-[11px] text-fa-subtle truncate">{stop.location_text}</p>
+                  )}
+                </div>
+                {mapsHref ? (
+                  <a
+                    href={mapsHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-shrink-0 text-[11px] text-fa-cat-travel hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Maps ↗
+                  </a>
+                ) : null}
               </div>
-              {stop.google_maps_url ? (
-                <a
-                  href={stop.google_maps_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-shrink-0 text-[11px] text-fa-cat-travel hover:underline"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Maps ↗
-                </a>
-              ) : null}
-            </div>
-          ))}
+            );
+          })}
           {itinerary.length > 4 && (
             <p className="text-[11px] text-fa-subtle">+{itinerary.length - 4} more stops</p>
           )}
@@ -485,10 +504,15 @@ function ActionButton({
   if (category === "food") {
     const address = (item.extracted_data?.address as string | undefined) ?? "";
     const name = (item.extracted_data?.name as string | undefined) ?? "";
-    const query = encodeURIComponent(`${name} ${address}`.trim());
+    const place = `${name} ${address}`.trim();
+    const built = `https://maps.google.com/?q=${encodeURIComponent(place)}`;
+    const href = safeMapsHref({ url: built })
+      ? built
+      : safeMapsHref({ query: place, name });
+    if (!href) return null;
     return (
       <a
-        href={`https://maps.google.com/?q=${query}`}
+        href={href}
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => trackAction(item, "open_in_maps")}
@@ -572,17 +596,25 @@ function ActionButton({
           order?: number | string;
           name?: string;
           location_text?: string;
+          google_maps_query?: string;
           google_maps_url?: string;
         }>
       | undefined;
 
-    const firstUrl = itinerary?.find((s) => typeof s.google_maps_url === "string")
-      ?.google_maps_url as string | undefined;
+    const mapsHref = itinerary
+      ?.map((stop) =>
+        safeMapsHref({
+          url: stop.google_maps_url,
+          query: stop.google_maps_query,
+          name: stop.name,
+        }),
+      )
+      .find((href): href is string => Boolean(href));
 
-    if (firstUrl) {
+    if (mapsHref) {
       return (
         <a
-          href={firstUrl}
+          href={mapsHref}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => trackAction(item, "open_in_maps")}
@@ -777,6 +809,7 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
   const setArchived = useMutation(api.items.setArchived);
 
   const meta = getCategoryMeta(item.category);
+  const sourceHref = safeUrl(item.source_url, { allowHttp: true });
 
   const handleRetry = async () => {
     track(EVENTS.ITEM_RETRY_CLICKED, {
@@ -915,16 +948,18 @@ export function ItemCard({ item, categories, onCardClick }: ItemCardProps) {
 
             </div>
 
-            <a
-              href={item.source_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] text-fa-subtle hover:text-fa-muted transition-colors flex items-center gap-1 w-fit"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span>↗</span>
-              <span>View Original</span>
-            </a>
+            {sourceHref ? (
+              <a
+                href={sourceHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] text-fa-subtle hover:text-fa-muted transition-colors flex items-center gap-1 w-fit"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span>↗</span>
+                <span>View Original</span>
+              </a>
+            ) : null}
           </div>
         )}
       </div>

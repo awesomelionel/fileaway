@@ -10,6 +10,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { FoodExtractModal } from "@/components/feed/foodExtract";
 import { categoryAccentStyle, getCategoryMeta } from "@/lib/categoryMeta";
 import { hrefWithoutItemParam } from "@/lib/itemQuery";
+import { safeMapsHref, safeUrl } from "@/lib/safeUrl";
 import { messageFromSaveError } from "@/lib/saveUrl";
 
 // ─── Per-category detail renderers ───────────────────────────────────────────
@@ -285,6 +286,7 @@ function TravelDetail({ data }: { data: Record<string, unknown> }) {
         location_text?: string;
         why_go?: string;
         what_you_see?: string;
+        google_maps_query?: string;
         google_maps_url?: string;
         tips?: string[];
       }>
@@ -305,7 +307,13 @@ function TravelDetail({ data }: { data: Record<string, unknown> }) {
         <div className="space-y-3">
           <p className="text-[10px] font-medium uppercase tracking-wider text-fa-subtle">Itinerary</p>
           <div className="space-y-3">
-            {itinerary.map((stop, i) => (
+            {itinerary.map((stop, i) => {
+              const mapsHref = safeMapsHref({
+                url: stop.google_maps_url,
+                query: stop.google_maps_query,
+                name: stop.name,
+              });
+              return (
               <div key={i} className="border border-fa-separator rounded-lg p-3 bg-fa-elevated/40">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -320,9 +328,9 @@ function TravelDetail({ data }: { data: Record<string, unknown> }) {
                       {stop.timestamp ? ` · ${stop.timestamp}` : ""}
                     </p>
                   </div>
-                  {stop.google_maps_url ? (
+                  {mapsHref ? (
                     <a
-                      href={stop.google_maps_url}
+                      href={mapsHref}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-[#f59e0b] border border-[#f59e0b30] bg-[#f59e0b12] px-2 py-1 rounded hover:bg-[#f59e0b20] transition-colors flex-shrink-0"
@@ -365,7 +373,8 @@ function TravelDetail({ data }: { data: Record<string, unknown> }) {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -476,6 +485,8 @@ export function DetailModal({ item, categories }: DetailModalProps) {
   const meta = getCategoryMeta(item.category);
   const categoryLabel = CATEGORY_LABELS[item.category] ?? meta.label;
   const platformLabel = PLATFORM_LABELS[item.platform] ?? item.platform;
+  const sourceHref = safeUrl(item.source_url, { allowHttp: true });
+  const thumbnailSrc = safeUrl(item.thumbnail_url);
 
   return (
     <div
@@ -506,14 +517,20 @@ export function DetailModal({ item, categories }: DetailModalProps) {
               <span className="text-fa-faint text-[10px]">·</span>
               <span className="text-[10px] text-fa-faint">{platformLabel}</span>
             </div>
-            <a
-              href={item.source_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-fa-subtle hover:text-fa-muted transition-colors font-mono truncate block max-w-xs"
-            >
-              {item.source_url}
-            </a>
+            {sourceHref ? (
+              <a
+                href={sourceHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-fa-subtle hover:text-fa-muted transition-colors font-mono truncate block max-w-xs"
+              >
+                {item.source_url}
+              </a>
+            ) : (
+              <span className="text-xs text-fa-subtle font-mono truncate block max-w-xs">
+                {item.source_url}
+              </span>
+            )}
           </div>
           <button
             onClick={close}
@@ -525,10 +542,10 @@ export function DetailModal({ item, categories }: DetailModalProps) {
         </div>
 
         {/* Thumbnail */}
-        {item.thumbnail_url && (
+        {thumbnailSrc && (
           <div className="relative w-full h-48">
             <Image
-              src={item.thumbnail_url}
+              src={thumbnailSrc}
               alt=""
               fill
               sizes="(max-width: 640px) 100vw, 576px"
@@ -551,14 +568,16 @@ export function DetailModal({ item, categories }: DetailModalProps) {
 
         {/* Footer */}
         <div className="px-5 pb-5 space-y-3">
-          <a
-            href={item.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-fa-subtle hover:text-fa-muted transition-colors"
-          >
-            View original source ↗
-          </a>
+          {sourceHref ? (
+            <a
+              href={sourceHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-fa-subtle hover:text-fa-muted transition-colors"
+            >
+              View original source ↗
+            </a>
+          ) : null}
 
           {item.status === "done" && categories.length > 0 && (
             <div className="flex items-center gap-2 pt-3 border-t border-fa-separator">
