@@ -55,6 +55,21 @@ describe("extractThumbnailUrl", () => {
     const raw = { coverUrl: null };
     expect(extractThumbnailUrl(extracted, raw)).toBeNull();
   });
+
+  it("skips script and data thumbnail URLs and uses the next https candidate", () => {
+    expect(
+      extractThumbnailUrl(
+        { thumbnailUrl: "javascript:alert(1)" },
+        { coverUrl: "https://cdn.example.com/cover.jpg" },
+      ),
+    ).toBe("https://cdn.example.com/cover.jpg");
+    expect(
+      extractThumbnailUrl(
+        { thumbnailUrl: "\nJAVASCRIPT:alert(1)", displayUrl: "data:text/html,hi" },
+        { thumbnailUrl: "vbscript:msgbox(1)" },
+      ),
+    ).toBeNull();
+  });
 });
 
 describe("thumbnail in extractedData (pipeline persistence)", () => {
